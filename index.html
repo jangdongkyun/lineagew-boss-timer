@@ -1,0 +1,1146 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LINEAGE W · BOSS COMMAND</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0b0e14;
+  --panel:#151b26;
+  --panel2:#1d2634;
+  --line:#303b4d;
+  --text:#edf2fa;
+  --muted:#9ba9bd;
+  --gold:#e6bd68;
+  --green:#63d69b;
+  --yellow:#f5d45e;
+  --orange:#ff963e;
+  --red:#ff5555;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
+}
+button,input,select{font:inherit}
+button{
+  cursor:pointer;
+  border:1px solid var(--line);
+  border-radius:9px;
+  padding:10px 13px;
+  background:#273448;
+  color:var(--text);
+  font-weight:700;
+}
+button:hover{filter:brightness(1.18)}
+button:disabled{opacity:.5;cursor:not-allowed}
+input{
+  width:100%;
+  min-width:0;
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#0d131d;
+  color:var(--text);
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1150px;margin:auto;padding:18px}
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
+}
+.logo{
+  font-size:23px;
+  font-weight:900;
+  letter-spacing:1px;
+  color:var(--gold);
+}
+.sub{font-size:12px;color:var(--muted);margin-top:4px}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:16px;
+  margin-bottom:15px;
+}
+h2{font-size:17px;margin:0 0 13px}
+h3{font-size:14px;margin:0 0 10px}
+.muted{color:var(--muted);font-size:12px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row>*{flex:0 0 auto}
+.grow{flex:1 1 160px}
+.primary{background:#8a672d;border-color:#b58b43}
+.danger{background:#6b2930;border-color:#9b424b}
+.good{background:#20583f;border-color:#317b58}
+.ghost{background:#17202d}
+.authbox{max-width:430px;margin:7vh auto}
+.authbox input{margin:5px 0 10px}
+.authbox button{width:100%;margin-top:7px}
+#app{display:none}
+.stats{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.stat{
+  background:var(--panel);
+  border:1px solid var(--line);
+  padding:9px 13px;
+  border-radius:10px;
+  font-size:13px;
+}
+.stat b{color:var(--gold);margin-left:5px}
+.boss-list{display:grid;gap:10px}
+.boss-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:13px;
+  display:grid;
+  grid-template-columns:minmax(130px,1.2fr) minmax(130px,1fr) minmax(180px,1fr);
+  gap:12px;
+  align-items:center;
+}
+.boss-name{font-size:17px;font-weight:900}
+.boss-alias{font-size:11px;color:var(--muted);margin-top:4px}
+.timer{
+  font-size:22px;
+  font-weight:900;
+  font-variant-numeric:tabular-nums;
+  color:var(--green);
+  text-align:center;
+  padding:9px 5px;
+  border-radius:8px;
+  background:#101923;
+  border:1px solid #283747;
+}
+.timer.normal{color:var(--green)}
+.timer.yellow{
+  color:var(--yellow);
+  border-color:#8e762f;
+  background:#302a17;
+}
+.timer.orange{
+  color:var(--orange);
+  border-color:#a65a25;
+  background:#382217;
+  animation:orangePulse 1s infinite;
+}
+.timer.red{
+  color:#fff;
+  border-color:#a32d35;
+  background:#501b22;
+  animation:redPulse .65s infinite;
+}
+@keyframes orangePulse{
+  50%{box-shadow:0 0 15px #ff963e66}
+}
+@keyframes redPulse{
+  50%{box-shadow:0 0 20px #ff333399;background:#8a202b}
+}
+.timer-label{text-align:center;font-size:11px;color:var(--muted);margin-top:5px}
+.boss-actions{display:grid;gap:7px}
+.boss-actions input{padding:9px}
+.boss-actions button{width:100%}
+.cut-time{display:flex;gap:5px}
+.cut-time input{flex:1}
+.cut-time button{white-space:nowrap}
+.section-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.history-item{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.history-item:last-child{border-bottom:0}
+.history-time{color:var(--gold);white-space:nowrap}
+.quick-links{display:flex;gap:8px;flex-wrap:wrap}
+.quick-links a{
+  padding:11px 15px;
+  border-radius:9px;
+  border:1px solid var(--line);
+  background:#202c3c;
+  font-size:13px;
+  font-weight:800;
+}
+.quick-links a:first-child{border-color:#7b6033;color:var(--gold)}
+.admin-only{display:none}
+#message{margin:10px 0;color:var(--yellow);font-size:13px;white-space:pre-wrap}
+.badge{
+  display:inline-block;
+  padding:4px 7px;
+  border-radius:6px;
+  background:#29384a;
+  color:#c7d5e7;
+  font-size:11px;
+}
+.online-list{font-size:12px;color:var(--muted);line-height:1.8}
+@media(max-width:700px){
+  .wrap{padding:11px}
+  .logo{font-size:19px}
+  .boss-card{
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+  }
+  .boss-main{grid-column:1/-1}
+  .boss-actions{grid-column:1/-1}
+  .section-grid{grid-template-columns:1fr}
+  .timer{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div class="logo">LINEAGE W · BOSS COMMAND</div>
+    <div class="sub">혈맹 필드 보스 타이머</div>
+  </div>
+  <div class="quick-links">
+    <a href="https://lineagew.plaync.com/" target="_blank" rel="noopener">리니지W 공식 홈페이지</a>
+    <a href="https://trade.ssatem.com/" target="_blank" rel="noopener">싸템 바로가기</a>
+  </div>
+</header>
+
+<div id="auth" class="panel authbox">
+  <h2>혈맹원 로그인</h2>
+  <div class="field">
+    <label>이메일</label>
+    <input id="email" type="email" placeholder="이메일">
+  </div>
+  <div class="field">
+    <label>비밀번호</label>
+    <input id="password" type="password" placeholder="비밀번호">
+  </div>
+  <div class="field" id="signupNickBox" style="display:none">
+    <label>사용할 닉네임</label>
+    <input id="signupNick" placeholder="닉네임">
+  </div>
+  <button class="primary" id="loginBtn">로그인</button>
+  <button class="ghost" id="signupBtn">회원가입</button>
+  <div id="message"></div>
+  <div class="muted">이미 가입한 계정은 로그인, 처음 이용하는 경우 회원가입을 선택하세요.</div>
+</div>
+
+<div id="app">
+  <div class="panel">
+    <div class="row">
+      <div class="grow">
+        <b id="welcome">혈맹원</b>
+        <div class="sub" id="roleText">회원</div>
+      </div>
+      <button class="ghost" id="soundBtn">음성 알림 켜기</button>
+      <button class="ghost" id="nickToggle">닉네임 변경</button>
+      <button class="danger" id="logoutBtn">로그아웃</button>
+    </div>
+    <div id="nickBox" style="display:none;margin-top:12px">
+      <div class="row">
+        <input id="newNick" class="grow" placeholder="새 닉네임">
+        <button class="primary" id="saveNickBtn">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">등록 보스 <b id="bossCount">0</b></div>
+    <div class="stat">온라인 <b id="onlineCount">0</b></div>
+    <div class="stat">현재 시각 <b id="clock">--:--:--</b></div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <h2>필드 보스 현황</h2>
+      <span class="badge">출현 예정 시간순 자동 정렬</span>
+    </div>
+    <div class="muted" style="margin-bottom:12px">
+      타이머를 누르면 현재 시각으로 컷이 기록됩니다.
+      출현한 보스는 5분간 최상단에 표시됩니다.
+    </div>
+    <div class="boss-list" id="bossList"></div>
+    <div id="emptyBoss" class="muted" style="display:none;text-align:center;padding:25px">
+      등록된 보스가 없습니다.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>보스명으로 컷 시간 직접 입력</h2>
+    <div class="muted" style="margin-bottom:12px">
+      보스 이름 또는 별명을 입력하고 컷 시간을 입력하세요. 예: 2135 또는 21:35
+    </div>
+    <div class="section-grid">
+      <div class="field">
+        <label>보스 이름 / 별명</label>
+        <input id="manualBossName" list="bossNames" placeholder="보스 이름 입력">
+        <datalist id="bossNames"></datalist>
+      </div>
+      <div class="field">
+        <label>컷 시간</label>
+        <input id="manualCutTime" placeholder="2135 또는 21:35" maxlength="5">
+      </div>
+    </div>
+    <button class="primary" id="manualCutBtn">수기 컷 기록 등록</button>
+  </div>
+
+  <div class="panel">
+    <h2>최근 컷 기록</h2>
+    <div id="historyList" class="muted">기록이 없습니다.</div>
+  </div>
+
+  <div class="panel">
+    <h2>온라인 혈맹원</h2>
+    <div id="onlineList" class="online-list">확인 중...</div>
+  </div>
+
+  <div class="panel admin-only" id="adminPanel">
+    <h2>관리자 · 보스 관리</h2>
+    <div class="section-grid">
+      <div class="field">
+        <label>보스 이름</label>
+        <input id="bossName" placeholder="보스 이름">
+      </div>
+      <div class="field">
+        <label>별명 (쉼표로 구분)</label>
+        <input id="bossAliases" placeholder="별명1, 별명2">
+      </div>
+      <div class="field">
+        <label>재출현 시간 (시간 단위)</label>
+        <input id="respawnHours" type="number" min="0.1" step="0.1" placeholder="예: 4">
+      </div>
+      <div class="field">
+        <label>최초 출현 예정 시각</label>
+        <input id="initialSpawn" type="datetime-local">
+      </div>
+    </div>
+    <div class="row">
+      <button class="primary" id="addBossBtn">보스 추가</button>
+      <button class="ghost" id="clearBossForm">입력 초기화</button>
+    </div>
+    <div id="adminBossList" style="margin-top:15px"></div>
+  </div>
+</div>
+</div>
+
+<script>
+/* 기존 Supabase 프로젝트 설정 */
+const SUPABASE_URL = "https://jswekbrsjkylrwhgvvre.supabase.co";
+const SUPABASE_KEY = "sb_publishable_s4gO0UlJvICe6eQSzFA9MQ_RWxo02po";
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let user = null;
+let profile = null;
+let bosses = [];
+let cuts = [];
+let presenceRows = [];
+let soundOn = false;
+let editingBossId = null;
+let realtimeChannels = [];
+let alerted = new Set();
+let lastPresenceUpdate = 0;
+
+const $ = id => document.getElementById(id);
+
+function message(text){
+  $("message").textContent = text || "";
+}
+
+function isAdmin(){
+  return profile && profile.role === "admin";
+}
+
+function escapeHtml(value){
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+
+function formatDate(date){
+  if(!date) return "-";
+  return new Date(date).toLocaleString("ko-KR",{
+    month:"2-digit",day:"2-digit",
+    hour:"2-digit",minute:"2-digit",second:"2-digit",
+    hour12:false
+  });
+}
+
+function formatDuration(ms){
+  if(ms <= 0) return "출현";
+  const sec = Math.floor(ms/1000);
+  const d = Math.floor(sec/86400);
+  const h = Math.floor((sec%86400)/3600);
+  const m = Math.floor((sec%3600)/60);
+  const s = sec%60;
+  if(d>0) return `${d}일 ${h}시간 ${m}분`;
+  if(h>0) return `${h}시간 ${m}분 ${s}초`;
+  return `${m}분 ${s}초`;
+}
+
+function latestCut(bossId){
+  return cuts
+    .filter(c => c.boss_id === bossId)
+    .sort((a,b)=>new Date(b.cut_at)-new Date(a.cut_at))[0] || null;
+}
+
+/* 최근 컷 또는 최초 출현 시각을 기준으로 다음 주기를 계산 */
+function nextAt(boss){
+  const last = latestCut(boss.id);
+  let base = last
+    ? new Date(last.cut_at).getTime()
+    : boss.initial_spawn_at
+      ? new Date(boss.initial_spawn_at).getTime()
+      : NaN;
+
+  if(!Number.isFinite(base)) return null;
+
+  const interval = Number(boss.respawn_hours) * 3600000;
+  if(!Number.isFinite(interval) || interval <= 0) return null;
+
+  const now = Date.now();
+  const fiveMinutes = 5 * 60 * 1000;
+
+  /*
+    예정 시각이 5분 이상 지났으면 다음 주기로 넘깁니다.
+    출현 직후 5분 동안은 출현 상태를 유지합니다.
+  */
+  let next = base + interval;
+  while(next < now - fiveMinutes){
+    next += interval;
+  }
+  return next;
+}
+
+function getSortedBosses(){
+  const now = Date.now();
+  return [...bosses].sort((a,b)=>{
+    const ta = nextAt(a);
+    const tb = nextAt(b);
+    const aSpawn = ta !== null && ta <= now && now-ta <= 300000;
+    const bSpawn = tb !== null && tb <= now && now-tb <= 300000;
+
+    if(aSpawn !== bSpawn) return aSpawn ? -1 : 1;
+    if(ta === null && tb === null) return a.name.localeCompare(b.name,"ko");
+    if(ta === null) return 1;
+    if(tb === null) return -1;
+    return ta-tb;
+  });
+}
+
+/* 시간 입력: 2135 / 21:35 모두 지원 */
+function parseCutTime(value){
+  let v = String(value || "").trim();
+  if(!v) throw new Error("컷 시간을 입력하세요.");
+
+  let hour, minute;
+  if(/^\d{4}$/.test(v)){
+    hour = Number(v.slice(0,2));
+    minute = Number(v.slice(2,4));
+  }else if(/^\d{1,2}:\d{2}$/.test(v)){
+    const parts = v.split(":");
+    hour = Number(parts[0]);
+    minute = Number(parts[1]);
+  }else{
+    throw new Error("시간 형식이 올바르지 않습니다. 2135 또는 21:35로 입력하세요.");
+  }
+
+  if(hour<0 || hour>23 || minute<0 || minute>59){
+    throw new Error("올바른 24시간 형식으로 입력하세요.");
+  }
+
+  const now = new Date();
+  const result = new Date(
+    now.getFullYear(),now.getMonth(),now.getDate(),
+    hour,minute,0,0
+  );
+
+  /* 입력 시간이 현재보다 미래면 전날 컷으로 처리 */
+  if(result.getTime() > Date.now() + 60000){
+    result.setDate(result.getDate()-1);
+  }
+  return result.toISOString();
+}
+
+function findBossByName(name){
+  const target = String(name || "").trim().toLocaleLowerCase();
+  if(!target) return null;
+
+  return bosses.find(b=>{
+    const names = [b.name,...(Array.isArray(b.aliases)?b.aliases:[])];
+    return names.some(n=>
+      String(n).trim().toLocaleLowerCase() === target
+    );
+  }) || null;
+}
+
+async function registerCut(boss, cutAt){
+  if(!user) throw new Error("로그인이 필요합니다.");
+  if(!profile) throw new Error("회원 정보를 불러오는 중입니다.");
+
+  const {error} = await db.from("cut_records").insert({
+    boss_id: boss.id,
+    cut_at: cutAt,
+    created_by: user.id,
+    created_by_nickname: profile.nickname || "혈맹원"
+  });
+
+  if(error) throw error;
+
+  await loadCuts();
+  renderAll();
+  return true;
+}
+
+async function quickCut(bossId){
+  const boss = bosses.find(b=>b.id===bossId);
+  if(!boss) return;
+
+  if(!confirm(`${boss.name}\n현재 시각으로 컷 기록을 등록할까요?`)) return;
+
+  try{
+    await registerCut(boss,new Date().toISOString());
+    alert(`${boss.name} 컷 기록이 등록되었습니다.`);
+  }catch(e){
+    alert("컷 기록 실패: "+e.message);
+  }
+}
+
+async function rowCut(bossId){
+  const boss = bosses.find(b=>b.id===bossId);
+  const input = document.querySelector(`[data-cut-input="${bossId}"]`);
+  if(!boss || !input) return;
+
+  try{
+    const cutAt = parseCutTime(input.value);
+    await registerCut(boss,cutAt);
+    input.value = "";
+    alert(`${boss.name} 컷 기록이 등록되었습니다.`);
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+async function manualCut(){
+  const boss = findBossByName($("manualBossName").value);
+  if(!boss){
+    alert("등록된 보스 이름 또는 별명을 찾을 수 없습니다.");
+    return;
+  }
+
+  try{
+    const cutAt = parseCutTime($("manualCutTime").value);
+    await registerCut(boss,cutAt);
+    $("manualCutTime").value = "";
+    alert(`${boss.name} 컷 기록이 등록되었습니다.`);
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+async function loadProfile(){
+  const {data,error} = await db.from("profiles")
+    .select("*").eq("id",user.id).maybeSingle();
+
+  if(error) throw error;
+
+  profile = data;
+  if(!profile) throw new Error("회원 프로필을 찾을 수 없습니다.");
+}
+
+async function loadBosses(){
+  const {data,error} = await db.from("bosses")
+    .select("*").order("name");
+
+  if(error) throw error;
+  bosses = data || [];
+}
+
+async function loadCuts(){
+  const {data,error} = await db.from("cut_records")
+    .select("*").order("cut_at",{ascending:false}).limit(150);
+
+  if(error) throw error;
+  cuts = data || [];
+}
+
+async function loadPresence(){
+  const {data,error} = await db.from("presence")
+    .select("user_id,last_seen");
+
+  if(error){
+    console.warn("presence 조회:",error.message);
+    return;
+  }
+  presenceRows = data || [];
+}
+
+async function loadAll(){
+  await loadProfile();
+  await Promise.all([loadBosses(),loadCuts(),loadPresence()]);
+  renderAll();
+}
+
+async function updatePresence(){
+  if(!user) return;
+
+  const now = new Date().toISOString();
+
+  try{
+    const {data,error} = await db.from("presence")
+      .select("user_id")
+      .eq("user_id",user.id)
+      .maybeSingle();
+
+    if(error) throw error;
+
+    if(data){
+      const result = await db.from("presence")
+        .update({last_seen:now})
+        .eq("user_id",user.id);
+      if(result.error) throw result.error;
+    }else{
+      const result = await db.from("presence").insert({
+        user_id:user.id,
+        last_seen:now
+      });
+      if(result.error) throw result.error;
+    }
+
+    lastPresenceUpdate = Date.now();
+  }catch(e){
+    console.warn("접속 상태 갱신:",e.message);
+  }
+}
+
+function renderBosses(){
+  const list = $("bossList");
+  const sorted = getSortedBosses();
+  $("bossCount").textContent = bosses.length;
+  $("emptyBoss").style.display = bosses.length ? "none" : "block";
+
+  const existing = new Map(
+    [...list.querySelectorAll("[data-boss-card]")]
+      .map(el=>[el.dataset.bossCard,el])
+  );
+
+  const ids = new Set();
+
+  sorted.forEach(b=>{
+    ids.add(b.id);
+    let card = existing.get(b.id);
+
+    if(!card){
+      card = document.createElement("div");
+      card.className = "boss-card";
+      card.dataset.bossCard = b.id;
+      card.innerHTML = `
+        <div class="boss-main">
+          <div class="boss-name"></div>
+          <div class="boss-alias"></div>
+        </div>
+        <div>
+          <button class="timer normal" data-timer></button>
+          <div class="timer-label" data-label></div>
+        </div>
+        <div class="boss-actions">
+          <button class="good" data-quick>현재 시각으로 컷 등록</button>
+          <div class="cut-time">
+            <input data-cut-input placeholder="2135 / 21:35" maxlength="5">
+            <button class="primary" data-row-cut>등록</button>
+          </div>
+          <div class="muted">위 시간 입력은 해당 보스의 컷 시간입니다.</div>
+        </div>
+      `;
+
+      card.querySelector("[data-timer]").addEventListener("click",()=>{
+        quickCut(b.id);
+      });
+      card.querySelector("[data-quick]").addEventListener("click",()=>{
+        quickCut(b.id);
+      });
+      card.querySelector("[data-row-cut]").addEventListener("click",()=>{
+        rowCut(b.id);
+      });
+    }
+
+    card.querySelector(".boss-name").textContent = b.name;
+    card.querySelector(".boss-alias").textContent =
+      Array.isArray(b.aliases) && b.aliases.length
+        ? "별명: "+b.aliases.join(", ")
+        : "";
+
+    list.appendChild(card);
+  });
+
+  existing.forEach((el,id)=>{
+    if(!ids.has(id)) el.remove();
+  });
+
+  $("datalist")?.remove();
+  const dl = $("bossNames");
+  dl.innerHTML = bosses.map(b=>
+    `<option value="${escapeHtml(b.name)}"></option>`
+  ).join("");
+}
+
+function updateTimers(){
+  const now = Date.now();
+  const sorted = getSortedBosses();
+
+  sorted.forEach(b=>{
+    const card = $("bossList").querySelector(
+      `[data-boss-card="${b.id}"]`
+    );
+    if(!card) return;
+
+    const timer = card.querySelector("[data-timer]");
+    const label = card.querySelector("[data-label]");
+    const at = nextAt(b);
+
+    timer.className = "timer normal";
+
+    if(at === null){
+      timer.textContent = "시간 미등록";
+      label.textContent = "최초 출현 시간을 관리자에게 문의하세요.";
+      return;
+    }
+
+    const ms = at-now;
+    const overdue = ms <= 0;
+    const elapsed = Math.abs(ms);
+
+    if(overdue && elapsed <= 300000){
+      timer.classList.add("red");
+      timer.textContent = "출현";
+      label.textContent = `출현 예정 ${formatDate(at)}`;
+    }else if(ms > 0 && ms <= 600000){
+      timer.classList.add("orange");
+      timer.textContent = formatDuration(ms);
+      label.textContent = "출현 10분 이내";
+    }else if(ms > 0 && ms <= 3600000){
+      timer.classList.add("yellow");
+      timer.textContent = formatDuration(ms);
+      label.textContent = "출현 1시간 이내";
+    }else{
+      timer.textContent = overdue ? "다음 주기 계산 중" : formatDuration(ms);
+      label.textContent = "예정 시각 "+formatDate(at);
+    }
+
+    checkVoice(b,at,ms);
+    $("bossList").appendChild(card);
+  });
+
+  $("clock").textContent = new Date().toLocaleTimeString("ko-KR",{
+    hour12:false
+  });
+}
+
+function checkVoice(boss,at,ms){
+  if(!soundOn || !("speechSynthesis" in window)) return;
+
+  const schedule = at;
+  const thresholds = [
+    {ms:180000,text:"3분 전"},
+    {ms:60000,text:"1분 전"},
+    {ms:30000,text:"30초 전"}
+  ];
+
+  thresholds.forEach(t=>{
+    const key = `${boss.id}-${schedule}-${t.ms}`;
+    if(ms>0 && ms<=t.ms && !alerted.has(key)){
+      alerted.add(key);
+      speak(`${boss.name}, ${t.text}입니다.`);
+    }
+  });
+
+  const spawnKey = `${boss.id}-${schedule}-spawn`;
+  if(ms<=0 && ms>=-5000 && !alerted.has(spawnKey)){
+    alerted.add(spawnKey);
+    speak(`${boss.name}, 출현 시간입니다.`);
+  }
+}
+
+function speak(text){
+  if(!soundOn || !("speechSynthesis" in window)) return;
+  try{
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ko-KR";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  }catch(e){
+    console.warn("음성 알림 오류",e);
+  }
+}
+
+function renderHistory(){
+  const list = $("historyList");
+  if(!cuts.length){
+    list.textContent = "기록이 없습니다.";
+    return;
+  }
+
+  list.innerHTML = cuts.slice(0,30).map(c=>{
+    const b = bosses.find(x=>x.id===c.boss_id);
+    return `
+      <div class="history-item">
+        <div>
+          <b>${escapeHtml(b?.name || "알 수 없는 보스")}</b>
+          <div class="muted">등록자: ${escapeHtml(c.created_by_nickname || "알 수 없음")}</div>
+        </div>
+        <div class="history-time">${formatDate(c.cut_at)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderOnline(){
+  const now = Date.now();
+  const active = presenceRows.filter(p=>
+    now-new Date(p.last_seen).getTime() < 120000
+  );
+
+  $("onlineCount").textContent = active.length;
+
+  const ids = active.map(p=>p.user_id);
+  if(!ids.length){
+    $("onlineList").textContent = "현재 온라인 혈맹원이 없습니다.";
+    return;
+  }
+
+  db.from("profiles").select("id,nickname").in("id",ids)
+    .then(({data,error})=>{
+      if(error) return;
+      $("onlineList").textContent = (data || [])
+        .map(p=>p.nickname || "혈맹원").join(" · ");
+    });
+}
+
+function renderAdmin(){
+  $("adminPanel").style.display = isAdmin() ? "block" : "none";
+  if(!isAdmin()) return;
+
+  $("adminBossList").innerHTML = bosses.map(b=>`
+    <div class="history-item">
+      <div>
+        <b>${escapeHtml(b.name)}</b>
+        <div class="muted">
+          재출현 ${escapeHtml(b.respawn_hours)}시간
+          · 별명 ${escapeHtml((b.aliases || []).join(", "))}
+        </div>
+      </div>
+      <div class="row">
+        <button class="ghost" data-edit="${b.id}">수정</button>
+        <button class="danger" data-delete="${b.id}">삭제</button>
+      </div>
+    </div>
+  `).join("");
+
+  $("adminBossList").querySelectorAll("[data-edit]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const b = bosses.find(x=>x.id===btn.dataset.edit);
+      if(!b) return;
+      editingBossId = b.id;
+      $("bossName").value = b.name;
+      $("bossAliases").value = (b.aliases || []).join(", ");
+      $("respawnHours").value = b.respawn_hours;
+      $("initialSpawn").value = b.initial_spawn_at
+        ? new Date(b.initial_spawn_at).toISOString().slice(0,16)
+        : "";
+      $("addBossBtn").textContent = "보스 수정 저장";
+      $("adminPanel").scrollIntoView({behavior:"smooth"});
+    });
+  });
+
+  $("adminBossList").querySelectorAll("[data-delete]").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const b = bosses.find(x=>x.id===btn.dataset.delete);
+      if(!b) return;
+      if(!confirm(`${b.name} 보스를 삭제할까요?\n관련 컷 기록이 남아 있으면 삭제가 거부될 수 있습니다.`)) return;
+
+      const {error} = await db.from("bosses").delete().eq("id",b.id);
+      if(error){
+        alert("삭제 실패: "+error.message);
+        return;
+      }
+      await loadBosses();
+      renderAll();
+    });
+  });
+}
+
+function renderAll(){
+  if(!profile || !user) return;
+  $("welcome").textContent = profile.nickname || "혈맹원";
+  $("roleText").textContent = isAdmin() ? "관리자" : "일반 회원";
+  $("newNick").value = profile.nickname || "";
+  renderBosses();
+  renderHistory();
+  renderAdmin();
+  renderOnline();
+  updateTimers();
+}
+
+function resetBossForm(){
+  editingBossId = null;
+  $("bossName").value = "";
+  $("bossAliases").value = "";
+  $("respawnHours").value = "";
+  $("initialSpawn").value = "";
+  $("addBossBtn").textContent = "보스 추가";
+}
+
+async function saveBoss(){
+  if(!isAdmin()) return alert("관리자만 사용할 수 있습니다.");
+
+  const name = $("bossName").value.trim();
+  const respawn = Number($("respawnHours").value);
+  const aliases = $("bossAliases").value.split(",")
+    .map(x=>x.trim()).filter(Boolean);
+  const initial = $("initialSpawn").value
+    ? new Date($("initialSpawn").value).toISOString()
+    : null;
+
+  if(!name) return alert("보스 이름을 입력하세요.");
+  if(!Number.isFinite(respawn) || respawn<=0){
+    return alert("재출현 시간을 올바르게 입력하세요.");
+  }
+
+  const payload = {
+    name,
+    aliases,
+    respawn_hours:respawn,
+    initial_spawn_at:initial,
+    is_active:true,
+    updated_at:new Date().toISOString()
+  };
+
+  let result;
+  if(editingBossId){
+    result = await db.from("bosses")
+      .update(payload).eq("id",editingBossId);
+  }else{
+    result = await db.from("bosses").insert(payload);
+  }
+
+  if(result.error){
+    alert("저장 실패: "+result.error.message);
+    return;
+  }
+
+  resetBossForm();
+  await loadBosses();
+  renderAll();
+  alert("보스 정보가 저장되었습니다.");
+}
+
+async function changeNickname(){
+  const nickname = $("newNick").value.trim();
+  if(!nickname) return alert("닉네임을 입력하세요.");
+  if(nickname.length>20) return alert("닉네임은 20자 이내로 입력하세요.");
+
+  const {error} = await db.from("profiles")
+    .update({nickname}).eq("id",user.id);
+
+  if(error) return alert("닉네임 변경 실패: "+error.message);
+
+  await loadProfile();
+  renderAll();
+  alert("닉네임이 변경되었습니다.");
+}
+
+function setupRealtime(){
+  realtimeChannels.forEach(c=>db.removeChannel(c));
+  realtimeChannels = [];
+
+  const channel = db.channel("boss-command-live")
+    .on("postgres_changes",{
+      event:"*",schema:"public",table:"bosses"
+    },async()=>{
+      await loadBosses();
+      renderAll();
+    })
+    .on("postgres_changes",{
+      event:"*",schema:"public",table:"cut_records"
+    },async()=>{
+      await loadCuts();
+      renderAll();
+    })
+    .on("postgres_changes",{
+      event:"*",schema:"public",table:"profiles"
+    },async()=>{
+      await loadProfile();
+      renderAll();
+    })
+    .on("postgres_changes",{
+      event:"*",schema:"public",table:"presence"
+    },async()=>{
+      await loadPresence();
+      renderOnline();
+    })
+    .subscribe();
+
+  realtimeChannels.push(channel);
+}
+
+async function enterApp(currentUser){
+  user = currentUser;
+  $("auth").style.display = "none";
+  $("app").style.display = "block";
+
+  try{
+    await loadAll();
+    await updatePresence();
+    setupRealtime();
+  }catch(e){
+    alert("데이터 불러오기 실패: "+e.message);
+  }
+}
+
+async function leaveApp(){
+  realtimeChannels.forEach(c=>db.removeChannel(c));
+  realtimeChannels = [];
+  user = null;
+  profile = null;
+  bosses = [];
+  cuts = [];
+  presenceRows = [];
+  $("app").style.display = "none";
+  $("auth").style.display = "block";
+}
+
+$("loginBtn").addEventListener("click",async()=>{
+  message("");
+  const email = $("email").value.trim();
+  const password = $("password").value;
+
+  const {data,error} = await db.auth.signInWithPassword({email,password});
+  if(error) return message("로그인 실패: "+error.message);
+  await enterApp(data.user);
+});
+
+$("signupBtn").addEventListener("click",async()=>{
+  const box = $("signupNickBox");
+  if(box.style.display === "none"){
+    box.style.display = "block";
+    $("signupBtn").textContent = "회원가입 진행";
+    return;
+  }
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  const nickname = $("signupNick").value.trim();
+
+  if(!email || !password || !nickname){
+    return message("이메일, 비밀번호, 닉네임을 모두 입력하세요.");
+  }
+  if(password.length<6){
+    return message("비밀번호는 6자 이상 입력하세요.");
+  }
+
+  const {data,error} = await db.auth.signUp({
+    email,password,
+    options:{data:{nickname}}
+  });
+
+  if(error) return message("회원가입 실패: "+error.message);
+
+  if(data.session){
+    await enterApp(data.user);
+  }else{
+    message("회원가입이 완료되었습니다. 이메일 인증이 필요한 경우 인증 후 로그인하세요.");
+  }
+});
+
+$("logoutBtn").addEventListener("click",async()=>{
+  await db.auth.signOut();
+  await leaveApp();
+});
+
+$("nickToggle").addEventListener("click",()=>{
+  $("nickBox").style.display =
+    $("nickBox").style.display==="none" ? "block" : "none";
+});
+
+$("saveNickBtn").addEventListener("click",changeNickname);
+$("manualCutBtn").addEventListener("click",manualCut);
+$("addBossBtn").addEventListener("click",saveBoss);
+$("clearBossForm").addEventListener("click",resetBossForm);
+
+$("soundBtn").addEventListener("click",()=>{
+  if(!("speechSynthesis" in window)){
+    alert("현재 브라우저는 음성 알림을 지원하지 않습니다.");
+    return;
+  }
+
+  soundOn = !soundOn;
+  $("soundBtn").textContent = soundOn
+    ? "음성 알림 끄기"
+    : "음성 알림 켜기";
+
+  if(soundOn){
+    speak("보스 출현 음성 알림을 시작합니다.");
+  }else{
+    window.speechSynthesis.cancel();
+  }
+});
+
+/* 1초마다 타이머와 정렬 갱신 */
+setInterval(()=>{
+  if(user){
+    updateTimers();
+  }
+},1000);
+
+/* 접속 상태는 30초마다 갱신 */
+setInterval(async()=>{
+  if(!user) return;
+  if(Date.now()-lastPresenceUpdate>=25000){
+    await updatePresence();
+  }
+},10000);
+
+/* 온라인 상태 다시 확인 */
+setInterval(async()=>{
+  if(!user) return;
+  await loadPresence();
+  renderOnline();
+},30000);
+
+/* 인증 상태 복구 */
+db.auth.getSession().then(async({data,error})=>{
+  if(error){
+    message("인증 상태 확인 실패: "+error.message);
+    return;
+  }
+  if(data.session?.user){
+    await enterApp(data.session.user);
+  }
+});
+
+db.auth.onAuthStateChange((event,session)=>{
+  if(event==="SIGNED_OUT"){
+    leaveApp();
+  }
+});
+</script>
+</body>
+</html>
