@@ -101,27 +101,27 @@ h3{font-size:14px;margin:0 0 10px}
   font-size:13px;
 }
 .stat b{color:var(--gold);margin-left:5px}
-.boss-list{display:grid;gap:10px}
+.boss-list{display:grid;gap:5px}
 .boss-card{
   background:var(--panel);
   border:1px solid var(--line);
-  border-radius:12px;
-  padding:13px;
+  border-radius:8px;
+  padding:7px 9px;
   display:grid;
-  grid-template-columns:minmax(130px,1.2fr) minmax(130px,1fr) minmax(180px,1fr);
-  gap:12px;
+  grid-template-columns:minmax(105px,1fr) minmax(115px,.8fr) minmax(220px,1.35fr);
+  gap:7px;
   align-items:center;
 }
-.boss-name{font-size:17px;font-weight:900}
-.boss-alias{font-size:11px;color:var(--muted);margin-top:4px}
+.boss-name{font-size:14px;font-weight:900}
+.boss-alias{font-size:10px;color:var(--muted);margin-top:2px}
 .timer{
-  font-size:22px;
+  font-size:17px;
   font-weight:900;
   font-variant-numeric:tabular-nums;
   color:var(--green);
   text-align:center;
-  padding:9px 5px;
-  border-radius:8px;
+  padding:4px 3px;
+  border-radius:6px;
   background:#101923;
   border:1px solid #283747;
 }
@@ -150,12 +150,25 @@ h3{font-size:14px;margin:0 0 10px}
   50%{box-shadow:0 0 20px #ff333399;background:#8a202b}
 }
 .timer-label{text-align:center;font-size:11px;color:var(--muted);margin-top:5px}
-.boss-actions{display:grid;gap:7px}
-.boss-actions input{padding:9px}
-.boss-actions button{width:100%}
-.cut-time{display:flex;gap:5px}
-.cut-time input{flex:1}
-.cut-time button{white-space:nowrap}
+.boss-actions{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(145px,1.2fr);
+  gap:5px;
+  align-items:center;
+}
+.boss-actions input{
+  padding:6px 7px;
+  font-size:12px;
+}
+.boss-actions button{
+  width:100%;
+  padding:6px 8px;
+  font-size:12px;
+}
+.cut-time{display:flex;gap:4px}
+.cut-time input{flex:1;min-width:0}
+.cut-time button{white-space:nowrap;width:auto}
+.boss-actions .muted{display:none}
 .section-grid{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
@@ -197,14 +210,33 @@ h3{font-size:14px;margin:0 0 10px}
 @media(max-width:700px){
   .wrap{padding:11px}
   .logo{font-size:19px}
+
   .boss-card{
-    grid-template-columns:1fr 1fr;
-    gap:9px;
+    grid-template-columns:minmax(0,1fr) minmax(90px,.8fr);
+    gap:5px;
+    padding:7px;
   }
-  .boss-main{grid-column:1/-1}
-  .boss-actions{grid-column:1/-1}
+
+  .boss-main{grid-column:auto}
+  .boss-actions{
+    grid-column:1/-1;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);
+    gap:5px;
+  }
+
+  .boss-actions button{
+    font-size:11px;
+    padding:6px 5px;
+  }
+
+  .boss-actions input{
+    min-width:0;
+    font-size:12px;
+  }
+
   .section-grid{grid-template-columns:1fr}
-  .timer{font-size:20px}
+  .timer{font-size:16px}
+  .boss-name{font-size:13px}
 }
 </style>
 </head>
@@ -663,7 +695,7 @@ function renderBosses(){
         <div class="boss-actions">
           <button class="good" data-quick>현재 시각으로 컷 등록</button>
           <div class="cut-time">
-            <input data-cut-input placeholder="2135 / 21:35" maxlength="5">
+            <input data-cut-input="${b.id}" placeholder="2135 / 21:35" maxlength="5">
             <button class="primary" data-row-cut>등록</button>
           </div>
           <div class="muted">위 시간 입력은 해당 보스의 컷 시간입니다.</div>
@@ -745,9 +777,19 @@ function updateTimers(){
     }
 
     checkVoice(b,at,ms);
-    $("bossList").appendChild(card);
   });
 
+    const bossList = $("bossList");
+  const activeCard = document.activeElement?.closest("[data-boss-card]");
+
+  if(!activeCard){
+    sorted.forEach(b=>{
+      const card = bossList.querySelector(`[data-boss-card="${b.id}"]`);
+      if(card && bossList.lastElementChild !== card){
+        bossList.appendChild(card);
+      }
+    });
+  }
   $("clock").textContent = new Date().toLocaleTimeString("ko-KR",{
     hour12:false
   });
