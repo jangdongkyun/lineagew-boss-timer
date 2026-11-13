@@ -556,9 +556,25 @@ async function quickCut(bossId){
 }
 
 async function rowCut(bossId){
-  const boss = bosses.find(b=>b.id===bossId);
-  const input = document.querySelector(`[data-cut-input="${bossId}"]`);
-  if(!boss || !input) return;
+  alert("수동 컷 버튼이 눌렸습니다.");
+
+  const boss = bosses.find(b=>String(b.id)===String(bossId));
+
+  const card = document.querySelector(
+    `[data-boss-card="${bossId}"]`
+  );
+
+  const input = card?.querySelector("[data-cut-input]");
+
+  if(!boss){
+    alert("보스 정보를 찾을 수 없습니다.");
+    return;
+  }
+
+  if(!input){
+    alert("컷 시간 입력창을 찾을 수 없습니다.");
+    return;
+  }
 
   try{
     const cutAt = parseCutTime(input.value);
@@ -566,7 +582,7 @@ async function rowCut(bossId){
     input.value = "";
     alert(`${boss.name} 컷 기록이 등록되었습니다.`);
   }catch(e){
-    alert(e.message);
+    alert("컷 등록 실패: " + (e.message || e));
   }
 }
 
