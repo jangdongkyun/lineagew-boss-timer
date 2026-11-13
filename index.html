@@ -836,18 +836,40 @@ function checkVoice(boss,at,ms){
   }
 }
 
+
 function speak(text){
-  if(!soundOn || !("speechSynthesis" in window)) return;
+  if(!soundOn) return;
+
+  if(!("speechSynthesis" in window)){
+    alert("이 브라우저는 음성 알림을 지원하지 않습니다.");
+    return;
+  }
+
   try{
+    const synth = window.speechSynthesis;
+
+    synth.cancel();
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "ko-KR";
-    utterance.rate = 1;
+    utterance.rate = 0.9;
     utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
+
+    utterance.onstart = ()=>{
+      console.log("음성 재생 시작:", text);
+    };
+
+    utterance.onerror = (e)=>{
+      console.error("음성 재생 오류:", e.error);
+    };
+
+    synth.speak(utterance);
   }catch(e){
-    console.warn("음성 알림 오류",e);
+    console.error("음성 알림 오류",e);
+    alert("음성 재생 오류: " + e.message);
   }
 }
+
 
 function renderHistory(){
   const list = $("historyList");
