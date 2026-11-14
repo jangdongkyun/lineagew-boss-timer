@@ -906,16 +906,6 @@ function renderBosses(){
   existing.forEach((el,id)=>{
     if(!ids.has(id)) el.remove();
   });
-
-const dl = $("bossNames");
-
-const nameSortedBosses = [...bosses].sort((a,b)=>
-  a.name.localeCompare(b.name,"ko")
-);
-
-dl.innerHTML = nameSortedBosses.map(b=>
-  `<option value="${escapeHtml(b.name)}"></option>`
-).join("");
 }
 
 function updateTimers(){
