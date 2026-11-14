@@ -709,7 +709,7 @@ if(!data || data.length===0){
     await loadCuts();
     renderAll();
 
-    alert("컷 시간이 수정되었습니다.");
+    // 저장 완료 팝업은 표시하지 않습니다.
   }catch(e){
     alert("수정 실패: "+e.message);
   }
@@ -722,7 +722,7 @@ async function quickCut(bossId){
 
   try{
     await registerCut(boss,new Date().toISOString());
-    alert(`${boss.name} 컷 기록이 등록되었습니다.`);
+    // 저장 완료 팝업은 표시하지 않습니다.
   }catch(e){
     alert("컷 기록 실패: "+e.message);
   }
@@ -753,7 +753,7 @@ async function rowCut(bossId){
     const cutAt = parseCutTime(input.value);
     await registerCut(boss,cutAt);
     input.value = "";
-    alert(`${boss.name} 컷 기록이 등록되었습니다.`);
+    // 저장 완료 팝업은 표시하지 않습니다.
   }catch(e){
     alert("컷 등록 실패: " + (e.message || e));
   }
@@ -775,7 +775,7 @@ async function manualCut(){
     $("manualBossName").value = "";
     $("manualCutTime").value = "";
 
-    alert(`${boss.name} 컷 기록이 등록되었습니다.`);
+    // 저장 완료 팝업은 표시하지 않습니다.
   }catch(e){
     alert(e.message);
   }
@@ -950,18 +950,18 @@ function updateTimers(){
     if(overdue && elapsed <= 300000){
       timer.classList.add("red");
       timer.textContent = "출현";
-      label.textContent = `출현 예정 ${formatDate(at)}`;
+      label.textContent = `출현 예정 시각: ${formatDate(at)}`;
     }else if(ms > 0 && ms <= 600000){
       timer.classList.add("orange");
       timer.textContent = formatDuration(ms);
-      label.textContent = "출현 10분 이내";
+      label.textContent = `출현 10분 이내 · 예정 시각: ${formatDate(at)}`;
     }else if(ms > 0 && ms <= 3600000){
       timer.classList.add("yellow");
       timer.textContent = formatDuration(ms);
-      label.textContent = "출현 1시간 이내";
+      label.textContent = `출현 1시간 이내 · 예정 시각: ${formatDate(at)}`;
     }else{
       timer.textContent = overdue ? "다음 주기 계산 중" : formatDuration(ms);
-      label.textContent = "예정 시각 "+formatDate(at);
+      label.textContent = "출현 예정 시각: "+formatDate(at);
     }
 
     checkVoice(b,at,ms);
@@ -1224,7 +1224,7 @@ async function saveBoss(){
   resetBossForm();
   await loadBosses();
   renderAll();
-  alert("보스 정보가 저장되었습니다.");
+  // 저장 완료 팝업은 표시하지 않습니다.
 }
 
 async function changeNickname(){
@@ -1239,7 +1239,7 @@ async function changeNickname(){
 
   await loadProfile();
   renderAll();
-  alert("닉네임이 변경되었습니다.");
+  // 변경 완료 팝업은 표시하지 않습니다.
 }
 
 function setupRealtime(){
