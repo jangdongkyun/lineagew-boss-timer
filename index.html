@@ -192,30 +192,31 @@ h3{font-size:14px;margin:0 0 10px}
   background:#101923;
   border:1px solid #283747;
 }
-.timer.normal{color:var(--green)}
+
+.timer.normal{
+  color:#b7e0cb;
+}
+
 .timer.yellow{
-  color:var(--yellow);
-  border-color:#8e762f;
-  background:#302a17;
+  color:#c5ebd5;
+  border-color:#789f8c;
+  background:#172722;
 }
+
 .timer.orange{
-  color:var(--orange);
-  border-color:#a65a25;
-  background:#382217;
-  animation:orangePulse 1s infinite;
+  color:#f5d5ad;
+  border-color:#b9956c;
+  background:#30271e;
+  animation:none;
 }
+
 .timer.red{
-  color:#fff;
-  border-color:#a32d35;
-  background:#501b22;
-  animation:redPulse .65s infinite;
+  color:#f2c2c9;
+  border-color:#b9828d;
+  background:#302126;
+  animation:none;
 }
-@keyframes orangePulse{
-  50%{box-shadow:0 0 15px #ff963e66}
-}
-@keyframes redPulse{
-  50%{box-shadow:0 0 20px #ff333399;background:#8a202b}
-}
+
 .timer-label{text-align:center;font-size:11px;color:var(--muted);margin-top:5px}
 .boss-actions{
   display:grid;
@@ -1039,7 +1040,7 @@ if(missed > 0){
   missedBadge.style.display = "none";
 }
     const at = nextAt(b);
-
+card.classList.remove("card-soon","card-imminent","card-spawn");
     timer.className = "timer normal";
 
     if(at === null){
@@ -1052,16 +1053,19 @@ if(missed > 0){
     const overdue = ms <= 0;
     const elapsed = Math.abs(ms);
 
-    if(overdue && elapsed <= 300000){
-      timer.classList.add("red");
+if(overdue && elapsed <= 300000){
+  card.classList.add("card-spawn");
+  timer.classList.add("red");
       timer.textContent = "출현";
       label.textContent = `출현 예정 시각: ${formatDate(at)}`;
-    }else if(ms > 0 && ms <= 600000){
-      timer.classList.add("orange");
+}else if(ms > 0 && ms <= 600000){
+  card.classList.add("card-imminent");
+  timer.classList.add("orange");
       timer.textContent = formatDuration(ms);
       label.textContent = `출현 10분 이내 · 예정 시각: ${formatDate(at)}`;
-    }else if(ms > 0 && ms <= 3600000){
-      timer.classList.add("yellow");
+}else if(ms > 0 && ms <= 3600000){
+  card.classList.add("card-soon");
+  timer.classList.add("yellow");
       timer.textContent = formatDuration(ms);
       label.textContent = `출현 1시간 이내 · 예정 시각: ${formatDate(at)}`;
     }else{
