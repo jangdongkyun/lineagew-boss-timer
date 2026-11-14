@@ -477,10 +477,14 @@ function formatDuration(ms){
   return `${m}분 ${s}초`;
 }
 
+
 function latestCut(bossId){
   return cuts
     .filter(c => c.boss_id === bossId)
-    .sort((a,b)=>new Date(b.cut_at)-new Date(a.cut_at))[0] || null;
+    .sort((a,b)=>
+      new Date(b.updated_at || b.cut_at) -
+      new Date(a.updated_at || a.cut_at)
+    )[0] || null;
 }
 
 /* 최근 컷 또는 최초 출현 시각을 기준으로 다음 주기를 계산 */
@@ -621,15 +625,20 @@ function renderManualBossList(){
     });
   });
 }
+
 async function registerCut(boss, cutAt){
   if(!user) throw new Error("로그인이 필요합니다.");
   if(!profile) throw new Error("회원 정보를 불러오는 중입니다.");
+
+  const inputTime = new Date().toISOString();
 
   const {error} = await db.from("cut_records").insert({
     boss_id: boss.id,
     cut_at: cutAt,
     created_by: user.id,
-    created_by_nickname: profile.nickname || "혈맹원"
+    created_by_nickname: profile.nickname || "혈맹원",
+    updated_at: inputTime,
+    updated_by: user.id
   });
 
   if(error) throw error;
@@ -638,6 +647,7 @@ async function registerCut(boss, cutAt){
   renderAll();
   return true;
 }
+
 function formatCutInput(value){
   const d = new Date(value);
   const pad = n => String(n).padStart(2,"0");
@@ -684,10 +694,13 @@ async function editCut(recordId){
 
   try{
 const {data,error} = await db.from("cut_records")
-  .update({cut_at:date.toISOString()})
+  .update({
+    cut_at:date.toISOString(),
+    updated_at:new Date().toISOString(),
+    updated_by:user.id
+  })
   .eq("id",recordId)
   .select("id");
-
 if(error) throw error;
 
 if(!data || data.length===0){
