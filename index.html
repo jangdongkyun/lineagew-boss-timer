@@ -102,6 +102,7 @@ h3{font-size:14px;margin:0 0 10px}
 }
 .stat b{color:var(--gold);margin-left:5px}
 .boss-list{display:grid;gap:5px}
+
 .boss-card{
   background:var(--panel);
   border:1px solid var(--line);
@@ -111,7 +112,63 @@ h3{font-size:14px;margin:0 0 10px}
   grid-template-columns:minmax(105px,1fr) minmax(115px,.8fr) minmax(220px,1.35fr);
   gap:7px;
   align-items:center;
+  transition:background .8s ease, border-color .8s ease, box-shadow .8s ease;
 }
+
+/* 리젠 1시간 이내 - 파스텔 민트 */
+.boss-card.card-soon{
+  animation:pastelMint 3s ease-in-out infinite;
+}
+
+/* 리젠 10분 이내 - 파스텔 살구 */
+.boss-card.card-imminent{
+  animation:pastelApricot 2.4s ease-in-out infinite;
+}
+
+/* 보스 출현 - 파스텔 로즈 */
+.boss-card.card-spawn{
+  animation:pastelRose 1.8s ease-in-out infinite;
+}
+
+@keyframes pastelMint{
+  0%,100%{
+    background:#172722;
+    border-color:#789f8c;
+    box-shadow:0 0 3px #a8d8c022;
+  }
+  50%{
+    background:#20382f;
+    border-color:#b5e5ce;
+    box-shadow:0 0 14px #a8d8c055;
+  }
+}
+
+@keyframes pastelApricot{
+  0%,100%{
+    background:#30271e;
+    border-color:#b9956c;
+    box-shadow:0 0 4px #f2c58e22;
+  }
+  50%{
+    background:#493725;
+    border-color:#f2c58e;
+    box-shadow:0 0 16px #f2c58e66;
+  }
+}
+
+@keyframes pastelRose{
+  0%,100%{
+    background:#302126;
+    border-color:#b9828d;
+    box-shadow:0 0 5px #e9aeb922;
+  }
+  50%{
+    background:#492b34;
+    border-color:#f0bdc6;
+    box-shadow:0 0 18px #e9aeb966;
+  }
+}
+
 .boss-name{font-size:14px;font-weight:900}
   /* 미등록 누적 횟수 파란색 디자인 */
 .unregistered-count{
