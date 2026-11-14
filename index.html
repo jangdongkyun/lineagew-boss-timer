@@ -792,8 +792,12 @@ async function loadProfile(){
 }
 
 async function loadBosses(){
+  // 삭제 처리된 보스(is_active=false)는 타이머와 보스 목록에서 제외합니다.
+  // 기존 컷 기록은 보존합니다.
   const {data,error} = await db.from("bosses")
-    .select("*").order("name");
+    .select("*")
+    .or("is_active.is.null,is_active.eq.true")
+    .order("name");
 
   if(error) throw error;
   bosses = data || [];
@@ -1149,11 +1153,20 @@ function renderAdmin(){
     btn.addEventListener("click",async()=>{
       const b = bosses.find(x=>x.id===btn.dataset.delete);
       if(!b) return;
-      if(!confirm(`${b.name} 보스를 삭제할까요?\n관련 컷 기록이 남아 있으면 삭제가 거부될 수 있습니다.`)) return;
+      if(!confirm(`${b.name} 보스를 삭제할까요?\n타이머와 보스 목록에서 숨겨지며, 기존 컷 기록은 보존됩니다.`)) return;
 
-      const {error} = await db.from("bosses").delete().eq("id",b.id);
+      // 컷 기록의 외래키 제약과 관계없이 관리자가 보스를 삭제할 수 있도록
+      // 실제 행과 기록은 보존하고 비활성 상태로 전환합니다.
+      const {data,error} = await db.from("bosses")
+        .update({is_active:false,updated_at:new Date().toISOString()})
+        .eq("id",b.id)
+        .select("id");
       if(error){
         alert("삭제 실패: "+error.message);
+        return;
+      }
+      if(!data || data.length===0){
+        alert("삭제 실패: 관리자 권한이 없거나 보스를 찾을 수 없습니다.");
         return;
       }
       await loadBosses();
