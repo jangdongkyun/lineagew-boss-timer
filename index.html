@@ -915,10 +915,11 @@ function renderBosses(){
       card.className = "boss-card";
       card.dataset.bossCard = b.id;
       card.innerHTML = `
-        <div class="boss-main">
-          <div class="boss-name"></div>
-          <div class="boss-alias"></div>
-        </div>
+<div class="boss-main">
+  <div class="boss-name"></div>
+  <div class="boss-alias"></div>
+  <div class="unregistered-count" data-missed></div>
+</div>
         <div>
           <button class="timer normal" data-timer></button>
           <div class="timer-label" data-label></div>
@@ -970,6 +971,16 @@ function updateTimers(){
 
     const timer = card.querySelector("[data-timer]");
     const label = card.querySelector("[data-label]");
+    const missed = missedCount(b);
+
+const missedBadge = card.querySelector("[data-missed]");
+
+if(missed > 0){
+  missedBadge.textContent = `미등록 ${missed}회`;
+  missedBadge.style.display = "inline-block";
+}else{
+  missedBadge.style.display = "none";
+}
     const at = nextAt(b);
 
     timer.className = "timer normal";
