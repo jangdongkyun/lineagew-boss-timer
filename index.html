@@ -524,7 +524,30 @@ function nextAt(boss){
   }
   return next;
 }
+/* 보스별 미등록 누적 횟수 계산 */
+function missedCount(boss){
+  const last = latestCut(boss.id);
 
+  const base = last
+    ? new Date(last.cut_at).getTime()
+    : boss.initial_spawn_at
+      ? new Date(boss.initial_spawn_at).getTime()
+      : NaN;
+
+  if(!Number.isFinite(base)) return 0;
+
+  const interval = Number(boss.respawn_hours) * 3600000;
+
+  if(!Number.isFinite(interval) || interval <= 0) return 0;
+
+  const firstMissTime = base + interval + 5 * 60 * 1000;
+
+  const now = Date.now();
+
+  if(now < firstMissTime) return 0;
+
+  return Math.floor((now - firstMissTime) / interval) + 1;
+}
 function getSortedBosses(){
   const now = Date.now();
   return [...bosses].sort((a,b)=>{
