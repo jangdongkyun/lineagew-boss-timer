@@ -175,6 +175,50 @@ h3{font-size:14px;margin:0 0 10px}
   gap:12px;
 }
 .field{margin-bottom:10px}
+  /* 수기 컷 보스 자동 선택 목록 */
+.boss-picker{
+  position:relative;
+}
+
+.boss-options{
+  display:none;
+  position:absolute;
+  top:100%;
+  left:0;
+  right:0;
+  z-index:100;
+  max-height:180px;
+  overflow-y:auto;
+  margin-top:4px;
+  padding:5px;
+  background:#151b26;
+  border:1px solid var(--line);
+  border-radius:9px;
+  box-shadow:0 8px 20px #0009;
+}
+
+.boss-options.show{
+  display:block;
+}
+
+.boss-option{
+  padding:9px 10px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:13px;
+}
+
+.boss-option:hover{
+  background:#29384a;
+  color:var(--gold);
+}
+
+.manual-boss-empty{
+  padding:10px;
+  color:var(--muted);
+  font-size:12px;
+}
+
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
 .history-item{
   display:flex;
@@ -322,8 +366,14 @@ h3{font-size:14px;margin:0 0 10px}
     <div class="section-grid">
       <div class="field">
         <label>보스 이름 / 별명</label>
-        <input id="manualBossName" list="bossNames" placeholder="보스 이름 입력">
-        <datalist id="bossNames"></datalist>
+<div class="boss-picker">
+  <input
+    id="manualBossName"
+    autocomplete="off"
+    placeholder="보스 이름 입력 또는 목록에서 선택"
+  >
+  <div id="manualBossList" class="boss-options"></div>
+</div>
       </div>
       <div class="field">
         <label>컷 시간</label>
@@ -522,7 +572,55 @@ function findBossByName(name){
     );
   }) || null;
 }
+function renderManualBossList(){
+  const input = $("manualBossName");
+  const list = $("manualBossList");
 
+  const query = input.value.trim().toLocaleLowerCase();
+
+  const sorted = [...bosses].sort((a,b)=>
+    a.name.localeCompare(b.name,"ko")
+  );
+
+  const filtered = sorted.filter(b=>{
+    const names = [
+      b.name,
+      ...(Array.isArray(b.aliases)?b.aliases:[])
+    ];
+
+    return !query || names.some(n=>
+      String(n).toLocaleLowerCase().includes(query)
+    );
+  });
+
+  if(!filtered.length){
+    list.innerHTML =
+      '<div class="manual-boss-empty">일치하는 보스가 없습니다.</div>';
+    list.classList.add("show");
+    return;
+  }
+
+  list.innerHTML = filtered.map(b=>`
+    <div class="boss-option" data-manual-boss="${escapeHtml(b.id)}">
+      ${escapeHtml(b.name)}
+    </div>
+  `).join("");
+
+  list.classList.add("show");
+
+  list.querySelectorAll("[data-manual-boss]").forEach(item=>{
+    item.addEventListener("click",()=>{
+      const boss = bosses.find(b=>
+        String(b.id) === item.dataset.manualBoss
+      );
+
+      if(!boss) return;
+
+      input.value = boss.name;
+      list.classList.remove("show");
+    });
+  });
+}
 async function registerCut(boss, cutAt){
   if(!user) throw new Error("로그인이 필요합니다.");
   if(!profile) throw new Error("회원 정보를 불러오는 중입니다.");
@@ -1256,6 +1354,15 @@ $("nickToggle").addEventListener("click",()=>{
 
 $("saveNickBtn").addEventListener("click",changeNickname);
 $("manualCutBtn").addEventListener("click",manualCut);
+  $("manualBossName").addEventListener("focus",renderManualBossList);
+
+$("manualBossName").addEventListener("input",renderManualBossList);
+
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".boss-picker")){
+    $("manualBossList").classList.remove("show");
+  }
+});
 $("addBossBtn").addEventListener("click",saveBoss);
 $("clearBossForm").addEventListener("click",resetBossForm);
 
