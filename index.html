@@ -321,6 +321,39 @@ h3{font-size:14px;margin:0 0 10px}
   font-size:11px;
 }
 .online-list{font-size:12px;color:var(--muted);line-height:1.8}
+/* 상단 온라인 혈맹원 표시 */
+.online-panel{
+  padding:11px 14px;
+  margin-bottom:12px;
+}
+
+.online-panel h2{
+  margin:0;
+  font-size:14px;
+}
+
+.online-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:9px;
+  font-size:12px;
+}
+
+.online-chip{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:7px;
+  background:#20382f;
+  border:1px solid #47785f;
+  color:#a9e5c1;
+  font-weight:700;
+}
+
+.online-empty{
+  color:var(--muted);
+  font-size:12px;
+}
 @media(max-width:700px){
   .wrap{padding:11px}
   .logo{font-size:19px}
@@ -413,7 +446,16 @@ h3{font-size:14px;margin:0 0 10px}
     <div class="stat">온라인 <b id="onlineCount">0</b></div>
     <div class="stat">현재 시각 <b id="clock">--:--:--</b></div>
   </div>
-
+  <!-- 상단 온라인 혈맹원 -->
+  <div class="panel online-panel">
+    <div class="row" style="justify-content:space-between">
+      <h2>🟢 접속 중인 혈맹원</h2>
+      <span class="badge"><span id="onlineCountTop">0</span>명 접속</span>
+    </div>
+    <div id="onlineList" class="online-list">
+      확인 중...
+    </div>
+  </div>
   <div class="panel">
     <div class="row" style="justify-content:space-between">
       <h2>필드 보스 현황</h2>
@@ -459,10 +501,7 @@ h3{font-size:14px;margin:0 0 10px}
     <div id="historyList" class="muted">기록이 없습니다.</div>
   </div>
 
-  <div class="panel">
-    <h2>온라인 혈맹원</h2>
-    <div id="onlineList" class="online-list">확인 중...</div>
-  </div>
+
 
   <div class="panel admin-only" id="adminPanel">
     <h2>관리자 · 보스 관리</h2>
@@ -1213,23 +1252,35 @@ function renderHistory(){
 
 function renderOnline(){
   const now = Date.now();
+
   const active = presenceRows.filter(p=>
     now-new Date(p.last_seen).getTime() < 120000
   );
 
   $("onlineCount").textContent = active.length;
+  $("onlineCountTop").textContent = active.length;
 
   const ids = active.map(p=>p.user_id);
+
   if(!ids.length){
-    $("onlineList").textContent = "현재 온라인 혈맹원이 없습니다.";
+    $("onlineList").innerHTML =
+      '<span class="online-empty">현재 온라인 혈맹원이 없습니다.</span>';
     return;
   }
 
-  db.from("profiles").select("id,nickname").in("id",ids)
+  db.from("profiles")
+    .select("id,nickname")
+    .in("id",ids)
     .then(({data,error})=>{
       if(error) return;
-      $("onlineList").textContent = (data || [])
-        .map(p=>p.nickname || "혈맹원").join(" · ");
+
+      $("onlineList").innerHTML = (data || [])
+        .sort((a,b)=>
+          (a.nickname || "").localeCompare(b.nickname || "","ko")
+        )
+        .map(p=>
+          `<span class="online-chip">${escapeHtml(p.nickname || "혈맹원")}</span>`
+        ).join("");
     });
 }
 
