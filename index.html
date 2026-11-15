@@ -300,7 +300,10 @@ h3{font-size:14px;margin:0 0 10px}
 }
 .history-item:last-child{border-bottom:0}
 .history-time{color:var(--gold);white-space:nowrap}
-.quick-links{display:flex;gap:8px;flex-wrap:wrap}
+.quick-links{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#adminSettingsBtn{display:none;background:#6d5428;border-color:#b58b43;color:#ffe2a0}
+#adminTools{display:none}
+#adminTools.is-open{display:block}
 .quick-links a{
   padding:11px 15px;
   border-radius:9px;
@@ -406,6 +409,7 @@ h3{font-size:14px;margin:0 0 10px}
     <div class="sub">혈맹 필드 보스 타이머</div>
   </div>
   <div class="quick-links">
+    <button type="button" id="adminSettingsBtn">⚙ 관리자 설정</button>
     <a href="https://lineagew.plaync.com/" target="_blank" rel="noopener">리니지W 공식 홈페이지</a>
     <a href="https://trade.ssatem.com/" target="_blank" rel="noopener">싸템 바로가기</a>
     <a href="https://www.barotem.com/" target="_blank" rel="noopener">바로템 바로가기</a>    
@@ -524,6 +528,7 @@ h3{font-size:14px;margin:0 0 10px}
 
 
 
+  <div id="adminTools">
   <div class="panel admin-only" id="adminPanel">
     <h2>관리자 · 보스 관리</h2>
     
@@ -560,6 +565,7 @@ h3{font-size:14px;margin:0 0 10px}
     <div class="muted" style="margin-bottom:10px">가입일과 계정 상태를 확인하고, 회원을 영구 추방하거나 추방 해제·탈퇴 처리할 수 있습니다.</div>
     <div id="adminMemberList">회원 정보를 불러오는 중...</div>
   </div>
+  </div><!-- /adminTools -->
 </div>
 </div>
 
@@ -572,6 +578,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let user = null;
 let profile = null;
+let adminToolsExpanded = false;
 let bosses = [];
 let cuts = [];
 let presenceRows = [];
@@ -585,6 +592,16 @@ let alerted = new Set();
 let lastPresenceUpdate = 0;
 
 const $ = id => document.getElementById(id);
+
+// 관리자 설정 열기/닫기
+$("adminSettingsBtn").addEventListener("click",()=>{
+  if(!isAdmin()) return;
+  adminToolsExpanded = !adminToolsExpanded;
+  $("adminTools").classList.toggle("is-open",adminToolsExpanded);
+  $("adminSettingsBtn").textContent = adminToolsExpanded ? "✕ 관리자 설정 닫기" : "⚙ 관리자 설정";
+  if(adminToolsExpanded) $("adminTools").scrollIntoView({behavior:"smooth",block:"start"});
+});
+
 
 function message(text){
   $("message").textContent = text || "";
@@ -1374,7 +1391,13 @@ function renderAdminMembers(){
 }
 
 function renderAdmin(){
+  $("adminSettingsBtn").style.display = isAdmin() ? "inline-block" : "none";
   $("adminPanel").style.display = isAdmin() ? "block" : "none";
+  $("adminTools").classList.toggle("is-open",isAdmin() && adminToolsExpanded);
+  if(!isAdmin()){
+    adminToolsExpanded = false;
+    $("adminSettingsBtn").textContent = "⚙ 관리자 설정";
+  }
   renderAdminMembers();
   if(!isAdmin()) return;
 
