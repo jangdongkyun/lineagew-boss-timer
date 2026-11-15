@@ -333,7 +333,7 @@ h3{font-size:14px;margin:0 0 10px}
 }
 
 .online-list{
-  display:flex;
+  display:none;
   flex-wrap:wrap;
   gap:6px;
   margin-top:9px;
@@ -350,6 +350,7 @@ h3{font-size:14px;margin:0 0 10px}
   font-weight:700;
 }
 
+.online-list.show{display:flex}
 .online-empty{
   color:var(--muted);
   font-size:12px;
@@ -472,7 +473,7 @@ h3{font-size:14px;margin:0 0 10px}
     </div>
     <div class="member-status-grid">
       <div class="member-status-box">
-        <div class="member-status-title"><span style="color:#63d69b">🟢 온라인</span><span><b id="onlineCountTop">0</b>명</span></div>
+        <div class="member-status-title"><span style="color:#63d69b">🟢 온라인</span><button type="button" class="member-count-btn" id="onlineToggle" aria-expanded="false"><span id="onlineCountTop">0</span>명</button></div>
         <div id="onlineList" class="online-list"><span class="online-empty">확인 중...</span></div>
       </div>
       <div class="member-status-box">
@@ -581,6 +582,7 @@ let cuts = [];
 let presenceRows = [];
 let members = [];
 let offlineExpanded = false;
+let onlineExpanded = false;
 let soundOn = false;
 let editingBossId = null;
 let realtimeChannels = [];
@@ -1308,6 +1310,8 @@ function renderOnline(){
   $("onlineCountTop").textContent = online.length;
   $("offlineCount").textContent = offline.length;
   $("offlineCountStat").textContent = offline.length;
+  $("onlineList").classList.toggle("show", onlineExpanded);
+  $("onlineToggle").setAttribute("aria-expanded", String(onlineExpanded));
   $("onlineList").innerHTML = online.length
     ? online.map(m=>`<span class="online-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
     : '<span class="online-empty">현재 온라인 혈맹원이 없습니다.</span>';
@@ -1315,6 +1319,12 @@ function renderOnline(){
     ? offline.map(m=>`<span class="offline-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
     : '<span class="online-empty">오프라인 회원이 없습니다.</span>';
 }
+
+$("onlineToggle").addEventListener("click",()=>{
+  onlineExpanded = !onlineExpanded;
+  $("onlineList").classList.toggle("show", onlineExpanded);
+  $("onlineToggle").setAttribute("aria-expanded", String(onlineExpanded));
+});
 
 async function setMemberStatus(memberId,status){
   if(!isAdmin()) return alert("관리자만 사용할 수 있습니다.");
@@ -1608,6 +1618,7 @@ async function leaveApp(){
   presenceRows = [];
   members = [];
   offlineExpanded = false;
+  onlineExpanded = false;
   $("app").style.display = "none";
   $("auth").style.display = "block";
 }
