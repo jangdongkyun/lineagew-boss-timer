@@ -320,7 +320,9 @@ h3{font-size:14px;margin:0 0 10px}
   color:#c7d5e7;
   font-size:11px;
 }
-.online-list{font-size:12px;color:var(--muted);line-height:1.8}
+/* 혈맹원 명단: 온라인/오프라인 공통 접기·펼치기 */
+.member-list{display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted);line-height:1.8}
+.member-list.is-open{display:flex}
 /* 상단 온라인 혈맹원 표시 */
 .online-panel{
   padding:11px 14px;
@@ -330,14 +332,6 @@ h3{font-size:14px;margin:0 0 10px}
 .online-panel h2{
   margin:0;
   font-size:14px;
-}
-
-.online-list{
-  display:none;
-  flex-wrap:wrap;
-  gap:6px;
-  margin-top:9px;
-  font-size:12px;
 }
 
 .online-chip{
@@ -350,7 +344,6 @@ h3{font-size:14px;margin:0 0 10px}
   font-weight:700;
 }
 
-.online-list.show{display:flex}
 .online-empty{
   color:var(--muted);
   font-size:12px;
@@ -361,8 +354,6 @@ h3{font-size:14px;margin:0 0 10px}
 .member-count-btn{border:0;padding:0;background:transparent;color:inherit;font-size:20px;font-weight:900}
 .member-count-btn:hover{filter:brightness(1.25);text-decoration:underline}
 .offline-toggle{cursor:pointer;color:#cbd5e1}
-.offline-list{display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);flex-wrap:wrap;gap:6px}
-.offline-list.show{display:flex}
 .offline-chip{display:inline-block;padding:5px 9px;border-radius:7px;background:#27313f;border:1px solid #536174;color:#d0d8e4;font-weight:700;font-size:12px}
 .member-admin-item{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
 .member-admin-item:last-child{border-bottom:0}
@@ -473,16 +464,16 @@ h3{font-size:14px;margin:0 0 10px}
       <span class="badge">가입 회원 전체</span>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:11px;line-height:1.5">
-      ※ 인원수 숫자를 누르면 아래에 회원 명단이 표시됩니다.
+      ※ 온라인·오프라인 인원수 숫자를 누르면 아래에 회원 명단이 펼쳐집니다.
     </div>
     <div class="member-status-grid">
       <div class="member-status-box">
         <div class="member-status-title"><span style="color:#63d69b">🟢 온라인</span><button type="button" class="member-count-btn" id="onlineToggle" aria-expanded="false"><span id="onlineCountTop">0</span>명</button></div>
-        <div id="onlineList" class="online-list"><span class="online-empty">확인 중...</span></div>
+        <div id="onlineList" class="member-list"><span class="online-empty">확인 중...</span></div>
       </div>
       <div class="member-status-box">
         <div class="member-status-title"><span style="color:#b8c3d1">⚪ 오프라인</span><button type="button" class="member-count-btn" id="offlineToggle" aria-expanded="false"><span id="offlineCount">0</span>명</button></div>
-        <div id="offlineList" class="offline-list"></div>
+        <div id="offlineList" class="member-list"></div>
       </div>
     </div>
   </div>
@@ -1314,9 +1305,9 @@ function renderOnline(){
   $("onlineCountTop").textContent = online.length;
   $("offlineCount").textContent = offline.length;
   $("offlineCountStat").textContent = offline.length;
-  $("onlineList").classList.toggle("show", onlineExpanded);
+  $("onlineList").classList.toggle("is-open", onlineExpanded);
   $("onlineToggle").setAttribute("aria-expanded", String(onlineExpanded));
-  $("offlineList").classList.toggle("show", offlineExpanded);
+  $("offlineList").classList.toggle("is-open", offlineExpanded);
   $("offlineToggle").setAttribute("aria-expanded", String(offlineExpanded));
   $("onlineList").innerHTML = online.length
     ? online.map(m=>`<span class="online-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
@@ -1328,13 +1319,13 @@ function renderOnline(){
 
 $("onlineToggle").addEventListener("click",()=>{
   onlineExpanded = !onlineExpanded;
-  $("onlineList").classList.toggle("show", onlineExpanded);
+  $("onlineList").classList.toggle("is-open", onlineExpanded);
   $("onlineToggle").setAttribute("aria-expanded", String(onlineExpanded));
 });
 
 $("offlineToggle").addEventListener("click",()=>{
   offlineExpanded = !offlineExpanded;
-  $("offlineList").classList.toggle("show", offlineExpanded);
+  $("offlineList").classList.toggle("is-open", offlineExpanded);
   $("offlineToggle").setAttribute("aria-expanded", String(offlineExpanded));
 });
 
