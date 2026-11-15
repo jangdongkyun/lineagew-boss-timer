@@ -176,8 +176,10 @@ h3{font-size:14px;margin:0 0 10px}
   background:rgba(0,120,255,0.18);
   border:1px solid #2585ff;
   color:#58a6ff;
-  border-radius:8px;
-  padding:4px 8px;
+  border-radius:5px;
+  padding:2px 5px;
+  font-size:10px;
+  line-height:1.2;
   font-weight:bold;
 }
 .boss-alias{font-size:10px;color:var(--muted);margin-top:2px}
@@ -464,6 +466,20 @@ h3{font-size:14px;margin:0 0 10px}
 
   <div class="panel admin-only" id="adminPanel">
     <h2>관리자 · 보스 관리</h2>
+    
+<div style="padding:12px;margin-bottom:15px;background:#302126;border:1px solid #b9828d;border-radius:9px">
+  <div style="font-weight:900;color:#f2c2c9;margin-bottom:6px">
+    서버 이전 · 전체 보스 초기화
+  </div>
+  <div class="muted" style="margin-bottom:10px">
+    모든 보스의 컷 시간과 미등록 횟수를 초기화합니다.
+    보스 정보와 과거 기록은 보존됩니다.
+  </div>
+  <button class="danger" id="resetAllBossBtn">
+    전체 보스 시간 초기화
+  </button>
+</div>
+
     <div class="section-grid">
       <div class="field">
         <label>보스 이름</label>
@@ -548,8 +564,16 @@ function formatDuration(ms){
 
 
 function latestCut(bossId){
+  const boss = bosses.find(b => String(b.id) === String(bossId));
+  const resetAt = boss?.timer_reset_at
+    ? new Date(boss.timer_reset_at).getTime()
+    : 0;
+
   return cuts
-    .filter(c => c.boss_id === bossId)
+    .filter(c =>
+      String(c.boss_id) === String(bossId) &&
+      new Date(c.cut_at).getTime() > resetAt
+    )
     .sort((a,b)=>
       new Date(b.updated_at || b.cut_at) -
       new Date(a.updated_at || a.cut_at)
@@ -1345,7 +1369,39 @@ async function saveBoss(){
   renderAll();
   // 저장 완료 팝업은 표시하지 않습니다.
 }
+async function resetAllBossTimes(){
+  if(!isAdmin()){
+    alert("관리자만 사용할 수 있습니다.");
+    return;
+  }
 
+  const ok = confirm(
+    "정말 모든 보스의 시간을 초기화할까요?\n\n" +
+    "모든 보스가 미등록 상태가 됩니다.\n" +
+    "보스 이름, 별명, 리젠 시간과 과거 컷 기록은 보존됩니다."
+  );
+
+  if(!ok) return;
+
+  const btn = $("resetAllBossBtn");
+  if(btn) btn.disabled = true;
+
+  try{
+    const {data,error} = await db.rpc("admin_reset_all_boss_times");
+
+    if(error) throw error;
+
+    await Promise.all([loadBosses(),loadCuts()]);
+    alerted.clear();
+    renderAll();
+
+    alert(`초기화 완료! ${data ?? 0}개 보스가 초기화되었습니다.`);
+  }catch(e){
+    alert("전체 초기화 실패: " + (e.message || e));
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
 async function changeNickname(){
   const nickname = $("newNick").value.trim();
   if(!nickname) return alert("닉네임을 입력하세요.");
@@ -1487,6 +1543,7 @@ document.addEventListener("click",e=>{
   }
 });
 $("addBossBtn").addEventListener("click",saveBoss);
+  $("resetAllBossBtn").addEventListener("click",resetAllBossTimes);
 $("clearBossForm").addEventListener("click",resetBossForm);
 
 $("soundBtn").addEventListener("click",()=>{
