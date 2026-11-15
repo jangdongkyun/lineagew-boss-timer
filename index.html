@@ -360,8 +360,7 @@ h3{font-size:14px;margin:0 0 10px}
 .member-count-btn{border:0;padding:0;background:transparent;color:inherit;font-size:20px;font-weight:900}
 .member-count-btn:hover{filter:brightness(1.25);text-decoration:underline}
 .offline-toggle{cursor:pointer;color:#cbd5e1}
-.offline-list{display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);flex-wrap:wrap;gap:6px}
-.offline-list.show{display:flex}
+.offline-list{display:flex;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);flex-wrap:wrap;gap:6px}
 .offline-chip{display:inline-block;padding:5px 9px;border-radius:7px;background:#27313f;border:1px solid #536174;color:#d0d8e4;font-weight:700;font-size:12px}
 .member-admin-item{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
 .member-admin-item:last-child{border-bottom:0}
@@ -477,7 +476,7 @@ h3{font-size:14px;margin:0 0 10px}
         <div id="onlineList" class="online-list"><span class="online-empty">확인 중...</span></div>
       </div>
       <div class="member-status-box">
-        <div class="member-status-title"><span style="color:#b8c3d1">⚪ 오프라인</span><button type="button" class="member-count-btn offline-toggle" id="offlineToggle" aria-expanded="false"><span id="offlineCount">0</span>명 ▾</button></div>
+        <div class="member-status-title"><span style="color:#b8c3d1">⚪ 오프라인</span><span class="member-count-btn"><span id="offlineCount">0</span>명</span></div>
         <div id="offlineList" class="offline-list"></div>
       </div>
     </div>
@@ -1315,9 +1314,6 @@ function renderOnline(){
   $("offlineList").innerHTML = offline.length
     ? offline.map(m=>`<span class="offline-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
     : '<span class="online-empty">오프라인 회원이 없습니다.</span>';
-  $("offlineList").classList.toggle("show",offlineExpanded);
-  $("offlineToggle").setAttribute("aria-expanded",String(offlineExpanded));
-  $("offlineToggle").innerHTML = `<span id="offlineCount">${offline.length}</span>명 ${offlineExpanded ? "▴" : "▾"}`;
 }
 
 async function setMemberStatus(memberId,status){
@@ -1673,10 +1669,6 @@ $("nickToggle").addEventListener("click",()=>{
 });
 
 $("saveNickBtn").addEventListener("click",changeNickname);
-$("offlineToggle").addEventListener("click",()=>{
-  offlineExpanded = !offlineExpanded;
-  renderOnline();
-});
 $("manualCutBtn").addEventListener("click",manualCut);
   $("manualBossName").addEventListener("focus",renderManualBossList);
 
