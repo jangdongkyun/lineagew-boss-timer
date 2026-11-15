@@ -354,6 +354,24 @@ h3{font-size:14px;margin:0 0 10px}
   color:var(--muted);
   font-size:12px;
 }
+.member-status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.member-status-box{border:1px solid var(--line);border-radius:10px;padding:10px;background:#101923;min-width:0}
+.member-status-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;font-size:13px}
+.member-count-btn{border:0;padding:0;background:transparent;color:inherit;font-size:20px;font-weight:900}
+.member-count-btn:hover{filter:brightness(1.25);text-decoration:underline}
+.offline-toggle{cursor:pointer;color:#cbd5e1}
+.offline-list{display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);flex-wrap:wrap;gap:6px}
+.offline-list.show{display:flex}
+.offline-chip{display:inline-block;padding:5px 9px;border-radius:7px;background:#27313f;border:1px solid #536174;color:#d0d8e4;font-weight:700;font-size:12px}
+.member-admin-item{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
+.member-admin-item:last-child{border-bottom:0}
+.member-admin-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.member-admin-actions{display:flex;gap:5px;flex-wrap:wrap}
+.member-admin-actions button{font-size:11px;padding:6px 8px}
+.member-state{font-size:11px;padding:3px 6px;border-radius:5px;background:#29384a}
+.member-state.banned{background:#6b2930;color:#ffd5d8}
+.member-state.withdrawn{background:#414955;color:#d5dbe3}
+@media(max-width:480px){.member-status-grid{grid-template-columns:1fr}}
 @media(max-width:700px){
   .wrap{padding:11px}
   .logo{font-size:19px}
@@ -444,16 +462,24 @@ h3{font-size:14px;margin:0 0 10px}
   <div class="stats">
     <div class="stat">등록 보스 <b id="bossCount">0</b></div>
     <div class="stat">온라인 <b id="onlineCount">0</b></div>
+    <div class="stat">오프라인 <b id="offlineCountStat">0</b></div>
     <div class="stat">현재 시각 <b id="clock">--:--:--</b></div>
   </div>
-  <!-- 상단 온라인 혈맹원 -->
+  <!-- 전체 가입 회원의 접속 상태: 모든 회원에게 공개 -->
   <div class="panel online-panel">
-    <div class="row" style="justify-content:space-between">
-      <h2>🟢 접속 중인 혈맹원</h2>
-      <span class="badge"><span id="onlineCountTop">0</span>명 접속</span>
+    <div class="row" style="justify-content:space-between;margin-bottom:10px">
+      <h2>혈맹원 접속 현황</h2>
+      <span class="badge">가입 회원 전체</span>
     </div>
-    <div id="onlineList" class="online-list">
-      확인 중...
+    <div class="member-status-grid">
+      <div class="member-status-box">
+        <div class="member-status-title"><span style="color:#63d69b">🟢 온라인</span><span><b id="onlineCountTop">0</b>명</span></div>
+        <div id="onlineList" class="online-list"><span class="online-empty">확인 중...</span></div>
+      </div>
+      <div class="member-status-box">
+        <div class="member-status-title"><span style="color:#b8c3d1">⚪ 오프라인</span><button type="button" class="member-count-btn offline-toggle" id="offlineToggle" aria-expanded="false"><span id="offlineCount">0</span>명 ▾</button></div>
+        <div id="offlineList" class="offline-list"></div>
+      </div>
     </div>
   </div>
   <div class="panel">
@@ -533,6 +559,12 @@ h3{font-size:14px;margin:0 0 10px}
 </div>
     <div id="adminBossList" style="margin-top:15px"></div>
   </div>
+
+  <div class="panel admin-only" id="adminMemberPanel">
+    <h2>관리자 · 가입 회원 관리</h2>
+    <div class="muted" style="margin-bottom:10px">가입일과 계정 상태를 확인하고, 회원을 영구 추방하거나 추방 해제·탈퇴 처리할 수 있습니다.</div>
+    <div id="adminMemberList">회원 정보를 불러오는 중...</div>
+  </div>
 </div>
 </div>
 
@@ -548,6 +580,8 @@ let profile = null;
 let bosses = [];
 let cuts = [];
 let presenceRows = [];
+let members = [];
+let offlineExpanded = false;
 let soundOn = false;
 let editingBossId = null;
 let realtimeChannels = [];
@@ -967,9 +1001,17 @@ async function loadPresence(){
   presenceRows = data || [];
 }
 
+async function loadMembers(){
+  const {data,error} = await db.from("profiles")
+    .select("id,nickname,role,created_at,account_status")
+    .order("created_at",{ascending:true});
+  if(error) throw error;
+  members = data || [];
+}
+
 async function loadAll(){
   await loadProfile();
-  await Promise.all([loadBosses(),loadCuts(),loadPresence()]);
+  await Promise.all([loadBosses(),loadCuts(),loadPresence(),loadMembers()]);
   renderAll();
 }
 
@@ -1252,40 +1294,79 @@ function renderHistory(){
 
 function renderOnline(){
   const now = Date.now();
-
-  const active = presenceRows.filter(p=>
-    now-new Date(p.last_seen).getTime() < 120000
+  const activeIds = new Set(
+    presenceRows
+      .filter(p=>now-new Date(p.last_seen).getTime() < 120000)
+      .map(p=>String(p.user_id))
   );
+  const visibleMembers = members.filter(m=>(m.account_status || "active")==="active");
+  const online = visibleMembers.filter(m=>activeIds.has(String(m.id)))
+    .sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
+  const offline = visibleMembers.filter(m=>!activeIds.has(String(m.id)))
+    .sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
 
-  $("onlineCount").textContent = active.length;
-  $("onlineCountTop").textContent = active.length;
+  $("onlineCount").textContent = online.length;
+  $("onlineCountTop").textContent = online.length;
+  $("offlineCount").textContent = offline.length;
+  $("offlineCountStat").textContent = offline.length;
+  $("onlineList").innerHTML = online.length
+    ? online.map(m=>`<span class="online-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
+    : '<span class="online-empty">현재 온라인 혈맹원이 없습니다.</span>';
+  $("offlineList").innerHTML = offline.length
+    ? offline.map(m=>`<span class="offline-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
+    : '<span class="online-empty">오프라인 회원이 없습니다.</span>';
+  $("offlineList").classList.toggle("show",offlineExpanded);
+  $("offlineToggle").setAttribute("aria-expanded",String(offlineExpanded));
+  $("offlineToggle").innerHTML = `${offline.length}명 ${offlineExpanded ? "▴" : "▾"}`;
+}
 
-  const ids = active.map(p=>p.user_id);
-
-  if(!ids.length){
-    $("onlineList").innerHTML =
-      '<span class="online-empty">현재 온라인 혈맹원이 없습니다.</span>';
-    return;
+async function setMemberStatus(memberId,status){
+  if(!isAdmin()) return alert("관리자만 사용할 수 있습니다.");
+  const target = members.find(m=>String(m.id)===String(memberId));
+  if(!target) return alert("회원을 찾을 수 없습니다.");
+  const label = status==="banned" ? "영구 추방" : status==="active" ? "추방 해제" : "탈퇴 처리";
+  if(!confirm(`${target.nickname || "해당 회원"} 회원을 ${label}할까요?`)) return;
+  try{
+    const {error} = await db.rpc("admin_set_member_status",{p_user_id:memberId,p_status:status});
+    if(error) throw error;
+    await loadMembers();
+    renderOnline();
+    renderAdminMembers();
+  }catch(e){
+    alert(`${label} 실패: ${e.message || e}`);
   }
+}
 
-  db.from("profiles")
-    .select("id,nickname")
-    .in("id",ids)
-    .then(({data,error})=>{
-      if(error) return;
-
-      $("onlineList").innerHTML = (data || [])
-        .sort((a,b)=>
-          (a.nickname || "").localeCompare(b.nickname || "","ko")
-        )
-        .map(p=>
-          `<span class="online-chip">${escapeHtml(p.nickname || "혈맹원")}</span>`
-        ).join("");
-    });
+function renderAdminMembers(){
+  const panel = $("adminMemberPanel");
+  if(!panel) return;
+  panel.style.display = isAdmin() ? "block" : "none";
+  if(!isAdmin()) return;
+  const list = $("adminMemberList");
+  const sorted = [...members].sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
+  list.innerHTML = sorted.length ? sorted.map(m=>{
+    const status = m.account_status || "active";
+    const statusLabel = status==="banned" ? "영구 추방" : status==="withdrawn" ? "탈퇴" : "정상";
+    const statusClass = status==="banned" ? "banned" : status==="withdrawn" ? "withdrawn" : "";
+    const created = m.created_at ? new Date(m.created_at).toLocaleDateString("ko-KR") : "정보 없음";
+    let actions = "";
+    if(status==="active"){
+      actions = `<button class="danger" data-member-status="banned" data-member-id="${escapeHtml(m.id)}">영구 추방</button><button class="ghost" data-member-status="withdrawn" data-member-id="${escapeHtml(m.id)}">탈퇴 처리</button>`;
+    }else if(status==="banned"){
+      actions = `<button class="good" data-member-status="active" data-member-id="${escapeHtml(m.id)}">추방 해제</button><button class="ghost" data-member-status="withdrawn" data-member-id="${escapeHtml(m.id)}">탈퇴 처리</button>`;
+    }else{
+      actions = `<span class="muted">탈퇴 처리된 계정</span>`;
+    }
+    return `<div class="member-admin-item"><div><b>${escapeHtml(m.nickname || "닉네임 없음")}</b> <span class="member-state ${statusClass}">${statusLabel}</span><div class="member-admin-meta">가입일: ${escapeHtml(created)} · ${m.role==="admin" ? "관리자" : "일반 회원"}</div></div><div class="member-admin-actions">${actions}</div></div>`;
+  }).join("") : '<div class="muted">가입 회원이 없습니다.</div>';
+  list.querySelectorAll("[data-member-status]").forEach(btn=>{
+    btn.addEventListener("click",()=>setMemberStatus(btn.dataset.memberId,btn.dataset.memberStatus));
+  });
 }
 
 function renderAdmin(){
   $("adminPanel").style.display = isAdmin() ? "block" : "none";
+  renderAdminMembers();
   if(!isAdmin()) return;
 
   $("adminBossList").innerHTML = bosses.map(b=>`
@@ -1479,6 +1560,13 @@ function setupRealtime(){
       event:"*",schema:"public",table:"profiles"
     },async()=>{
       await loadProfile();
+      await loadMembers();
+      if(profile && (profile.account_status || "active") !== "active"){
+        await db.auth.signOut();
+        await leaveApp();
+        alert("관리자에 의해 계정 이용이 중지되었습니다.");
+        return;
+      }
       renderAll();
     })
     .on("postgres_changes",{
@@ -1499,6 +1587,13 @@ async function enterApp(currentUser){
 
   try{
     await loadAll();
+    const accountStatus = profile.account_status || "active";
+    if(accountStatus !== "active"){
+      await db.auth.signOut();
+      await leaveApp();
+      alert(accountStatus==="banned" ? "관리자에 의해 영구 추방된 계정입니다." : "탈퇴 처리된 계정입니다. 관리자에게 문의하세요.");
+      return;
+    }
     await updatePresence();
     setupRealtime();
   }catch(e){
@@ -1515,6 +1610,8 @@ async function leaveApp(){
   bosses = [];
   cuts = [];
   presenceRows = [];
+  members = [];
+  offlineExpanded = false;
   $("app").style.display = "none";
   $("auth").style.display = "block";
 }
@@ -1563,6 +1660,9 @@ $("signupBtn").addEventListener("click",async()=>{
 });
 
 $("logoutBtn").addEventListener("click",async()=>{
+  if(user){
+    await db.from("presence").update({last_seen:new Date(Date.now()-180000).toISOString()}).eq("user_id",user.id);
+  }
   await db.auth.signOut();
   await leaveApp();
 });
@@ -1573,6 +1673,10 @@ $("nickToggle").addEventListener("click",()=>{
 });
 
 $("saveNickBtn").addEventListener("click",changeNickname);
+$("offlineToggle").addEventListener("click",()=>{
+  offlineExpanded = !offlineExpanded;
+  renderOnline();
+});
 $("manualCutBtn").addEventListener("click",manualCut);
   $("manualBossName").addEventListener("focus",renderManualBossList);
 
@@ -1623,7 +1727,7 @@ setInterval(async()=>{
 /* 온라인 상태 다시 확인 */
 setInterval(async()=>{
   if(!user) return;
-  await loadPresence();
+  await Promise.all([loadPresence(),loadMembers()]);
   renderOnline();
 },30000);
 
