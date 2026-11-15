@@ -1317,7 +1317,7 @@ function renderOnline(){
     : '<span class="online-empty">오프라인 회원이 없습니다.</span>';
   $("offlineList").classList.toggle("show",offlineExpanded);
   $("offlineToggle").setAttribute("aria-expanded",String(offlineExpanded));
-  $("offlineToggle").innerHTML = `${offline.length}명 ${offlineExpanded ? "▴" : "▾"}`;
+  $("offlineToggle").innerHTML = `<span id="offlineCount">${offline.length}</span>명 ${offlineExpanded ? "▴" : "▾"}`;
 }
 
 async function setMemberStatus(memberId,status){
