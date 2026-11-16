@@ -806,7 +806,24 @@ function showScreen(name){
   if(nav) nav.style.display=name==="main"?"flex":"none";
 
 
+  if(name==="activity"){
+    const monthInput = $("activityMonth");
 
+    if(monthInput){
+      const now = new Date();
+      const currentMonth = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+
+      const minDate = new Date(now.getFullYear(),now.getMonth()-2,1);
+      const minMonth = minDate.getFullYear()+"-"+String(minDate.getMonth()+1).padStart(2,"0");
+
+      monthInput.max = currentMonth;
+      monthInput.min = minMonth;
+
+      if(!monthInput.value || monthInput.value < minMonth || monthInput.value > currentMonth){
+        monthInput.value = currentMonth;
+      }
+    }
+  }
   if(name==="personal"){
     loadPersonalAlertSettings().catch(e=>{
       console.error("개인 설정 다시 불러오기 실패:",e);
@@ -1548,7 +1565,26 @@ async function loadActivityCuts(){
   const monthInput = $("activityMonth");
   const selectedMonth = monthInput?.value;
 
-  if(!selectedMonth) return;
+  if(!selectedMonth){
+    alert("조회할 월을 선택해 주세요.");
+    return;
+  }
+
+  const now = new Date();
+
+  const currentMonth =
+    now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+
+  const minDate = new Date(now.getFullYear(),now.getMonth()-2,1);
+
+  const minMonth =
+    minDate.getFullYear()+"-"+String(minDate.getMonth()+1).padStart(2,"0");
+
+  if(selectedMonth < minMonth || selectedMonth > currentMonth){
+    alert("최근 3개월의 활동 기록만 조회할 수 있습니다.");
+    monthInput.value = currentMonth;
+    return;
+  }
 
   const start = new Date(`${selectedMonth}-01T00:00:00+09:00`);
   const end = new Date(start);
