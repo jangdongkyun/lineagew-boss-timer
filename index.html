@@ -993,23 +993,48 @@ async function registerCut(boss, cutAt){
       new Date(a.updated_at || a.cut_at)
     );
 
-  const oldIds = bossCuts.slice(3).map(c => c.id);
+// 새 컷 입력이 발생하면 해당 보스의 기존 삭제 대기를 취소
+const { error: cancelError } = await db
+  .from("cut_records")
+  .update({ pending_delete_at: null })
+  .eq("boss_id", boss.id)
+  .not("pending_delete_at", "is", null);
 
-  if(oldIds.length > 0){
-    const {error: deleteError} = await db
-      .from("cut_records")
-      .delete()
-      .in("id", oldIds);
+if(cancelError) throw cancelError;
 
-    if(deleteError){
-      console.error("오래된 컷 기록 정리 실패:", deleteError);
-      alert("컷 등록은 성공했지만 오래된 기록 정리에 실패했습니다.\n"+deleteError.message);
-    }
-  }
+// 최신 기록 다시 불러오기
+await loadCuts();
 
-  await loadCuts();
-  renderAll();
-  return true;
+// 삭제 대기가 아닌 기록 중 최근 3개만 유지
+const activeBossCuts = cuts
+  .filter(c =>
+    String(c.boss_id) === String(boss.id) &&
+    !c.pending_delete_at
+  )
+  .sort((a,b) =>
+    new Date(b.updated_at || b.cut_at) -
+    new Date(a.updated_at || a.cut_at)
+  );
+
+// 3개보다 오래된 기록은 10분 뒤 삭제 예약
+const oldIds = activeBossCuts.slice(3).map(c => c.id);
+
+if(oldIds.length > 0){
+  const deleteAt = new Date(
+    Date.now() + 10 * 60 * 1000
+  ).toISOString();
+
+  const {error: pendingError} = await db
+    .from("cut_records")
+    .update({ pending_delete_at: deleteAt })
+    .in("id", oldIds);
+
+  if(pendingError) throw pendingError;
+}
+
+await loadCuts();
+renderAll();
+return true;
 }
 
 
