@@ -1039,6 +1039,7 @@ return true;
 
 
 
+
 async function rollbackCut(bossId){
   if(!user) {
     alert("로그인이 필요합니다.");
@@ -1067,8 +1068,8 @@ async function rollbackCut(bossId){
     return;
   }
 
-  // 삭제 대기 여부와 관계없이 전체 기록 중 최신 3개 선택
-const choices = bossCuts.slice(0, 3);
+  // 전체 기록 중 최신 3개만 복구 대상으로 표시
+  const choices = bossCuts.slice(0, 3);
 
   const choiceText = choices.map((c, i) => {
     const time = new Date(c.cut_at).toLocaleString("ko-KR");
@@ -1082,7 +1083,7 @@ const choices = bossCuts.slice(0, 3);
 
   const answer = prompt(
     `${boss.name} 보스\n\n` +
-    `복구할 컷 기록 번호를 입력하세요.\n\n` +
+    `복구할 기록을 선택하세요.\n\n` +
     choiceText +
     `\n\n1~${choices.length} 숫자를 입력하세요.`
   );
@@ -1101,14 +1102,17 @@ const choices = bossCuts.slice(0, 3);
   }
 
   const selected = choices[selectedNumber - 1];
+
   const selectedIndex = bossCuts.findIndex(
     c => String(c.id) === String(selected.id)
   );
 
+  // 선택한 기록보다 최신인 모든 기록
   const newerIds = bossCuts
     .slice(0, selectedIndex)
     .map(c => c.id);
 
+  // 선택한 기록과 그 이전 기록
   const olderIds = bossCuts
     .slice(selectedIndex)
     .map(c => c.id);
@@ -1118,7 +1122,6 @@ const choices = bossCuts.slice(0, 3);
   ).toISOString();
 
   try {
-    // 선택한 기록과 그 이전 기록은 삭제 대기 취소
     if(olderIds.length > 0){
       const {error} = await db
         .from("cut_records")
@@ -1128,7 +1131,6 @@ const choices = bossCuts.slice(0, 3);
       if(error) throw error;
     }
 
-    // 선택한 기록보다 최신인 기록은 10분 뒤 삭제 예약
     if(newerIds.length > 0){
       const {error} = await db
         .from("cut_records")
@@ -1142,9 +1144,9 @@ const choices = bossCuts.slice(0, 3);
     renderAll();
 
     alert(
-      `${boss.name} 보스 복구 완료!\n\n` +
+      `${boss.name} 복구 완료!\n\n` +
       `선택한 기록: ${new Date(selected.cut_at).toLocaleString("ko-KR")}\n\n` +
-      `최신 기록 ${newerIds.length}개는 10분간 삭제가 보류됩니다.`
+      `최신 기록 ${newerIds.length}개가 10분 삭제 대기 상태입니다.`
     );
 
   } catch(e) {
@@ -1152,6 +1154,7 @@ const choices = bossCuts.slice(0, 3);
     alert("복구 처리 실패: " + e.message);
   }
 }
+
 
 
 
