@@ -623,15 +623,18 @@ h3{font-size:14px;margin:0 0 10px}
   <div class="panel" id="activityScreen" data-screen-view="activity">
     <div class="screen-titlebar">
       <h2>📊 혈원 활동 분석</h2>
+
       <button type="button" class="ghost" id="backFromActivityBtn">메인으로</button>
     </div>
 
-    <div class="row" style="margin-bottom:14px;flex-wrap:wrap">
-      <button type="button" class="ghost activity-period active" data-period="7">최근 7일</button>
-      <button type="button" class="ghost activity-period" data-period="30">최근 30일</button>
-      <button type="button" class="ghost activity-period" data-period="month">이번 달</button>
-      <button type="button" class="ghost activity-period" data-period="all">전체 기간</button>
+    <div class="row" style="margin:14px 0;align-items:center">
+      <label for="activityMonth">통계 조회 월</label>
+      <input type="month" id="activityMonth" style="max-width:190px">
+      <button type="button" class="primary" id="loadActivityBtn">조회하기</button>
     </div>
+
+
+
 
     <div class="stats-grid" id="activitySummary">
       <div class="stat"><span>전체 컷 등록</span><strong>0회</strong></div>
@@ -643,12 +646,10 @@ h3{font-size:14px;margin:0 0 10px}
     <div id="activityRanking" class="muted">활동 데이터를 불러오는 중입니다.</div>
 
     <h3>📅 날짜별 활동</h3>
-    <div id="activityDaily" class="muted">활동 데이터가 없습니다.</div>
-
-    <h3>🐉 보스별 컷 등록 현황</h3>
-    <div id="activityBossStats" class="muted">활동 데이터가 없습니다.</div>
-  </div>
-
+<div id="activityDaily" class="muted">활동 데이터가 없습니다.</div>
+<h3>🐉 보스별 컷 등록 현황</h3>
+<div id="activityBossStats" class="muted">활동 데이터가 없습니다.</div>
+</div>
 
 
   <div id="adminTools">
@@ -832,6 +833,21 @@ $("openCutHistoryBtn").addEventListener("click",()=>{
   showScreen("history");
 });
 $("backFromHistoryBtn").addEventListener("click",()=>showScreen("main"));
+  
+$("backFromActivityBtn").addEventListener("click",()=>{
+  showScreen("main");
+});
+
+$("loadActivityBtn").addEventListener("click",async()=>{
+  try{
+    $("activityRanking").textContent="통계 불러오는 중...";
+    await loadActivityCuts();
+  }catch(e){
+    console.error("혈원 활동 통계 조회 실패:",e);
+    $("activityRanking").textContent="통계 조회 실패: "+e.message;
+  }
+});
+
 $("openActivityBtn").addEventListener("click",()=>{
   showScreen("activity");
 });
@@ -1527,16 +1543,119 @@ async function loadCuts(){
   cuts = data || [];
 }
 
+
 async function loadActivityCuts(){
+  const monthInput = $("activityMonth");
+  const selectedMonth = monthInput?.value;
+
+  if(!selectedMonth) return;
+
+  const start = new Date(`${selectedMonth}-01T00:00:00+09:00`);
+  const end = new Date(start);
+  end.setMonth(end.getMonth()+1);
+
   const {data,error} = await db
     .from("cut_records")
     .select("id,boss_id,cut_at,created_by,created_by_nickname")
+    .gte("cut_at",start.toISOString())
+    .lt("cut_at",end.toISOString())
     .order("cut_at",{ascending:false});
 
   if(error) throw error;
+
   activityCuts = data || [];
+  renderActivityStats();
 }
 
+function renderActivityStats(){
+  const ranking = {};
+  const daily = {};
+  const bossStats = {};
+
+  activityCuts.forEach(cut=>{
+    const id = cut.created_by || "unknown";
+    const nickname = cut.created_by_nickname || "이름 없음";
+
+    if(!ranking[id]){
+      ranking[id] = {id,nickname,count:0};
+    }
+    ranking[id].count++;
+
+    const date = new Date(cut.cut_at).toLocaleDateString("ko-KR",{
+      timeZone:"Asia/Seoul"
+    });
+
+    daily[date] = (daily[date] || 0) + 1;
+
+    const boss = bosses.find(b=>String(b.id)===String(cut.boss_id));
+    const bossName = boss?.name || "알 수 없는 보스";
+    bossStats[bossName] = (bossStats[bossName] || 0) + 1;
+  });
+
+  const ranked = Object.values(ranking)
+    .sort((a,b)=>b.count-a.count || a.nickname.localeCompare(b.nickname,"ko"));
+
+  const total = activityCuts.length;
+  const activeMembers = ranked.length;
+
+  const myRank = user
+    ? ranked.findIndex(member=>member.id===user.id)+1
+    : 0;
+
+  $("activitySummary").innerHTML = `
+    <div class="stat">
+      <span>전체 컷 등록</span>
+      <strong>${total}회</strong>
+    </div>
+    <div class="stat">
+      <span>활동 혈원</span>
+      <strong>${activeMembers}명</strong>
+    </div>
+    <div class="stat">
+      <span>내 활동 순위</span>
+      <strong>${myRank ? myRank+"위" : "-"}</strong>
+    </div>
+  `;
+
+  $("activityRanking").innerHTML = ranked.length
+    ? ranked.map((member,index)=>`
+        <div class="row" style="justify-content:space-between;padding:10px;border-bottom:1px solid #30394a">
+          <strong>${index+1}위 · ${escapeHtml(member.nickname)}</strong>
+          <strong>${member.count}회</strong>
+        </div>
+      `).join("")
+    : "해당 월의 활동 기록이 없습니다.";
+
+  const dailyRows = Object.entries(daily)
+    .sort((a,b)=>{
+      const [am,ad] = a[0].split(". ").map(Number);
+      const [bm,bd] = b[0].split(". ").map(Number);
+      return am-bm || ad-bd;
+    });
+
+  $("activityDaily").innerHTML = dailyRows.length
+    ? dailyRows.map(([date,count])=>`
+        <div class="row" style="justify-content:space-between;padding:8px;border-bottom:1px solid #30394a">
+          <span>${date}</span>
+          <strong>${count}회</strong>
+        </div>
+      `).join("")
+    : "해당 월의 활동 기록이 없습니다.";
+
+  const bossRows = Object.entries(bossStats)
+    .sort((a,b)=>b[1]-a[1]);
+
+  $("activityBossStats").innerHTML = bossRows.length
+    ? bossRows.map(([name,count])=>`
+        <div class="row" style="justify-content:space-between;padding:8px;border-bottom:1px solid #30394a">
+          <span>${escapeHtml(name)}</span>
+          <strong>${count}회</strong>
+        </div>
+      `).join("")
+    : "해당 월의 활동 기록이 없습니다.";
+}
+
+  
 async function loadPresence(){
   const {data,error} = await db.from("presence")
     .select("user_id,last_seen");
@@ -1557,19 +1676,20 @@ async function loadMembers(){
 }
 
 
+
 async function loadAll(){
   await loadProfile();
 
   await Promise.all([
     loadBosses(),
     loadCuts(),
-    loadActivityCuts(),
     loadPresence(),
     loadMembers()
   ]);
 
   renderAll();
 }
+
 
 
 async function updatePresence(){
