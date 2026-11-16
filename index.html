@@ -1067,7 +1067,8 @@ async function rollbackCut(bossId){
     return;
   }
 
-  const choices = bossCuts.slice(0, 3);
+  // 삭제 대기 여부와 관계없이 전체 기록 중 최신 3개 선택
+const choices = bossCuts.slice(0, 3);
 
   const choiceText = choices.map((c, i) => {
     const time = new Date(c.cut_at).toLocaleString("ko-KR");
