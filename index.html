@@ -442,6 +442,16 @@ h3{font-size:14px;margin:0 0 10px}
 .personal-alert-save{width:100%;margin-top:14px;background:#20583f;border-color:#317b58}
 .personal-alert-message{margin-top:9px;font-size:12px;color:var(--green)}
 
+
+/* 화면 분리: 메인 / 개인설정 / 컷 기록 */
+[data-screen-view]{display:none}
+[data-screen-view].screen-active{display:block}
+.screen-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.screen-nav button{flex:1 1 130px}
+.screen-titlebar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.screen-titlebar h2{margin:0}
+.personal-screen-actions{display:flex;gap:8px;margin-top:16px}
+.personal-screen-actions button{flex:1}
 </style>
 </head>
 <body>
@@ -497,11 +507,15 @@ h3{font-size:14px;margin:0 0 10px}
         <button class="primary" id="saveNickBtn">저장</button>
       </div>
     </div>
+    <div class="screen-nav" id="mainScreenNav">
+      <button type="button" class="ghost" id="openPersonalSettingsBtn">⚙ 개인설정</button>
+      <button type="button" class="ghost" id="openCutHistoryBtn">📋 컷 기록</button>
+    </div>
   </div>
 
 
-  <div class="panel personal-alert-panel" id="personalAlertPanel">
-    <div class="row" style="justify-content:space-between"><h2>🔔 나의 개인 알림 설정</h2><span class="badge">계정에 저장</span></div>
+  <div class="panel personal-alert-panel" id="personalAlertPanel" data-screen-view="personal">
+    <div class="screen-titlebar"><h2>🔔 나의 개인 알림 설정</h2><span class="badge">계정에 저장</span></div>
     <div class="muted">음성과 휴대폰 알림은 별도로 설정됩니다. 설정은 로그인 계정에 저장됩니다.</div>
     <div class="personal-alert-section">
       <div class="personal-alert-title">🔊 음성 알림</div>
@@ -523,17 +537,21 @@ h3{font-size:14px;margin:0 0 10px}
       <div class="personal-quiet-hours"><span>시작</span><input type="time" id="pushQuietStart" value="23:00"><span>종료</span><input type="time" id="pushQuietEnd" value="08:00"></div>
       <div class="personal-alert-title" style="margin-top:16px">휴대폰 알림 받을 보스</div><div id="pushBossList" class="personal-boss-list"></div>
     </div>
-    <button class="personal-alert-save" id="savePersonalAlertBtn">개인 알림 설정 저장</button><div id="personalAlertMessage" class="personal-alert-message"></div>
+    <div class="personal-screen-actions">
+      <button class="good" id="savePersonalAlertBtn">저장</button>
+      <button class="ghost" id="cancelPersonalAlertBtn">취소</button>
+    </div>
+    <div id="personalAlertMessage" class="personal-alert-message"></div>
   </div>
 
-  <div class="stats">
+  <div class="stats" data-screen-view="main">
     <div class="stat">등록 보스 <b id="bossCount">0</b></div>
     <div class="stat">온라인 <b id="onlineCount">0</b></div>
     <div class="stat">오프라인 <b id="offlineCountStat">0</b></div>
     <div class="stat">현재 시각 <b id="clock">--:--:--</b></div>
   </div>
   <!-- 전체 가입 회원의 접속 상태: 모든 회원에게 공개 -->
-  <div class="panel online-panel">
+  <div class="panel online-panel" data-screen-view="main">
     <div class="row" style="justify-content:space-between;margin-bottom:6px">
       <h2>혈맹원 접속 현황</h2>
       <span class="badge">가입 회원 전체</span>
@@ -552,7 +570,7 @@ h3{font-size:14px;margin:0 0 10px}
       </div>
     </div>
   </div>
-  <div class="panel">
+  <div class="panel" data-screen-view="main">
     <div class="row" style="justify-content:space-between">
       <h2>필드 보스 현황</h2>
       <span class="badge">출현 예정 시간순 자동 정렬</span>
@@ -567,7 +585,7 @@ h3{font-size:14px;margin:0 0 10px}
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-screen-view="main">
     <h2>보스명으로 컷 시간 직접 입력</h2>
     <div class="muted" style="margin-bottom:12px">
       보스 이름 또는 별명을 입력하고 컷 시간을 입력하세요. 예: 2135 또는 21:35
@@ -592,8 +610,11 @@ h3{font-size:14px;margin:0 0 10px}
     <button class="primary" id="manualCutBtn">수기 컷 기록 등록</button>
   </div>
 
-  <div class="panel">
-    <h2>최근 컷 기록</h2>
+  <div class="panel" id="cutHistoryScreen" data-screen-view="history">
+    <div class="screen-titlebar">
+      <h2>📋 컷 기록</h2>
+      <button type="button" class="ghost" id="backFromHistoryBtn">메인으로</button>
+    </div>
     <div id="historyList" class="muted">기록이 없습니다.</div>
   </div>
 
@@ -722,8 +743,10 @@ async function savePersonalAlertSettings(){
     if(payload.push_quiet_hours_enabled && payload.push_quiet_hours_start===payload.push_quiet_hours_end) throw new Error("휴대폰 방해 금지 시작과 종료 시간을 다르게 설정하세요.");
     const {error}=await db.from("user_alert_settings").upsert(payload,{onConflict:"user_id"});if(error)throw error;
     personalAlertSettings=payload;personalBossSettings=payload.boss_settings;msg.textContent="개인 알림 설정이 저장되었습니다.";
-  }catch(e){console.error(e);msg.textContent="저장 실패: "+e.message;}
-  finally{btn.disabled=false;btn.textContent="개인 알림 설정 저장";}
+    showScreen("main");
+    return true;
+  }catch(e){console.error(e);msg.textContent="저장 실패: "+e.message;return false;}
+  finally{btn.disabled=false;btn.textContent="저장";}
 }
 function isInQuietHours(channel,now=new Date()){
   if(!personalAlertSettings)return false;
@@ -738,6 +761,33 @@ function isInQuietHours(channel,now=new Date()){
 }
 function personalBossAllows(bossId,channel){const x=personalBossSettings[String(bossId)];return !x || x[channel]!==false;}
 $("savePersonalAlertBtn").addEventListener("click",savePersonalAlertSettings);
+
+function showScreen(name){
+  document.querySelectorAll("[data-screen-view]").forEach(el=>{
+    el.classList.toggle("screen-active",el.dataset.screenView===name);
+  });
+  const nav=$("mainScreenNav");
+  if(nav) nav.style.display=name==="main"?"flex":"none";
+  if(name==="personal"){
+    loadPersonalAlertSettings().catch(e=>{
+      console.error("개인 설정 다시 불러오기 실패:",e);
+      $("personalAlertMessage").textContent="설정을 불러오지 못했습니다: "+e.message;
+    });
+  }
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+$("openPersonalSettingsBtn").addEventListener("click",()=>showScreen("personal"));
+$("cancelPersonalAlertBtn").addEventListener("click",async()=>{
+  try{await loadPersonalAlertSettings();}catch(e){console.error(e);}
+  $("personalAlertMessage").textContent="변경사항을 취소했습니다.";
+  showScreen("main");
+});
+$("openCutHistoryBtn").addEventListener("click",()=>{
+  renderHistory();
+  showScreen("history");
+});
+$("backFromHistoryBtn").addEventListener("click",()=>showScreen("main"));
 
 
 // Supabase에서 알림 설정 불러오기
@@ -2099,7 +2149,7 @@ async function enterApp(currentUser){
   user = currentUser;
   $("auth").style.display = "none";
   $("app").style.display = "block";
-
+  showScreen("main");
 
 try{
   await loadAll();
@@ -2137,6 +2187,7 @@ async function leaveApp(){
   offlineExpanded = false;
   onlineExpanded = false;
   $("app").style.display = "none";
+  showScreen("main");
   $("auth").style.display = "block";
 }
 
