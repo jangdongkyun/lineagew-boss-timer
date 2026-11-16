@@ -6,7 +6,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LINEAGE W · BOSS COMMAND</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
+
+  <style>
 :root{
   color-scheme:dark;
   --bg:#0b0e14;
@@ -398,6 +399,33 @@ h3{font-size:14px;margin:0 0 10px}
   .timer{font-size:16px}
   .boss-name{font-size:13px}
 }
+
+/* 관리자 보스 알림 설정 */
+#adminAlertSettings .alert-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+#adminAlertSettings .alert-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#adminAlertSettings .alert-options input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: #69d6a3;
+}
+
 </style>
 </head>
 <body>
@@ -529,6 +557,20 @@ h3{font-size:14px;margin:0 0 10px}
 
 
   <div id="adminTools">
+
+<div class="panel" id="adminAlertSettings">
+  <h3>🔔 보스 알림 설정</h3>
+  <div class="alert-options">
+    <label><input type="checkbox" id="alert3m" checked> 3분 전</label>
+    <label><input type="checkbox" id="alert1m" checked> 1분 전</label>
+    <label><input type="checkbox" id="alert30s" checked> 30초 전</label>
+    <label><input type="checkbox" id="alert10s" checked> 10초 전</label>
+    <label><input type="checkbox" id="alertSpawn" checked> 보스 출현</label>
+  </div>
+  <button class="primary" id="saveAlertSettingsBtn">알림 설정 저장</button>
+  <div id="alertSettingsMessage" class="muted"></div>
+</div>
+
   <div class="panel admin-only" id="adminPanel">
     <h2>관리자 · 보스 관리</h2>
     
@@ -586,12 +628,113 @@ let members = [];
 let offlineExpanded = false;
 let onlineExpanded = false;
 let soundOn = false;
+
+// 관리자 알림 설정 기본값
+let alertSettings = {
+  "3m": true,
+  "1m": true,
+  "30s": true,
+  "10s": true,
+  "spawn": true
+};
+
 let editingBossId = null;
 let realtimeChannels = [];
 let alerted = new Set();
 let lastPresenceUpdate = 0;
 
 const $ = id => document.getElementById(id);
+
+// Supabase에서 알림 설정 불러오기
+async function loadAlertSettings() {
+  if (!isAdmin()) return;
+
+  const { data, error } = await db
+    .from("boss_timer_settings")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("알림 설정 불러오기 실패:", error);
+    return;
+  }
+
+  if (data) {
+    alertSettings = {
+      "3m": data.alert_3m,
+      "1m": data.alert_1m,
+      "30s": data.alert_30s,
+      "10s": data.alert_10s,
+      "spawn": data.alert_spawn
+    };
+  }
+
+  $("alert3m").checked = alertSettings["3m"];
+  $("alert1m").checked = alertSettings["1m"];
+  $("alert30s").checked = alertSettings["30s"];
+  $("alert10s").checked = alertSettings["10s"];
+  $("alertSpawn").checked = alertSettings["spawn"];
+}
+
+// 관리자 알림 설정 저장
+
+async function saveAlertSettings() {
+  if (!isAdmin()) {
+    alert("관리자만 설정할 수 있습니다.");
+    return;
+  }
+
+  const btn = $("saveAlertSettingsBtn");
+  btn.disabled = true;
+  btn.textContent = "저장 중...";
+
+  const settings = {
+    alert_3m: $("alert3m").checked,
+    alert_1m: $("alert1m").checked,
+    alert_30s: $("alert30s").checked,
+    alert_10s: $("alert10s").checked,
+    alert_spawn: $("alertSpawn").checked,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const { data, error } = await db
+      .from("boss_timer_settings")
+      .update(settings)
+      .eq("id", 1)
+      .select("id");
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error("저장할 설정 행이 없습니다.");
+    }
+
+    alertSettings = {
+      "3m": settings.alert_3m,
+      "1m": settings.alert_1m,
+      "30s": settings.alert_30s,
+      "10s": settings.alert_10s,
+      "spawn": settings.alert_spawn
+    };
+
+    $("alertSettingsMessage").textContent =
+      "알림 설정이 저장되었습니다.";
+
+  } catch (e) {
+    console.error("알림 설정 저장 실패:", e);
+    $("alertSettingsMessage").textContent =
+      "저장 실패: " + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "알림 설정 저장";
+  }
+}
+
+
+// 저장 버튼 연결
+$("saveAlertSettingsBtn").addEventListener("click", saveAlertSettings);
 
 // 관리자 설정 열기/닫기
 $("adminSettingsBtn").addEventListener("click",()=>{
@@ -818,6 +961,7 @@ function renderManualBossList(){
   });
 }
 
+
 async function registerCut(boss, cutAt){
   if(!user) throw new Error("로그인이 필요합니다.");
   if(!profile) throw new Error("회원 정보를 불러오는 중입니다.");
@@ -835,10 +979,100 @@ async function registerCut(boss, cutAt){
 
   if(error) throw error;
 
+  // 해당 보스의 컷 기록을 다시 불러옵니다.
+  await loadCuts();
+
+  // 최근 기록 2개만 남기고 오래된 기록 정리
+  const bossCuts = cuts
+    .filter(c => String(c.boss_id) === String(boss.id))
+    .sort((a,b) =>
+      new Date(b.updated_at || b.cut_at) -
+      new Date(a.updated_at || a.cut_at)
+    );
+
+  const oldIds = bossCuts.slice(2).map(c => c.id);
+
+  if(oldIds.length > 0){
+    const {error: deleteError} = await db
+      .from("cut_records")
+      .delete()
+      .in("id", oldIds);
+
+    if(deleteError){
+      console.error("오래된 컷 기록 정리 실패:", deleteError);
+      alert("컷 등록은 성공했지만 오래된 기록 정리에 실패했습니다.\n"+deleteError.message);
+    }
+  }
+
   await loadCuts();
   renderAll();
   return true;
 }
+
+
+async function rollbackCut(bossId){
+  if(!user) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  const boss = bosses.find(b => String(b.id) === String(bossId));
+  if(!boss) return;
+
+  const resetAt = boss.timer_reset_at
+    ? new Date(boss.timer_reset_at).getTime()
+    : 0;
+
+  const bossCuts = cuts
+    .filter(c =>
+      String(c.boss_id) === String(bossId) &&
+      new Date(c.cut_at).getTime() > resetAt
+    )
+    .sort((a,b) =>
+      new Date(b.updated_at || b.cut_at) -
+      new Date(a.updated_at || a.cut_at)
+    );
+
+  if(bossCuts.length < 2){
+    alert("이전 컷 기록이 없어 복구할 수 없습니다.");
+    return;
+  }
+
+  const latest = bossCuts[0];
+  const previous = bossCuts[1];
+
+  const latestTime = new Date(latest.cut_at).toLocaleString("ko-KR");
+  const previousTime = new Date(previous.cut_at).toLocaleString("ko-KR");
+
+  if(!confirm(
+    `${boss.name} 보스의 최근 컷 기록을 취소할까요?\n\n`+
+    `취소할 기록: ${latestTime}\n`+
+    `복구할 기록: ${previousTime}`
+  )) return;
+
+  const {data,error} = await db
+    .from("cut_records")
+    .delete()
+    .eq("id", latest.id)
+    .select("id");
+
+  if(error){
+    alert("이전 기록 복구 실패: "+error.message);
+    return;
+  }
+
+  if(!data || data.length === 0){
+    alert("기록 삭제에 실패했습니다. 권한을 확인해 주세요.");
+    return;
+  }
+
+  await loadCuts();
+  renderAll();
+
+  alert(`${boss.name} 보스의 이전 컷 기록으로 복구했습니다.`);
+}
+
+
 
 function formatCutInput(value){
   const d = new Date(value);
@@ -1201,18 +1435,25 @@ if(overdue && elapsed <= 300000){
   });
 }
 
+
 function checkVoice(boss,at,ms){
-  if(!soundOn || !("speechSynthesis" in window)) return;
+  // 관리자만 음성 알림 사용
+  if(!isAdmin() || !soundOn || !("speechSynthesis" in window)) return;
 
   const schedule = at;
+
   const thresholds = [
-    {ms:180000,text:"3분 전"},
-    {ms:60000,text:"1분 전"},
-    {ms:30000,text:"30초 전"}
+    {ms:180000,text:"3분 전",enabled:alertSettings["3m"]},
+    {ms:60000,text:"1분 전",enabled:alertSettings["1m"]},
+    {ms:30000,text:"30초 전",enabled:alertSettings["30s"]},
+    {ms:10000,text:"10초 전",enabled:alertSettings["10s"]}
   ];
 
   thresholds.forEach(t=>{
+    if(!t.enabled) return;
+
     const key = `${boss.id}-${schedule}-${t.ms}`;
+
     if(ms>0 && ms<=t.ms && !alerted.has(key)){
       alerted.add(key);
       speak(`${boss.name}, ${t.text}입니다.`);
@@ -1220,11 +1461,13 @@ function checkVoice(boss,at,ms){
   });
 
   const spawnKey = `${boss.id}-${schedule}-spawn`;
-  if(ms<=0 && ms>=-5000 && !alerted.has(spawnKey)){
+
+  if(alertSettings["spawn"] && ms<=0 && ms>=-5000 && !alerted.has(spawnKey)){
     alerted.add(spawnKey);
     speak(`${boss.name}, 출현 시간입니다.`);
   }
 }
+
 
 
 function speak(text){
@@ -1392,6 +1635,7 @@ function renderAdminMembers(){
 
 function renderAdmin(){
   $("adminSettingsBtn").style.display = isAdmin() ? "inline-block" : "none";
+  $("soundBtn").style.display = isAdmin() ? "inline-block" : "none";
   $("adminPanel").style.display = isAdmin() ? "block" : "none";
   $("adminTools").classList.toggle("is-open",isAdmin() && adminToolsExpanded);
   if(!isAdmin()){
@@ -1617,9 +1861,13 @@ async function enterApp(currentUser){
   $("auth").style.display = "none";
   $("app").style.display = "block";
 
-  try{
-    await loadAll();
-    const accountStatus = profile.account_status || "active";
+
+try{
+  await loadAll();
+  await loadAlertSettings();
+
+  const accountStatus = profile.account_status || "active";
+
     if(accountStatus !== "active"){
       await db.auth.signOut();
       await leaveApp();
