@@ -762,20 +762,34 @@ function isInQuietHours(channel,now=new Date()){
 function personalBossAllows(bossId,channel){const x=personalBossSettings[String(bossId)];return !x || x[channel]!==false;}
 $("savePersonalAlertBtn").addEventListener("click",savePersonalAlertSettings);
 
+
 function showScreen(name){
   document.querySelectorAll("[data-screen-view]").forEach(el=>{
     el.classList.toggle("screen-active",el.dataset.screenView===name);
   });
+
   const nav=$("mainScreenNav");
   if(nav) nav.style.display=name==="main"?"flex":"none";
+
+  const adminTools=$("adminTools");
+  if(adminTools && name!=="main"){
+    adminTools.style.display="none";
+  }
+
   if(name==="personal"){
     loadPersonalAlertSettings().catch(e=>{
       console.error("개인 설정 다시 불러오기 실패:",e);
       $("personalAlertMessage").textContent="설정을 불러오지 못했습니다: "+e.message;
     });
   }
+
+  if(name==="activity"){
+    loadActivityStats();
+  }
+
   window.scrollTo({top:0,behavior:"smooth"});
 }
+
 
 $("openPersonalSettingsBtn").addEventListener("click",()=>showScreen("personal"));
 $("cancelPersonalAlertBtn").addEventListener("click",async()=>{
