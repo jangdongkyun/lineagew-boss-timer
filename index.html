@@ -771,10 +771,7 @@ function showScreen(name){
   const nav=$("mainScreenNav");
   if(nav) nav.style.display=name==="main"?"flex":"none";
 
-  const adminTools=$("adminTools");
-  if(adminTools && name!=="main"){
-    adminTools.style.display="none";
-  }
+
 
   if(name==="personal"){
     loadPersonalAlertSettings().catch(e=>{
@@ -802,7 +799,9 @@ $("openCutHistoryBtn").addEventListener("click",()=>{
   showScreen("history");
 });
 $("backFromHistoryBtn").addEventListener("click",()=>showScreen("main"));
-
+$("openActivityBtn").addEventListener("click",()=>{
+  showScreen("activity");
+});
 
 // Supabase에서 알림 설정 불러오기
 async function loadAlertSettings() {
