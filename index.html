@@ -1038,6 +1038,7 @@ return true;
 }
 
 
+
 async function rollbackCut(bossId){
   if(!user) {
     alert("로그인이 필요합니다.");
@@ -1062,42 +1063,93 @@ async function rollbackCut(bossId){
     );
 
   if(bossCuts.length < 2){
-    alert("이전 컷 기록이 없어 복구할 수 없습니다.");
+    alert("선택할 수 있는 컷 기록이 부족합니다.");
     return;
   }
 
-  const latest = bossCuts[0];
-  const previous = bossCuts[1];
+  const choices = bossCuts.slice(0, 3);
 
-  const latestTime = new Date(latest.cut_at).toLocaleString("ko-KR");
-  const previousTime = new Date(previous.cut_at).toLocaleString("ko-KR");
+  const choiceText = choices.map((c, i) => {
+    const time = new Date(c.cut_at).toLocaleString("ko-KR");
+    const author = c.created_by_nickname || "이름 없음";
+    const pending = c.pending_delete_at
+      ? " [삭제 대기 중]"
+      : "";
 
-  if(!confirm(
-    `${boss.name} 보스의 최근 컷 기록을 취소할까요?\n\n`+
-    `취소할 기록: ${latestTime}\n`+
-    `복구할 기록: ${previousTime}`
-  )) return;
+    return `${i + 1}. ${time} / ${author}${pending}`;
+  }).join("\n");
 
-  const {data,error} = await db
-    .from("cut_records")
-    .delete()
-    .eq("id", latest.id)
-    .select("id");
+  const answer = prompt(
+    `${boss.name} 보스\n\n` +
+    `복구할 컷 기록 번호를 입력하세요.\n\n` +
+    choiceText +
+    `\n\n1~${choices.length} 숫자를 입력하세요.`
+  );
 
-  if(error){
-    alert("이전 기록 복구 실패: "+error.message);
+  if(answer === null) return;
+
+  const selectedNumber = Number(answer.trim());
+
+  if(
+    !Number.isInteger(selectedNumber) ||
+    selectedNumber < 1 ||
+    selectedNumber > choices.length
+  ){
+    alert("올바른 번호를 입력해 주세요.");
     return;
   }
 
-  if(!data || data.length === 0){
-    alert("기록 삭제에 실패했습니다. 권한을 확인해 주세요.");
-    return;
+  const selected = choices[selectedNumber - 1];
+  const selectedIndex = bossCuts.findIndex(
+    c => String(c.id) === String(selected.id)
+  );
+
+  const newerIds = bossCuts
+    .slice(0, selectedIndex)
+    .map(c => c.id);
+
+  const olderIds = bossCuts
+    .slice(selectedIndex)
+    .map(c => c.id);
+
+  const deleteAt = new Date(
+    Date.now() + 10 * 60 * 1000
+  ).toISOString();
+
+  try {
+    // 선택한 기록과 그 이전 기록은 삭제 대기 취소
+    if(olderIds.length > 0){
+      const {error} = await db
+        .from("cut_records")
+        .update({ pending_delete_at: null })
+        .in("id", olderIds);
+
+      if(error) throw error;
+    }
+
+    // 선택한 기록보다 최신인 기록은 10분 뒤 삭제 예약
+    if(newerIds.length > 0){
+      const {error} = await db
+        .from("cut_records")
+        .update({ pending_delete_at: deleteAt })
+        .in("id", newerIds);
+
+      if(error) throw error;
+    }
+
+    await loadCuts();
+    renderAll();
+
+    alert(
+      `${boss.name} 보스 복구 완료!\n\n` +
+      `선택한 기록: ${new Date(selected.cut_at).toLocaleString("ko-KR")}\n\n` +
+      `최신 기록 ${newerIds.length}개는 10분간 삭제가 보류됩니다.`
+    );
+
+  } catch(e) {
+    console.error("컷 기록 복구 실패:", e);
+    alert("복구 처리 실패: " + e.message);
   }
-
-  await loadCuts();
-  renderAll();
-
-  alert(`${boss.name} 보스의 이전 컷 기록으로 복구했습니다.`);
 }
 
 
