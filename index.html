@@ -718,6 +718,8 @@ let profile = null;
 let adminToolsExpanded = false;
 let bosses = [];
 let cuts = [];
+let activityCuts = [];
+let activityPeriod = "7";
 let presenceRows = [];
 let members = [];
 let offlineExpanded = false;
@@ -1525,6 +1527,16 @@ async function loadCuts(){
   cuts = data || [];
 }
 
+async function loadActivityCuts(){
+  const {data,error} = await db
+    .from("cut_records")
+    .select("id,boss_id,cut_at,created_by,created_by_nickname")
+    .order("cut_at",{ascending:false});
+
+  if(error) throw error;
+  activityCuts = data || [];
+}
+
 async function loadPresence(){
   const {data,error} = await db.from("presence")
     .select("user_id,last_seen");
@@ -1544,11 +1556,21 @@ async function loadMembers(){
   members = data || [];
 }
 
+
 async function loadAll(){
   await loadProfile();
-  await Promise.all([loadBosses(),loadCuts(),loadPresence(),loadMembers()]);
+
+  await Promise.all([
+    loadBosses(),
+    loadCuts(),
+    loadActivityCuts(),
+    loadPresence(),
+    loadMembers()
+  ]);
+
   renderAll();
 }
+
 
 async function updatePresence(){
   if(!user) return;
