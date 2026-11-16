@@ -782,6 +782,7 @@ function formatDuration(ms){
 }
 
 
+
 function latestCut(bossId){
   const boss = bosses.find(b => String(b.id) === String(bossId));
   const resetAt = boss?.timer_reset_at
@@ -791,13 +792,15 @@ function latestCut(bossId){
   return cuts
     .filter(c =>
       String(c.boss_id) === String(bossId) &&
-      new Date(c.cut_at).getTime() > resetAt
+      new Date(c.cut_at).getTime() > resetAt &&
+      !c.pending_delete_at
     )
     .sort((a,b)=>
       new Date(b.updated_at || b.cut_at) -
       new Date(a.updated_at || a.cut_at)
     )[0] || null;
 }
+
 
 /* 최근 컷 또는 최초 출현 시각을 기준으로 다음 주기를 계산 */
 function nextAt(boss){
