@@ -815,6 +815,109 @@ input:focus,select:focus{
   }
 }
 
+/* =========================================
+   보탐봇 상단 다크 판타지 디자인
+   기존 버튼과 링크 기능 유지
+========================================= */
+
+header{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  min-height:112px;
+  padding:20px 22px;
+  border:1px solid #80643a;
+  border-radius:13px;
+  background:
+    radial-gradient(ellipse at 15% 50%,#6c4b2538,transparent 42%),
+    radial-gradient(ellipse at 85% 20%,#9a71302b,transparent 38%),
+    linear-gradient(115deg,#242019 0%,#151820 48%,#0d1119 100%);
+  box-shadow:
+    0 8px 28px #000b,
+    inset 0 1px 0 #e8c77b33,
+    inset 0 -1px 0 #000;
+}
+
+header::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  opacity:.65;
+  background:
+    linear-gradient(90deg,transparent,#d6ad5a12,transparent),
+    repeating-linear-gradient(
+      135deg,
+      transparent 0px,
+      transparent 18px,
+      #d6ad5a08 19px,
+      transparent 20px
+    );
+}
+
+header .logo{
+  color:#f0d18b;
+  font-size:25px;
+  letter-spacing:2px;
+  text-shadow:
+    0 0 8px #d6a84b66,
+    0 0 20px #d6a84b33;
+}
+
+header .sub{
+  color:#c4b28e;
+  letter-spacing:1px;
+}
+
+.quick-links{
+  position:relative;
+  z-index:1;
+  gap:7px;
+}
+
+.quick-links a,
+#adminSettingsBtn{
+  border:1px solid #725a35;
+  background:linear-gradient(180deg,#34302a,#1b1d22);
+  color:#e8d3a6;
+  box-shadow:inset 0 1px #ffffff12,0 3px 8px #0006;
+  transition:.2s ease;
+}
+
+.quick-links a:hover,
+#adminSettingsBtn:hover{
+  border-color:#d2aa5e;
+  color:#ffe5a5;
+  background:linear-gradient(180deg,#51432d,#27221b);
+  box-shadow:0 0 12px #d6ad5a44;
+  transform:translateY(-1px);
+}
+
+@media(max-width:700px){
+  header{
+    padding:15px;
+    gap:12px;
+  }
+
+  header .logo{
+    font-size:19px;
+    letter-spacing:1px;
+  }
+
+  .quick-links{
+    width:100%;
+  }
+
+  .quick-links a,
+  #adminSettingsBtn{
+    flex:1 1 auto;
+    text-align:center;
+    padding:9px 8px;
+    font-size:11px;
+  }
+}
+
 </style>
 </head>
 <body>
