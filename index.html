@@ -426,6 +426,22 @@ h3{font-size:14px;margin:0 0 10px}
   accent-color: #69d6a3;
 }
 
+
+/* 개인별 알림 설정 */
+.personal-alert-panel{margin-bottom:15px}
+.personal-alert-section{background:#101923;border:1px solid var(--line);border-radius:10px;padding:13px;margin-top:12px}
+.personal-alert-title{font-size:14px;font-weight:900;margin-bottom:10px;color:var(--gold)}
+.personal-alert-toggle{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px}
+.personal-alert-toggle input,.personal-alert-options input,.personal-boss-item input{width:auto;accent-color:#69d6a3}
+.personal-alert-options{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.personal-alert-options label{display:flex;align-items:center;gap:6px;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;font-size:12px}
+.personal-quiet-hours{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
+.personal-quiet-hours input[type=time]{width:auto;min-width:115px}
+.personal-boss-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-top:10px}
+.personal-boss-item{display:flex;align-items:center;gap:6px;padding:8px;background:rgba(255,255,255,.05);border-radius:7px;font-size:12px}
+.personal-alert-save{width:100%;margin-top:14px;background:#20583f;border-color:#317b58}
+.personal-alert-message{margin-top:9px;font-size:12px;color:var(--green)}
+
 </style>
 </head>
 <body>
@@ -481,6 +497,33 @@ h3{font-size:14px;margin:0 0 10px}
         <button class="primary" id="saveNickBtn">저장</button>
       </div>
     </div>
+  </div>
+
+
+  <div class="panel personal-alert-panel" id="personalAlertPanel">
+    <div class="row" style="justify-content:space-between"><h2>🔔 나의 개인 알림 설정</h2><span class="badge">계정에 저장</span></div>
+    <div class="muted">음성과 휴대폰 알림은 별도로 설정됩니다. 설정은 로그인 계정에 저장됩니다.</div>
+    <div class="personal-alert-section">
+      <div class="personal-alert-title">🔊 음성 알림</div>
+      <label class="personal-alert-toggle"><input type="checkbox" id="personalVoiceEnabled"> 음성 알림 사용</label>
+      <div class="muted">알림 시점</div><div class="personal-alert-options">
+        <label><input type="checkbox" id="voice3m"> 3분 전</label><label><input type="checkbox" id="voice1m"> 1분 전</label><label><input type="checkbox" id="voice30s"> 30초 전</label><label><input type="checkbox" id="voice10s"> 10초 전</label><label><input type="checkbox" id="voiceSpawn"> 출현</label>
+      </div>
+      <label class="personal-alert-toggle"><input type="checkbox" id="voiceQuietEnabled"> 음성 방해 금지 시간</label>
+      <div class="personal-quiet-hours"><span>시작</span><input type="time" id="voiceQuietStart" value="23:00"><span>종료</span><input type="time" id="voiceQuietEnd" value="08:00"></div>
+      <div class="personal-alert-title" style="margin-top:16px">음성 알림 받을 보스</div><div id="voiceBossList" class="personal-boss-list"></div>
+    </div>
+    <div class="personal-alert-section">
+      <div class="personal-alert-title">📱 휴대폰 푸시 알림</div>
+      <label class="personal-alert-toggle"><input type="checkbox" id="personalPushEnabled"> 휴대폰 푸시 알림 사용</label>
+      <div class="muted">알림 시점</div><div class="personal-alert-options">
+        <label><input type="checkbox" id="push3m"> 3분 전</label><label><input type="checkbox" id="push1m"> 1분 전</label><label><input type="checkbox" id="push30s"> 30초 전</label><label><input type="checkbox" id="push10s"> 10초 전</label><label><input type="checkbox" id="pushSpawn"> 출현</label>
+      </div>
+      <label class="personal-alert-toggle"><input type="checkbox" id="pushQuietEnabled"> 휴대폰 방해 금지 시간</label>
+      <div class="personal-quiet-hours"><span>시작</span><input type="time" id="pushQuietStart" value="23:00"><span>종료</span><input type="time" id="pushQuietEnd" value="08:00"></div>
+      <div class="personal-alert-title" style="margin-top:16px">휴대폰 알림 받을 보스</div><div id="pushBossList" class="personal-boss-list"></div>
+    </div>
+    <button class="personal-alert-save" id="savePersonalAlertBtn">개인 알림 설정 저장</button><div id="personalAlertMessage" class="personal-alert-message"></div>
   </div>
 
   <div class="stats">
@@ -628,6 +671,8 @@ let members = [];
 let offlineExpanded = false;
 let onlineExpanded = false;
 let soundOn = false;
+let personalAlertSettings = null;
+let personalBossSettings = {};
 
 // 관리자 알림 설정 기본값
 let alertSettings = {
@@ -644,6 +689,56 @@ let alerted = new Set();
 let lastPresenceUpdate = 0;
 
 const $ = id => document.getElementById(id);
+
+
+const PERSONAL_ALERT_DEFAULTS = {voice_enabled:false,voice_alert_3m:true,voice_alert_1m:true,voice_alert_30s:true,voice_alert_10s:true,voice_alert_spawn:true,push_enabled:false,push_alert_3m:true,push_alert_1m:true,push_alert_30s:true,push_alert_10s:true,push_alert_spawn:true,voice_quiet_hours_enabled:false,voice_quiet_hours_start:"23:00",voice_quiet_hours_end:"08:00",push_quiet_hours_enabled:false,push_quiet_hours_start:"23:00",push_quiet_hours_end:"08:00",timezone:"Asia/Seoul"};
+function renderPersonalBossChoices(){
+  [ ["voiceBossList","voice"],["pushBossList","push"] ].forEach(([id,channel])=>{
+    const el=$(id); if(!el) return;
+    el.innerHTML=[...bosses].sort((a,b)=>a.name.localeCompare(b.name,"ko")).map(b=>{
+      const saved=personalBossSettings[String(b.id)];
+      const checked=!saved || saved[channel]!==false;
+      return `<label class="personal-boss-item"><input type="checkbox" data-personal-boss="${escapeHtml(b.id)}" data-channel="${channel}" ${checked?"checked":""}> ${escapeHtml(b.name)}</label>`;
+    }).join("") || '<span class="muted">등록된 보스가 없습니다.</span>';
+  });
+}
+async function loadPersonalAlertSettings(){
+  if(!user) return;
+  const {data,error}=await db.from("user_alert_settings").select("*").eq("user_id",user.id).maybeSingle();
+  if(error) throw error;
+  personalAlertSettings={...PERSONAL_ALERT_DEFAULTS,...(data||{})};
+  personalBossSettings=(data && data.boss_settings && typeof data.boss_settings==="object")?data.boss_settings:{};
+  const fields={personalVoiceEnabled:"voice_enabled",voice3m:"voice_alert_3m",voice1m:"voice_alert_1m",voice30s:"voice_alert_30s",voice10s:"voice_alert_10s",voiceSpawn:"voice_alert_spawn",personalPushEnabled:"push_enabled",push3m:"push_alert_3m",push1m:"push_alert_1m",push30s:"push_alert_30s",push10s:"push_alert_10s",pushSpawn:"push_alert_spawn",voiceQuietEnabled:"voice_quiet_hours_enabled",voiceQuietStart:"voice_quiet_hours_start",voiceQuietEnd:"voice_quiet_hours_end",pushQuietEnabled:"push_quiet_hours_enabled",pushQuietStart:"push_quiet_hours_start",pushQuietEnd:"push_quiet_hours_end"};
+  Object.entries(fields).forEach(([id,key])=>{const e=$(id);if(!e)return;if(e.type==="checkbox")e.checked=!!personalAlertSettings[key];else e.value=personalAlertSettings[key]||"23:00";});
+  renderPersonalBossChoices();
+}
+async function savePersonalAlertSettings(){
+  if(!user) return alert("로그인이 필요합니다.");
+  const btn=$("savePersonalAlertBtn"),msg=$("personalAlertMessage");btn.disabled=true;btn.textContent="저장 중...";msg.textContent="";
+  try{
+    const payload={user_id:user.id,voice_enabled:$("personalVoiceEnabled").checked,voice_alert_3m:$("voice3m").checked,voice_alert_1m:$("voice1m").checked,voice_alert_30s:$("voice30s").checked,voice_alert_10s:$("voice10s").checked,voice_alert_spawn:$("voiceSpawn").checked,push_enabled:$("personalPushEnabled").checked,push_alert_3m:$("push3m").checked,push_alert_1m:$("push1m").checked,push_alert_30s:$("push30s").checked,push_alert_10s:$("push10s").checked,push_alert_spawn:$("pushSpawn").checked,voice_quiet_hours_enabled:$("voiceQuietEnabled").checked,voice_quiet_hours_start:$("voiceQuietStart").value,voice_quiet_hours_end:$("voiceQuietEnd").value,push_quiet_hours_enabled:$("pushQuietEnabled").checked,push_quiet_hours_start:$("pushQuietStart").value,push_quiet_hours_end:$("pushQuietEnd").value,timezone:"Asia/Seoul",boss_settings:{},updated_at:new Date().toISOString()};
+    document.querySelectorAll("[data-personal-boss]").forEach(e=>{const id=String(e.dataset.personalBoss),channel=e.dataset.channel;payload.boss_settings[id]=payload.boss_settings[id]||{voice:true,push:true};payload.boss_settings[id][channel]=e.checked;});
+    if(payload.voice_quiet_hours_enabled && payload.voice_quiet_hours_start===payload.voice_quiet_hours_end) throw new Error("음성 방해 금지 시작과 종료 시간을 다르게 설정하세요.");
+    if(payload.push_quiet_hours_enabled && payload.push_quiet_hours_start===payload.push_quiet_hours_end) throw new Error("휴대폰 방해 금지 시작과 종료 시간을 다르게 설정하세요.");
+    const {error}=await db.from("user_alert_settings").upsert(payload,{onConflict:"user_id"});if(error)throw error;
+    personalAlertSettings=payload;personalBossSettings=payload.boss_settings;msg.textContent="개인 알림 설정이 저장되었습니다.";
+  }catch(e){console.error(e);msg.textContent="저장 실패: "+e.message;}
+  finally{btn.disabled=false;btn.textContent="개인 알림 설정 저장";}
+}
+function isInQuietHours(channel,now=new Date()){
+  if(!personalAlertSettings)return false;
+  const enabled=personalAlertSettings[channel+"_quiet_hours_enabled"];
+  if(!enabled)return false;
+  const start=personalAlertSettings[channel+"_quiet_hours_start"],end=personalAlertSettings[channel+"_quiet_hours_end"];
+  const cur=now.getHours()*60+now.getMinutes();
+  const toMin=v=>{const [h,m]=String(v||"00:00").split(":").map(Number);return h*60+m;};
+  const a=toMin(start),b=toMin(end);
+  if(a===b)return true;
+  return a<b ? cur>=a&&cur<b : cur>=a||cur<b;
+}
+function personalBossAllows(bossId,channel){const x=personalBossSettings[String(bossId)];return !x || x[channel]!==false;}
+$("savePersonalAlertBtn").addEventListener("click",savePersonalAlertSettings);
+
 
 // Supabase에서 알림 설정 불러오기
 async function loadAlertSettings() {
@@ -1325,6 +1420,7 @@ async function loadBosses(){
 
   if(error) throw error;
   bosses = data || [];
+  if(user && personalAlertSettings) renderPersonalBossChoices();
 }
 
 async function loadCuts(){
@@ -1543,35 +1639,17 @@ if(overdue && elapsed <= 300000){
 
 
 function checkVoice(boss,at,ms){
-  // 관리자만 음성 알림 사용
-  if(!isAdmin() || !soundOn || !("speechSynthesis" in window)) return;
-
-  const schedule = at;
-
-  const thresholds = [
-    {ms:180000,text:"3분 전",enabled:alertSettings["3m"]},
-    {ms:60000,text:"1분 전",enabled:alertSettings["1m"]},
-    {ms:30000,text:"30초 전",enabled:alertSettings["30s"]},
-    {ms:10000,text:"10초 전",enabled:alertSettings["10s"]}
+  if(!soundOn || !personalAlertSettings || !personalAlertSettings.voice_enabled || !("speechSynthesis" in window)) return;
+  if(isInQuietHours("voice") || !personalBossAllows(boss.id,"voice")) return;
+  const thresholds=[
+    {ms:180000,text:"3분 전",enabled:personalAlertSettings.voice_alert_3m},
+    {ms:60000,text:"1분 전",enabled:personalAlertSettings.voice_alert_1m},
+    {ms:30000,text:"30초 전",enabled:personalAlertSettings.voice_alert_30s},
+    {ms:10000,text:"10초 전",enabled:personalAlertSettings.voice_alert_10s}
   ];
-
-  thresholds.forEach(t=>{
-    if(!t.enabled) return;
-
-    const key = `${boss.id}-${schedule}-${t.ms}`;
-
-    if(ms>0 && ms<=t.ms && !alerted.has(key)){
-      alerted.add(key);
-      speak(`${boss.name}, ${t.text}입니다.`);
-    }
-  });
-
-  const spawnKey = `${boss.id}-${schedule}-spawn`;
-
-  if(alertSettings["spawn"] && ms<=0 && ms>=-5000 && !alerted.has(spawnKey)){
-    alerted.add(spawnKey);
-    speak(`${boss.name}, 출현 시간입니다.`);
-  }
+  thresholds.forEach(t=>{if(!t.enabled)return;const key=`${boss.id}-${at}-${t.ms}`;if(ms>0&&ms<=t.ms&&!alerted.has(key)){alerted.add(key);speak(`${boss.name}, ${t.text}입니다.`);}});
+  const spawnKey=`${boss.id}-${at}-spawn`;
+  if(personalAlertSettings.voice_alert_spawn&&ms<=0&&ms>=-5000&&!alerted.has(spawnKey)){alerted.add(spawnKey);speak(`${boss.name}, 출현 시간입니다.`);}
 }
 
 
@@ -1796,7 +1874,7 @@ function renderAdminMembers(){
 
 function renderAdmin(){
   $("adminSettingsBtn").style.display = isAdmin() ? "inline-block" : "none";
-  $("soundBtn").style.display = isAdmin() ? "inline-block" : "none";
+  $("soundBtn").style.display = "inline-block";
   $("adminPanel").style.display = isAdmin() ? "block" : "none";
   $("adminTools").classList.toggle("is-open",isAdmin() && adminToolsExpanded);
   if(!isAdmin()){
@@ -2025,6 +2103,7 @@ async function enterApp(currentUser){
 
 try{
   await loadAll();
+  await loadPersonalAlertSettings();
   await loadAlertSettings();
 
   const accountStatus = profile.account_status || "active";
@@ -2052,6 +2131,9 @@ async function leaveApp(){
   cuts = [];
   presenceRows = [];
   members = [];
+  personalAlertSettings = null;
+  personalBossSettings = {};
+  soundOn = false;
   offlineExpanded = false;
   onlineExpanded = false;
   $("app").style.display = "none";
@@ -2141,6 +2223,10 @@ $("soundBtn").addEventListener("click",()=>{
     : "음성 알림 켜기";
 
   if(soundOn){
+    if(!personalAlertSettings?.voice_enabled){
+      soundOn=false;$("soundBtn").textContent="음성 알림 켜기";
+      alert("먼저 개인 알림 설정에서 음성 알림 사용을 켜고 저장하세요.");return;
+    }
     speak("보스 출현 음성 알림을 시작합니다.");
   }else{
     window.speechSynthesis.cancel();
