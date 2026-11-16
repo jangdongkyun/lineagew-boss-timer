@@ -619,7 +619,13 @@ h3{font-size:14px;margin:0 0 10px}
       <h2>📋 컷 기록</h2>
       <button type="button" class="ghost" id="backFromHistoryBtn">메인으로</button>
     </div>
-    <div id="historyList" class="muted">기록이 없습니다.</div>
+
+<div style="display:flex;gap:8px;margin:12px 0">
+  <button type="button" class="primary" id="historySortName">가나다순</button>
+  <button type="button" class="ghost" id="historySortInput">입력순</button>
+</div>
+<div id="historyList" class="muted">기록이 없습니다.</div>
+
   </div>
 
   <div class="panel" id="activityScreen" data-screen-view="activity">
@@ -721,6 +727,7 @@ let profile = null;
 let adminToolsExpanded = false;
 let bosses = [];
 let cuts = [];
+let historySortMode = "name";
 let activityCuts = [];
 let activityPeriod = "7";
 let presenceRows = [];
@@ -851,6 +858,21 @@ $("openCutHistoryBtn").addEventListener("click",()=>{
   renderHistory();
   showScreen("history");
 });
+  
+$("historySortName").addEventListener("click",()=>{
+  historySortMode = "name";
+  $("historySortName").className = "primary";
+  $("historySortInput").className = "ghost";
+  renderHistory();
+});
+
+$("historySortInput").addEventListener("click",()=>{
+  historySortMode = "input";
+  $("historySortName").className = "ghost";
+  $("historySortInput").className = "primary";
+  renderHistory();
+});
+
 $("backFromHistoryBtn").addEventListener("click",()=>showScreen("main"));
   
 $("backFromActivityBtn").addEventListener("click",()=>{
@@ -1965,73 +1987,101 @@ function speak(text){
 
 
 
+
 function renderHistory(){
   const list = $("historyList");
+
+  $("historySortName").className =
+    historySortMode === "name" ? "primary" : "ghost";
+
+  $("historySortInput").className =
+    historySortMode === "input" ? "primary" : "ghost";
 
   if(!cuts.length){
     list.textContent = "기록이 없습니다.";
     return;
   }
 
-  // 보스 이름 가나다순 정렬
-  const sortedBosses = [...bosses].sort((a,b)=>
-    a.name.localeCompare(b.name,"ko")
-  );
+  let entries = [];
 
-  let rows = [];
+  if(historySortMode === "name"){
+    // 가나다순: 보스별 최근 기록 3개
+    const sortedBosses = [...bosses].sort((a,b)=>
+      a.name.localeCompare(b.name,"ko")
+    );
 
-  sortedBosses.forEach(b=>{
-    // 보스별 최근 기록 3개 (삭제 대기 기록 포함)
-    const bossCuts = cuts
-      .filter(c => String(c.boss_id) === String(b.id))
-      .sort((a,b)=>
-        new Date(b.updated_at || b.cut_at) -
-        new Date(a.updated_at || a.cut_at)
-      )
-      .slice(0,3);
+    sortedBosses.forEach(b=>{
+      const bossCuts = cuts
+        .filter(c => String(c.boss_id) === String(b.id))
+        .sort((a,b)=>
+          new Date(b.updated_at || b.cut_at) -
+          new Date(a.updated_at || a.cut_at)
+        )
+        .slice(0,3);
 
-    bossCuts.forEach((c,index)=>{
-      const isPending = !!c.pending_delete_at;
-
-      const pendingText = isPending
-        ? `<div style="color:#ffb347;font-size:10px;font-weight:800;margin-top:3px">
-             삭제 대기 중
-           </div>`
-        : "";
-
-      const pendingTime = isPending
-        ? `<div style="color:#ffb347;font-size:10px">
-             삭제 예정: ${formatDate(c.pending_delete_at)}
-           </div>`
-        : "";
-
-      rows.push(`
-        <tr style="${isPending ? "background:rgba(255,170,50,.08)" : ""}">
-          <td>
-            ${index === 0 ? `<b>${escapeHtml(b.name)}</b>` : escapeHtml(b.name)}
-            ${pendingText}
-          </td>
-          <td>
-            ${formatDate(c.cut_at)}
-            ${pendingTime}
-          </td>
-          <td>${escapeHtml(c.created_by_nickname || "알 수 없음")}</td>
-          <td>
-            <button
-              class="ghost"
-              data-edit-cut="${escapeHtml(c.id)}"
-              style="padding:5px 8px;font-size:11px"
-            >수정</button>
-          </td>
-        </tr>
-      `);
+      bossCuts.forEach(c=>{
+        entries.push({boss:b,cut:c});
+      });
     });
-  });
 
-  if(!rows.length){
+  }else{
+    // 입력순: 전체 컷 기록 중 최근 26개
+    entries = cuts
+      .map(c=>{
+        const boss = bosses.find(b=>
+          String(b.id) === String(c.boss_id)
+        );
+        return boss ? {boss,cut:c} : null;
+      })
+      .filter(Boolean)
+      .sort((a,b)=>
+        new Date(b.cut.updated_at || b.cut.cut_at) -
+        new Date(a.cut.updated_at || a.cut.cut_at)
+      )
+      .slice(0,26);
+  }
+
+  if(!entries.length){
     list.textContent = "기록이 없습니다.";
     return;
   }
+
+  const rows = entries.map(({boss,cut})=>{
+    const isPending = !!cut.pending_delete_at;
+
+    const pendingText = isPending
+      ? `<div style="color:#ffb347;font-size:10px;font-weight:800;margin-top:3px">
+           삭제 대기 중
+         </div>`
+      : "";
+
+    const pendingTime = isPending
+      ? `<div style="color:#ffb347;font-size:10px">
+           삭제 예정: ${formatDate(cut.pending_delete_at)}
+         </div>`
+      : "";
+
+    return `
+      <tr style="${isPending ? "background:rgba(255,170,50,.08)" : ""}">
+        <td>
+          <b>${escapeHtml(boss.name)}</b>
+          ${pendingText}
+        </td>
+        <td>
+          ${formatDate(cut.cut_at)}
+          ${pendingTime}
+        </td>
+        <td>${escapeHtml(cut.created_by_nickname || "알 수 없음")}</td>
+        <td>
+          <button
+            class="ghost"
+            data-edit-cut="${escapeHtml(cut.id)}"
+            style="padding:5px 8px;font-size:11px"
+          >수정</button>
+        </td>
+      </tr>
+    `;
+  });
 
   list.innerHTML = `
     <div style="overflow-x:auto">
