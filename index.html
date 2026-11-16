@@ -2351,6 +2351,7 @@ function speak(text){
 
 
 
+
 function renderHistory(){
   const list = $("historyList");
 
@@ -2388,7 +2389,7 @@ function renderHistory(){
     });
 
   }else{
-    // 입력순: 전체 컷 기록 중 최근 26개
+    // 입력순: 최근 26개를 오래된 기록부터 최신 기록 순으로 표시
     entries = cuts
       .map(c=>{
         const boss = bosses.find(b=>
@@ -2398,10 +2399,10 @@ function renderHistory(){
       })
       .filter(Boolean)
       .sort((a,b)=>
-        new Date(b.cut.updated_at || b.cut.cut_at) -
-        new Date(a.cut.updated_at || a.cut.cut_at)
+        new Date(a.cut.updated_at || a.cut.cut_at) -
+        new Date(b.cut.updated_at || b.cut.cut_at)
       )
-      .slice(0,26);
+      .slice(-26);
   }
 
   if(!entries.length){
