@@ -796,10 +796,10 @@ function latestCut(bossId){
       new Date(c.cut_at).getTime() > resetAt &&
       !c.pending_delete_at
     )
-    .sort((a,b)=>
-      new Date(b.updated_at || b.cut_at) -
-      new Date(a.updated_at || a.cut_at)
-    )[0] || null;
+.sort((a,b)=>
+  new Date(b.cut_at) -
+  new Date(a.cut_at)
+)[0] || null;
 }
 
 
@@ -1180,12 +1180,82 @@ async function rollbackCut(bossId){
     return `${i + 1}. ${time} / ${author}${pending}`;
   }).join("\n");
 
-  const answer = prompt(
-    `${boss.name} 보스\n\n` +
-    `복구할 기록을 선택하세요.\n\n` +
-    choiceText +
-    `\n\n1~${choices.length} 숫자를 입력하세요.`
-  );
+const answer = await new Promise(resolve => {
+  const overlay = document.createElement("div");
+
+  overlay.style.cssText = `
+    position:fixed;
+    inset:0;
+    z-index:99999;
+    background:rgba(0,0,0,.8);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  `;
+
+  const panel = document.createElement("div");
+  panel.style.cssText = `
+    width:100%;
+    max-width:380px;
+    background:#171717;
+    border:1px solid #b89452;
+    border-radius:14px;
+    padding:20px;
+    color:#fff;
+  `;
+
+  panel.innerHTML = `
+    <h3 style="margin:0 0 10px;color:#e6c27a;">
+      ${escapeHtml(boss.name)} 보스
+    </h3>
+    <p style="margin:0 0 16px;">복구할 컷 기록을 선택하세요.</p>
+    <div id="rollbackChoiceButtons"></div>
+    <button id="rollbackCancel"
+      style="width:100%;margin-top:12px;padding:12px;
+      background:#444;color:white;border:0;border-radius:8px;">
+      취소
+    </button>
+  `;
+
+  const buttons = panel.querySelector("#rollbackChoiceButtons");
+
+  choices.forEach((choice, index) => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.style.cssText = `
+      display:block;
+      width:100%;
+      margin:8px 0;
+      padding:13px;
+      background:#292929;
+      color:#f5d58b;
+      border:1px solid #8b713f;
+      border-radius:8px;
+      text-align:left;
+      cursor:pointer;
+    `;
+
+button.textContent =
+  `${index + 1}번 · ${new Date(choice.cut_at).toLocaleString("ko-KR")} · ${choice.created_by_nickname || "이름 없음"}`;
+
+    button.onclick = () => {
+      overlay.remove();
+      resolve(String(index + 1));
+    };
+
+    buttons.appendChild(button);
+  });
+
+  panel.querySelector("#rollbackCancel").onclick = () => {
+    overlay.remove();
+    resolve(null);
+  };
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+});
 
   if(answer === null) return;
 
