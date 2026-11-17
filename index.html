@@ -877,6 +877,61 @@ async function loadAdminPushSettings(){
   $("adminPushOptions").style.display =
     data.push_enabled ? "block" : "none";
 }
+
+async function saveAdminPushSettings(){
+  if(!isAdmin() || !user){
+    alert("관리자만 설정할 수 있습니다.");
+    return;
+  }
+
+  const btn = $("saveAdminPushSettingsBtn");
+  btn.disabled = true;
+  btn.textContent = "저장 중...";
+
+  const pushBossSettings = {};
+
+  document.querySelectorAll("[data-admin-push-boss]").forEach(el=>{
+    pushBossSettings[el.dataset.adminPushBoss] = el.checked;
+  });
+
+  const updated = {
+    user_id: user.id,
+    push_enabled: $("adminPushEnabled").checked,
+    push_alert_3m: $("adminPush3m").checked,
+    push_alert_1m: $("adminPush1m").checked,
+    push_alert_30s: $("adminPush30s").checked,
+    push_alert_10s: $("adminPush10s").checked,
+    push_alert_spawn: $("adminPushSpawn").checked,
+    push_boss_settings: pushBossSettings,
+    updated_at: new Date().toISOString()
+  };
+
+  try{
+    const {data,error} = await db
+      .from("user_alert_settings")
+      .upsert(updated,{onConflict:"user_id"})
+      .select()
+      .single();
+
+    if(error) throw error;
+
+    myAlertSettings = {
+      ...myAlertSettings,
+      ...data
+    };
+
+    $("adminPushMessage").textContent =
+      "관리자 푸시 설정이 저장되었습니다.";
+  }catch(e){
+    console.error("관리자 푸시 설정 저장 실패:",e);
+    $("adminPushMessage").textContent =
+      "저장 실패: " + e.message;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "관리자 푸시 설정 저장";
+  }
+}
+
 async function saveAlertSettings() {
   if (!isAdmin()) {
     alert("관리자만 설정할 수 있습니다.");
@@ -933,6 +988,10 @@ async function saveAlertSettings() {
 
 // 저장 버튼 연결
 $("saveAlertSettingsBtn").addEventListener("click", saveAlertSettings);
+$("saveAdminPushSettingsBtn").addEventListener(
+  "click",
+  saveAdminPushSettings
+);
 $("openAdminVoiceSettingsBtn").addEventListener("click",()=>{
   if(!isAdmin()){
     alert("관리자만 사용할 수 있습니다.");
