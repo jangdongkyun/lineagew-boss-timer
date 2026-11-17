@@ -583,6 +583,11 @@ h3{font-size:14px;margin:0 0 10px}
       </div>
     </div>
     <button class="primary" id="manualCutBtn">수기 컷 기록 등록</button>
+
+    <button class="ghost" id="openCutHistoryBtn"
+      style="width:100%;margin-top:10px;border:1px solid #806b3e;color:#e8c879">
+      📜 컷 히스토리 보기
+    </button>
   </div>
 
   <div class="panel">
@@ -3068,6 +3073,9 @@ $("nickToggle").addEventListener("click",()=>{
 
 $("saveNickBtn").addEventListener("click",changeNickname);
 $("manualCutBtn").addEventListener("click",manualCut);
+$("openCutHistoryBtn").addEventListener("click",()=>{
+  openCutHistory();
+});
   $("manualBossName").addEventListener("focus",renderManualBossList);
 
 $("manualBossName").addEventListener("input",renderManualBossList);
