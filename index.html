@@ -1830,6 +1830,35 @@ if(overdue && elapsed <= 300000){
 }
 
 
+function isVoiceQuietHours(settings) {
+  if (!settings || !settings.voice_quiet_hours_enabled) {
+    return false;
+  }
+
+  const start = settings.voice_quiet_hours_start;
+  const end = settings.voice_quiet_hours_end;
+
+  if (!start || !end) return false;
+
+  const now = new Date();
+  const current = now.getHours() * 60 + now.getMinutes();
+
+  const toMinutes = value => {
+    const parts = value.split(":");
+    return Number(parts[0]) * 60 + Number(parts[1]);
+  };
+
+  const startMinutes = toMinutes(start);
+  const endMinutes = toMinutes(end);
+
+  if (startMinutes === endMinutes) return true;
+
+  if (startMinutes < endMinutes) {
+    return current >= startMinutes && current < endMinutes;
+  }
+
+  return current >= startMinutes || current < endMinutes;
+}
 
 function checkVoice(boss, at, ms) {
   if (!user || !soundOn || !("speechSynthesis" in window)) return;
@@ -2450,7 +2479,7 @@ function renderAdminMembers(){
 
 function renderAdmin(){
   $("adminSettingsBtn").style.display = isAdmin() ? "inline-block" : "none";
-  $("soundBtn").style.display = isAdmin() ? "inline-block" : "none";
+  $("soundBtn").style.display = "inline-block";
   $("adminPanel").style.display = isAdmin() ? "block" : "none";
   $("adminTools").classList.toggle("is-open",isAdmin() && adminToolsExpanded);
   if(!isAdmin()){
@@ -2678,8 +2707,9 @@ async function enterApp(currentUser){
 
 
 try{
-  await loadAll();
-  await loadAlertSettings();
+await loadAll();
+await loadMyAlertSettings();
+await loadAlertSettings();
 
   const accountStatus = profile.account_status || "active";
 
