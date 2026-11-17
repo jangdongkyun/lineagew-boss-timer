@@ -680,6 +680,446 @@ async function loadAlertSettings() {
 
 // 관리자 알림 설정 저장
 
+.section-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.field{margin-bottom:10px}
+  /* 수기 컷 보스 자동 선택 목록 */
+.boss-picker{
+  position:relative;
+}
+
+.boss-options{
+  display:none;
+  position:absolute;
+  top:100%;
+  left:0;
+  right:0;
+  z-index:100;
+  max-height:180px;
+  overflow-y:auto;
+  margin-top:4px;
+  padding:5px;
+  background:#151b26;
+  border:1px solid var(--line);
+  border-radius:9px;
+  box-shadow:0 8px 20px #0009;
+}
+
+.boss-options.show{
+  display:block;
+}
+
+.boss-option{
+  padding:9px 10px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:13px;
+}
+
+.boss-option:hover{
+  background:#29384a;
+  color:var(--gold);
+}
+
+.manual-boss-empty{
+  padding:10px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.history-item{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.history-item:last-child{border-bottom:0}
+.history-time{color:var(--gold);white-space:nowrap}
+.quick-links{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#adminSettingsBtn{display:none;background:#6d5428;border-color:#b58b43;color:#ffe2a0}
+#adminTools{display:none}
+#adminTools.is-open{display:block}
+.quick-links a{
+  padding:11px 15px;
+  border-radius:9px;
+  border:1px solid var(--line);
+  background:#202c3c;
+  font-size:13px;
+  font-weight:800;
+}
+.quick-links a:first-child{border-color:#7b6033;color:var(--gold)}
+.admin-only{display:none}
+#message{margin:10px 0;color:var(--yellow);font-size:13px;white-space:pre-wrap}
+.badge{
+  display:inline-block;
+  padding:4px 7px;
+  border-radius:6px;
+  background:#29384a;
+  color:#c7d5e7;
+  font-size:11px;
+}
+/* 혈맹원 명단: 온라인/오프라인 공통 접기·펼치기 */
+.member-list{display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted);line-height:1.8}
+.member-list.is-open{display:flex}
+/* 상단 온라인 혈맹원 표시 */
+.online-panel{
+  padding:11px 14px;
+  margin-bottom:12px;
+}
+
+.online-panel h2{
+  margin:0;
+  font-size:14px;
+}
+
+.online-chip{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:7px;
+  background:#20382f;
+  border:1px solid #47785f;
+  color:#a9e5c1;
+  font-weight:700;
+}
+
+.online-empty{
+  color:var(--muted);
+  font-size:12px;
+}
+.member-status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.member-status-box{border:1px solid var(--line);border-radius:10px;padding:10px;background:#101923;min-width:0}
+.member-status-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;font-size:13px}
+.member-count-btn{border:0;padding:0;background:transparent;color:inherit;font-size:20px;font-weight:900}
+.member-count-btn:hover{filter:brightness(1.25);text-decoration:underline}
+.offline-toggle{cursor:pointer;color:#cbd5e1}
+.offline-chip{display:inline-block;padding:5px 9px;border-radius:7px;background:#27313f;border:1px solid #536174;color:#d0d8e4;font-weight:700;font-size:12px}
+.member-admin-item{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
+.member-admin-item:last-child{border-bottom:0}
+.member-admin-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.member-admin-actions{display:flex;gap:5px;flex-wrap:wrap}
+.member-admin-actions button{font-size:11px;padding:6px 8px}
+.member-state{font-size:11px;padding:3px 6px;border-radius:5px;background:#29384a}
+.member-state.banned{background:#6b2930;color:#ffd5d8}
+.member-state.withdrawn{background:#414955;color:#d5dbe3}
+@media(max-width:480px){.member-status-grid{grid-template-columns:1fr}}
+@media(max-width:700px){
+  .wrap{padding:11px}
+  .logo{font-size:19px}
+
+  .boss-card{
+    grid-template-columns:minmax(0,1fr) minmax(90px,.8fr);
+    gap:5px;
+    padding:7px;
+  }
+
+  .boss-main{grid-column:auto}
+  .boss-actions{
+    grid-column:1/-1;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);
+    gap:5px;
+  }
+
+  .boss-actions button{
+    font-size:11px;
+    padding:6px 5px;
+  }
+
+  .boss-actions input{
+    min-width:0;
+    font-size:12px;
+  }
+
+  .section-grid{grid-template-columns:1fr}
+  .timer{font-size:16px}
+  .boss-name{font-size:13px}
+}
+
+/* 관리자 보스 알림 설정 */
+#adminAlertSettings .alert-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+#adminAlertSettings .alert-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#adminAlertSettings .alert-options input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: #69d6a3;
+}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div class="logo">LINEAGE W · BOSS COMMAND</div>
+    <div class="sub">혈맹 필드 보스 타이머</div>
+  </div>
+  <div class="quick-links">
+    <button type="button" id="adminSettingsBtn">⚙ 관리자 설정</button>
+    <a href="https://lineagew.plaync.com/" target="_blank" rel="noopener">리니지W 공식 홈페이지</a>
+    <a href="https://trade.ssatem.com/" target="_blank" rel="noopener">싸템 바로가기</a>
+    <a href="https://www.barotem.com/" target="_blank" rel="noopener">바로템 바로가기</a>
+    <a href="https://www.youtube.com/" target="_blank" rel="noopener">유튜브</a>    
+  </div>
+</header>
+
+<div id="auth" class="panel authbox">
+  <h2>혈맹원 로그인</h2>
+  <div class="field">
+    <label>이메일</label>
+    <input id="email" type="email" placeholder="이메일">
+  </div>
+  <div class="field">
+    <label>비밀번호</label>
+    <input id="password" type="password" placeholder="비밀번호">
+  </div>
+  <div class="field" id="signupNickBox" style="display:none">
+    <label>사용할 닉네임</label>
+    <input id="signupNick" placeholder="닉네임">
+  </div>
+  <button class="primary" id="loginBtn">로그인</button>
+  <button class="ghost" id="signupBtn">회원가입</button>
+  <div id="message"></div>
+  <div class="muted">이미 가입한 계정은 로그인, 처음 이용하는 경우 회원가입을 선택하세요.</div>
+</div>
+
+<div id="app">
+  <div class="panel">
+    <div class="row">
+      <div class="grow">
+        <b id="welcome">혈맹원</b>
+        <div class="sub" id="roleText">회원</div>
+      </div>
+      <button class="ghost" id="soundBtn">음성 알림 켜기</button>
+      <button class="ghost" id="nickToggle">닉네임 변경</button>
+      <button class="danger" id="logoutBtn">로그아웃</button>
+    </div>
+    <div id="nickBox" style="display:none;margin-top:12px">
+      <div class="row">
+        <input id="newNick" class="grow" placeholder="새 닉네임">
+        <button class="primary" id="saveNickBtn">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">등록 보스 <b id="bossCount">0</b></div>
+    <div class="stat">온라인 <b id="onlineCount">0</b></div>
+    <div class="stat">오프라인 <b id="offlineCountStat">0</b></div>
+    <div class="stat">현재 시각 <b id="clock">--:--:--</b></div>
+  </div>
+  <!-- 전체 가입 회원의 접속 상태: 모든 회원에게 공개 -->
+  <div class="panel online-panel">
+    <div class="row" style="justify-content:space-between;margin-bottom:6px">
+      <h2>혈맹원 접속 현황</h2>
+      <span class="badge">가입 회원 전체</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:11px;line-height:1.5">
+      ※ 온라인·오프라인 인원수 숫자를 누르면 아래에 회원 명단이 펼쳐집니다.
+    </div>
+    <div class="member-status-grid">
+      <div class="member-status-box">
+        <div class="member-status-title"><span style="color:#63d69b">🟢 온라인</span><button type="button" class="member-count-btn" id="onlineToggle" aria-expanded="false"><span id="onlineCountTop">0</span>명</button></div>
+        <div id="onlineList" class="member-list"><span class="online-empty">확인 중...</span></div>
+      </div>
+      <div class="member-status-box">
+        <div class="member-status-title"><span style="color:#b8c3d1">⚪ 오프라인</span><button type="button" class="member-count-btn" id="offlineToggle" aria-expanded="false"><span id="offlineCount">0</span>명</button></div>
+        <div id="offlineList" class="member-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="row" style="justify-content:space-between">
+      <h2>필드 보스 현황</h2>
+      <span class="badge">출현 예정 시간순 자동 정렬</span>
+    </div>
+    <div class="muted" style="margin-bottom:12px">
+      타이머를 누르면 현재 시각으로 컷이 기록됩니다.
+      출현한 보스는 5분간 최상단에 표시됩니다.
+    </div>
+    <div class="boss-list" id="bossList"></div>
+    <div id="emptyBoss" class="muted" style="display:none;text-align:center;padding:25px">
+      등록된 보스가 없습니다.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>보스명으로 컷 시간 직접 입력</h2>
+    <div class="muted" style="margin-bottom:12px">
+      보스 이름 또는 별명을 입력하고 컷 시간을 입력하세요. 예: 2135 또는 21:35
+    </div>
+    <div class="section-grid">
+      <div class="field">
+        <label>보스 이름 / 별명</label>
+<div class="boss-picker">
+  <input
+    id="manualBossName"
+    autocomplete="off"
+    placeholder="보스 이름 입력 또는 목록에서 선택"
+  >
+  <div id="manualBossList" class="boss-options"></div>
+</div>
+      </div>
+      <div class="field">
+        <label>컷 시간</label>
+        <input id="manualCutTime" placeholder="2135 또는 21:35" maxlength="5">
+      </div>
+    </div>
+    <button class="primary" id="manualCutBtn">수기 컷 기록 등록</button>
+  </div>
+
+  <div class="panel">
+    <h2>최근 컷 기록</h2>
+    <div id="historyList" class="muted">기록이 없습니다.</div>
+  </div>
+
+
+
+  <div id="adminTools">
+
+<div class="panel" id="adminAlertSettings">
+  <h3>🔔 보스 알림 설정</h3>
+  <div class="alert-options">
+    <label><input type="checkbox" id="alert3m" checked> 3분 전</label>
+    <label><input type="checkbox" id="alert1m" checked> 1분 전</label>
+    <label><input type="checkbox" id="alert30s" checked> 30초 전</label>
+    <label><input type="checkbox" id="alert10s" checked> 10초 전</label>
+    <label><input type="checkbox" id="alertSpawn" checked> 보스 출현</label>
+  </div>
+  <button class="primary" id="saveAlertSettingsBtn">알림 설정 저장</button>
+  <div id="alertSettingsMessage" class="muted"></div>
+</div>
+
+  <div class="panel admin-only" id="adminPanel">
+    <h2>관리자 · 보스 관리</h2>
+    
+
+
+    <div class="section-grid">
+      <div class="field">
+        <label>보스 이름</label>
+        <input id="bossName" placeholder="보스 이름">
+      </div>
+      <div class="field">
+        <label>별명 (쉼표로 구분)</label>
+        <input id="bossAliases" placeholder="별명1, 별명2">
+      </div>
+      <div class="field">
+        <label>재출현 시간 (시간 단위)</label>
+        <input id="respawnHours" type="number" min="0.1" step="0.1" placeholder="예: 4">
+      </div>
+      <div class="field">
+        <label>최초 출현 예정 시각</label>
+        <input id="initialSpawn" type="datetime-local">
+      </div>
+    </div>
+<div class="row" style="gap:8px;flex-wrap:wrap">
+  <button class="primary" id="addBossBtn">보스 추가</button>
+  <button class="ghost" id="clearBossForm">입력 초기화</button>
+  <button class="danger" id="resetAllBossBtn">카운트 전체 초기화</button>
+</div>
+    <div id="adminBossList" style="margin-top:15px"></div>
+  </div>
+
+  <div class="panel admin-only" id="adminMemberPanel">
+    <h2>관리자 · 가입 회원 관리</h2>
+    <div class="muted" style="margin-bottom:10px">가입일과 계정 상태를 확인하고, 회원을 영구 추방하거나 추방 해제·탈퇴 처리할 수 있습니다.</div>
+    <div id="adminMemberList">회원 정보를 불러오는 중...</div>
+  </div>
+  </div><!-- /adminTools -->
+</div>
+</div>
+
+<script>
+/* 기존 Supabase 프로젝트 설정 */
+const SUPABASE_URL = "https://jswekbrsjkylrwhgvvre.supabase.co";
+const SUPABASE_KEY = "sb_publishable_s4gO0UlJvICe6eQSzFA9MQ_RWxo02po";
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let user = null;
+let profile = null;
+let adminToolsExpanded = false;
+let bosses = [];
+let cuts = [];
+let presenceRows = [];
+let members = [];
+let offlineExpanded = false;
+let onlineExpanded = false;
+let soundOn = false;
+
+// 관리자 알림 설정 기본값
+let alertSettings = {
+  "3m": true,
+  "1m": true,
+  "30s": true,
+  "10s": true,
+  "spawn": true
+};
+
+let editingBossId = null;
+let realtimeChannels = [];
+let alerted = new Set();
+let lastPresenceUpdate = 0;
+
+const $ = id => document.getElementById(id);
+
+// Supabase에서 알림 설정 불러오기
+async function loadAlertSettings() {
+  if (!isAdmin()) return;
+
+  const { data, error } = await db
+    .from("boss_timer_settings")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("알림 설정 불러오기 실패:", error);
+    return;
+  }
+
+  if (data) {
+    alertSettings = {
+      "3m": data.alert_3m,
+      "1m": data.alert_1m,
+      "30s": data.alert_30s,
+      "10s": data.alert_10s,
+      "spawn": data.alert_spawn
+    };
+  }
+
+  $("alert3m").checked = alertSettings["3m"];
+  $("alert1m").checked = alertSettings["1m"];
+  $("alert30s").checked = alertSettings["30s"];
+  $("alert10s").checked = alertSettings["10s"];
+  $("alertSpawn").checked = alertSettings["spawn"];
+}
+
+// 관리자 알림 설정 저장
+
 async function saveAlertSettings() {
   if (!isAdmin()) {
     alert("관리자만 설정할 수 있습니다.");
@@ -1593,17 +2033,26 @@ function renderBosses(){
           <div class="timer-label" data-label></div>
         </div>
    
-        <div class="boss-actions">
-          <button class="good" data-quick>현재 시각으로 컷 등록</button>
-          <div class="cut-time">
-            <input data-cut-input="${b.id}" placeholder="2135 / 21:35" maxlength="5">
-            <button class="primary" data-row-cut>등록</button>
-          </div>
-          <button class="ghost" data-rollback style="grid-column:1/-1">
-            이전으로 리셋
-          </button>
-          <div class="muted">위 시간 입력은 해당 보스의 컷 시간입니다.</div>
-        </div>
+
+<div class="boss-actions">
+  <button class="good" data-quick>
+    현재 시각으로 컷 등록
+  </button>
+
+  <div class="cut-time">
+    <input data-cut-input="${b.id}" placeholder="2135 / 21:35" maxlength="5">
+    <button class="primary" data-row-cut>등록</button>
+  </div>
+
+  <button class="ghost" data-rollback>
+    이전으로 리셋
+  </button>
+
+  <div class="muted">
+    위 시간 입력은 해당 보스의 컷 시간입니다.
+  </div>
+</div>
+
 
       `;
 
