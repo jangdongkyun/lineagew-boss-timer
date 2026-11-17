@@ -616,7 +616,29 @@ h3{font-size:14px;margin:0 0 10px}
   <button class="primary" id="openAdminVoiceSettingsBtn" type="button">
     관리자 음성 설정 열기
   </button>
-</div>    
+</div> 
+<div class="panel" id="adminPushSettings">
+  <h3>📲 관리자 푸시 알림 설정</h3>
+
+  <label>
+    <input type="checkbox" id="adminPushEnabled">
+    관리자 푸시 알림 사용
+  </label>
+
+  <div id="adminPushOptions" style="margin-top:12px">
+    <label><input type="checkbox" id="adminPush3m"> 3분 전</label><br>
+    <label><input type="checkbox" id="adminPush1m"> 1분 전</label><br>
+    <label><input type="checkbox" id="adminPush30s"> 30초 전</label><br>
+    <label><input type="checkbox" id="adminPush10s"> 10초 전</label><br>
+    <label><input type="checkbox" id="adminPushSpawn"> 보스 출현</label>
+  </div>
+
+  <button class="primary" id="saveAdminPushSettingsBtn" type="button">
+    관리자 푸시 설정 저장
+  </button>
+
+  <div id="adminPushMessage" class="muted"></div>
+</div>
     
   <div class="panel admin-only" id="adminPanel">
     <h2>관리자 · 보스 관리</h2>
@@ -2996,6 +3018,7 @@ async function enterApp(currentUser){
 try{
 await loadAll();
 await loadMyAlertSettings();
+await loadAdminPushSettings();
 await loadAlertSettings();
 
   const accountStatus = profile.account_status || "active";
