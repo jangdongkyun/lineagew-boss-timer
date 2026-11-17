@@ -1159,7 +1159,135 @@ if(clearRespawnBtn){
     renderRespawnBulkManager();
   });
 }
+
+
+// 선택한 보스에 배율 적용
+$("applyRespawnBulkMultiplier").addEventListener("click",async()=>{
+  if(!isAdmin()){
+    alert("관리자만 사용할 수 있습니다.");
+    return;
+  }
+
+  const ids = [...selectedRespawnBossIds];
+  if(ids.length === 0){
+    alert("배율을 적용할 보스를 선택하세요.");
+    return;
+  }
+
+  const multiplier = Number($("respawnBulkMultiplier").value);
+
+  if(!Number.isFinite(multiplier) || multiplier < 0.1 || multiplier > 100){
+    alert("배율은 0.1부터 100 사이로 입력하세요.");
+    return;
+  }
+
+  if(!confirm(`선택한 ${ids.length}개 보스에 ${multiplier}배를 적용할까요?`)){
+    return;
+  }
+
+  const btn = $("applyRespawnBulkMultiplier");
+  btn.disabled = true;
+
+  try{
+    const {data,error} = await db.rpc(
+      "admin_set_selected_boss_multipliers",
+      {
+        p_boss_ids: ids,
+        p_multiplier: multiplier
+      }
+    );
+
+    if(error) throw error;
+
+    await loadBosses();
+    renderAll();
+
+    alert(`${data}개 보스에 ${multiplier}배를 적용했습니다.`);
+  }catch(e){
+    alert("배율 적용 실패: " + e.message);
+  }finally{
+    btn.disabled = false;
+  }
+});
   
+
+// 선택 보스 2배 설정
+$("doubleRespawnSelected").addEventListener("click",()=>{
+  $("respawnBulkMultiplier").value = "2";
+  $("applyRespawnBulkMultiplier").click();
+});
+
+// 선택 보스 절반으로 설정
+$("halfRespawnSelected").addEventListener("click",()=>{
+  $("respawnBulkMultiplier").value = "0.5";
+  $("applyRespawnBulkMultiplier").click();
+});
+
+// 선택 보스 1배 복구
+$("resetRespawnSelected").addEventListener("click",()=>{
+  $("respawnBulkMultiplier").value = "1";
+  $("applyRespawnBulkMultiplier").click();
+});
+
+
+// 전체 보스 기준 재출현 시간 일괄 저장
+$("saveAllRespawnTimes").addEventListener("click",async()=>{
+  if(!isAdmin()){
+    alert("관리자만 사용할 수 있습니다.");
+    return;
+  }
+
+  const inputs = document.querySelectorAll("[data-respawn-base]");
+  const updates = [];
+
+  for(const input of inputs){
+    const value = Number(input.value);
+
+    if(!Number.isFinite(value) || value <= 0){
+      alert("모든 보스의 기준 시간은 0보다 큰 숫자로 입력해야 합니다.");
+      input.focus();
+      return;
+    }
+
+    updates.push({
+      id: input.dataset.respawnBase,
+      base_respawn_hours: value
+    });
+  }
+
+  if(updates.length === 0){
+    alert("저장할 보스가 없습니다.");
+    return;
+  }
+
+  if(!confirm(`전체 ${updates.length}개 보스의 기준 재출현 시간을 저장할까요?`)){
+    return;
+  }
+
+  const btn = $("saveAllRespawnTimes");
+  btn.disabled = true;
+  btn.textContent = "저장 중...";
+
+  try{
+    const {data,error} = await db.rpc(
+      "admin_save_boss_base_times",
+      {p_updates:updates}
+    );
+
+    if(error) throw error;
+
+    await loadBosses();
+    renderAll();
+
+    alert(`${data}개 보스의 기준 시간이 저장되었습니다.`);
+  }catch(e){
+    alert("기준 시간 저장 실패: " + e.message);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "전체 보스 시간 일괄 저장";
+  }
+});
+
   
 function message(text){
   $("message").textContent = text || "";
@@ -3247,6 +3375,7 @@ function resetBossForm(){
 }
 
 
+
 async function saveBoss(){
   if(!isAdmin()) return alert("관리자만 사용할 수 있습니다.");
 
@@ -3263,7 +3392,12 @@ async function saveBoss(){
     return alert("재출현 시간을 올바르게 입력하세요.");
   }
 
-  const multiplier = Number(currentRespawnMultiplier || 1);
+  // 기존 보스는 자기 배율 유지, 신규 보스는 1배
+  const existingBoss = editingBossId
+    ? bosses.find(b=>b.id===editingBossId)
+    : null;
+
+  const multiplier = Number(existingBoss?.respawn_multiplier || 1);
 
   const payload = {
     name,
@@ -3277,6 +3411,7 @@ async function saveBoss(){
   };
 
   let result;
+
   if(editingBossId){
     result = await db.from("bosses")
       .update(payload).eq("id",editingBossId);
@@ -3292,8 +3427,8 @@ async function saveBoss(){
   resetBossForm();
   await loadBosses();
   renderAll();
-  renderRespawnMultiplier();
 }
+
 
 async function resetAllBossTimes(){
   if(!isAdmin()){
