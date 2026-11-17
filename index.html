@@ -2234,9 +2234,19 @@ $("personalBossOptions").innerHTML = `
   <div class="personal-boss-grid">
     ${bosses.map(b=>`
       <label class="personal-boss-card">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          ${escapeHtml(b.name)}
-        </span>
+<span style="
+  display:block;
+  flex:1;
+  min-width:0;
+  color:#fff0c8;
+  font-size:12px;
+  font-weight:600;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+">
+  ${escapeHtml(b.name || b.boss_name || "이름 없음")}
+</span>
         <input type="checkbox"
           data-personal-boss="${escapeHtml(b.id)}"
           ${bossSettings[b.id] !== false ? "checked" : ""}>
