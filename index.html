@@ -1031,19 +1031,8 @@ $("saveAdminPushSettingsBtn").addEventListener(
   "click",
   saveAdminPushSettings
 );
-$("openAdminVoiceSettingsBtn").addEventListener("click",()=>{
-  if(!isAdmin()){
-    alert("관리자만 사용할 수 있습니다.");
-    return;
-  }
 
-  openPersonalAlertSettings();
-});
-// 관리자 푸시 설정 저장 버튼
-$("saveAdminPushSettingsBtn").addEventListener(
-  "click",
-  saveAdminPushSettings
-);
+
 
 // 푸시 사용 여부에 따라 설정 항목 표시
 $("adminPushEnabled").addEventListener("change",()=>{
