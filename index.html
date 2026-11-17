@@ -2134,6 +2134,36 @@ function loadPersonalVoiceList(){
   window.speechSynthesis.onvoiceschanged = fillVoices;
 }
 
+function previewPersonalVoice(){
+  if(!("speechSynthesis" in window)){
+    alert("이 브라우저는 음성 재생을 지원하지 않습니다.");
+    return;
+  }
+
+  const select = $("personalVoiceSelect");
+  const voiceName = select.value;
+
+  const voices = window.speechSynthesis.getVoices();
+  const voice = voices.find(v => v.name === voiceName);
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(
+    "안녕하세요. 보스 출현 알림 목소리 미리 듣기입니다."
+  );
+
+  utterance.lang = "ko-KR";
+  utterance.rate = 0.9;
+
+  if(voice){
+    utterance.voice = voice;
+  }
+
+  window.speechSynthesis.speak(utterance);
+}
+
+$("previewPersonalVoice").addEventListener("click",previewPersonalVoice);
+
   
 function openCutHistory(){
   ensureCutHistoryUI();
@@ -2892,6 +2922,12 @@ $("soundBtn").addEventListener("click",()=>{
   }
 });
 
+
+$("personalAlertBtn").addEventListener("click",()=>{
+  openPersonalAlertSettings();
+});
+
+  
 /* 1초마다 타이머와 정렬 갱신 */
 setInterval(()=>{
   if(user){
