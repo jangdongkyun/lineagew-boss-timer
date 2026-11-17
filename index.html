@@ -819,7 +819,82 @@ async function loadMyAlertSettings() {
   // 기존 설정이 있으면 그대로 사용
   myAlertSettings = data;
 }
+// =========================================
+// 관리자 푸시 알림 설정 불러오기
+// =========================================
+async function loadAdminPushSettings(){
+  if(!isAdmin() || !user) return;
 
+  const {data,error} = await db
+    .from("user_alert_settings")
+    .select("*")
+    .eq("user_id",user.id)
+    .maybeSingle();
+
+  if(error){
+    console.error("관리자 푸시 설정 불러오기 실패:",error);
+    return;
+  }
+
+  if(!data) return;
+
+  $("adminPushEnabled").checked = !!data.push_enabled;
+  $("adminPush3m").checked = !!data.push_alert_3m;
+  $("adminPush1m").checked = !!data.push_alert_1m;
+  $("adminPush30s").checked = !!data.push_alert_30s;
+  $("adminPush10s").checked = !!data.push_alert_10s;
+  $("adminPushSpawn").checked = !!data.push_alert_spawn;
+
+  $("adminPushOptions").style.display =
+    data.push_enabled ? "block" : "none";
+}
+// =========================================
+// 관리자 푸시 알림 설정 저장
+// =========================================
+async function saveAdminPushSettings(){
+  if(!isAdmin() || !user){
+    alert("관리자만 설정할 수 있습니다.");
+    return;
+  }
+
+  const btn = $("saveAdminPushSettingsBtn");
+  btn.disabled = true;
+  btn.textContent = "저장 중...";
+
+  const updated = {
+    user_id: user.id,
+    push_enabled: $("adminPushEnabled").checked,
+    push_alert_3m: $("adminPush3m").checked,
+    push_alert_1m: $("adminPush1m").checked,
+    push_alert_30s: $("adminPush30s").checked,
+    push_alert_10s: $("adminPush10s").checked,
+    push_alert_spawn: $("adminPushSpawn").checked,
+    updated_at: new Date().toISOString()
+  };
+
+  try{
+    const {data,error} = await db
+      .from("user_alert_settings")
+      .upsert(updated,{onConflict:"user_id"})
+      .select()
+      .single();
+
+    if(error) throw error;
+
+    myAlertSettings = {
+      ...myAlertSettings,
+      ...data
+    };
+
+    $("adminPushMessage").textContent = "관리자 푸시 설정이 저장되었습니다.";
+  }catch(e){
+    console.error("관리자 푸시 설정 저장 실패:",e);
+    $("adminPushMessage").textContent = "저장 실패: " + e.message;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "관리자 푸시 설정 저장";
+  }
+}  
 
 async function saveAlertSettings() {
   if (!isAdmin()) {
