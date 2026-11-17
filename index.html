@@ -337,8 +337,70 @@ h3{font-size:14px;margin:0 0 10px}
 .history-time{color:var(--gold);white-space:nowrap}
 .quick-links{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 #adminSettingsBtn{display:none;background:#6d5428;border-color:#b58b43;color:#ffe2a0}
-#adminTools{display:none}
-#adminTools.is-open{display:block}
+/* 관리자 설정 팝업 배경 */
+#adminTools{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:99990;
+  background:rgba(0,0,0,.90);
+  padding:16px;
+  box-sizing:border-box;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+/* 팝업 열림 */
+#adminTools.is-open{
+  display:block;
+}
+
+/* 팝업 상단 제목 */
+#adminTools .admin-modal-header{
+  width:100%;
+  max-width:900px;
+  margin:10px auto 12px;
+  padding:15px 17px;
+  box-sizing:border-box;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+
+  background:linear-gradient(135deg,#202b3d,#101827);
+  border:1px solid #b58b43;
+  border-radius:12px;
+
+  color:#f0d58d;
+  font-size:19px;
+  font-weight:900;
+}
+
+/* 관리자 설정 내부 패널 */
+#adminTools > .panel{
+  width:100%;
+  max-width:900px;
+  box-sizing:border-box;
+  margin:0 auto 12px;
+}
+
+/* 모바일 화면 */
+@media(max-width:600px){
+  #adminTools{
+    padding:8px;
+  }
+
+  #adminTools .admin-modal-header{
+    margin:4px auto 10px;
+    padding:12px;
+    font-size:16px;
+  }
+
+  #adminTools > .panel{
+    padding:12px;
+  }
+}
 .quick-links a{
   padding:11px 15px;
   border-radius:9px;
@@ -1056,13 +1118,48 @@ $("adminPushEnabled").addEventListener("change",()=>{
     $("adminPushEnabled").checked ? "block" : "none";
 });
   
-// 관리자 설정 열기/닫기
+// =========================================
+// 관리자 설정 팝업 열기 / 닫기
+// =========================================
+
+function closeAdminTools(){
+  adminToolsExpanded = false;
+
+  $("adminTools").classList.remove("is-open");
+
+  $("adminSettingsBtn").textContent = "⚙ 관리자 설정";
+}
+
+// 관리자 설정 열기
 $("adminSettingsBtn").addEventListener("click",()=>{
   if(!isAdmin()) return;
-  adminToolsExpanded = !adminToolsExpanded;
-  $("adminTools").classList.toggle("is-open",adminToolsExpanded);
-  $("adminSettingsBtn").textContent = adminToolsExpanded ? "✕ 관리자 설정 닫기" : "⚙ 관리자 설정";
-  if(adminToolsExpanded) $("adminTools").scrollIntoView({behavior:"smooth",block:"start"});
+
+  adminToolsExpanded = true;
+
+  $("adminTools").classList.add("is-open");
+
+  $("adminSettingsBtn").textContent = "⚙ 관리자 설정";
+
+  $("adminTools").scrollTop = 0;
+});
+
+// 닫기 버튼
+$("adminToolsCloseBtn").addEventListener("click",()=>{
+  closeAdminTools();
+});
+
+// 팝업 바깥쪽 클릭 시 닫기
+$("adminTools").addEventListener("click",e=>{
+  if(e.target === $("adminTools")){
+    closeAdminTools();
+  }
+});
+
+// ESC 키로 닫기
+document.addEventListener("keydown",e=>{
+  if(e.key === "Escape" && adminToolsExpanded){
+    closeAdminTools();
+  }
 });
 
 
