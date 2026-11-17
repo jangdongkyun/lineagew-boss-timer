@@ -630,7 +630,7 @@ h3{font-size:14px;margin:0 0 10px}
 <div class="field">
   <label>보스별 재출현 시간 일괄 관리</label>
 
-  <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:10px">
+<div class="row" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:10px">
     <button type="button" class="ghost" id="selectAllRespawnBosses">전체 선택</button>
     <button type="button" class="ghost" id="clearRespawnBosses">전체 해제</button>
   </div>
@@ -1084,7 +1084,7 @@ function renderRespawnBulkManager(){
   const timeList = $("respawnBulkTimeList");
 
   if(!bossList || !timeList) return;
-
+  bossList.style.display = "block";
   // 기존 일괄 편집 영역은 새 화면에서 사용하지 않음
   timeList.innerHTML = "";
 
