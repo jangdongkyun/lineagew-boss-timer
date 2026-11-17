@@ -2057,6 +2057,83 @@ function ensurePersonalAlertUI(){
   });
 }
 
+
+function openPersonalAlertSettings(){
+  ensurePersonalAlertUI();
+
+  if(!myAlertSettings){
+    alert("개인 알림 설정을 불러오지 못했습니다. 다시 로그인해 주세요.");
+    return;
+  }
+
+  const s = myAlertSettings;
+
+  $("personalVoiceEnabled").checked = !!s.voice_enabled;
+  $("myVoice3m").checked = !!s.voice_3m;
+  $("myVoice1m").checked = !!s.voice_1m;
+  $("myVoice30s").checked = !!s.voice_30s;
+  $("myVoice10s").checked = !!s.voice_10s;
+  $("myVoiceSpawn").checked = !!s.voice_spawn;
+
+  $("personalVoiceQuiet").checked =
+    !!s.voice_quiet_hours_enabled;
+
+  $("personalVoiceQuietStart").value =
+    (s.voice_quiet_hours_start || "22:00").slice(0,5);
+
+  $("personalVoiceQuietEnd").value =
+    (s.voice_quiet_hours_end || "08:00").slice(0,5);
+
+  $("personalVoiceSelect").value = s.voice_name || "";
+
+  const bossSettings = s.boss_settings || {};
+
+  $("personalBossOptions").innerHTML = bosses.map(b=>`
+    <label style="display:block;padding:6px 0">
+      <input type="checkbox"
+        data-personal-boss="${escapeHtml(b.id)}"
+        ${bossSettings[b.id] !== false ? "checked" : ""}>
+      ${escapeHtml(b.name)}
+    </label>
+  `).join("");
+
+  $("personalVoiceOptions").style.display =
+    s.voice_enabled ? "block" : "none";
+
+  $("personalAlertModal").style.display = "block";
+
+  loadPersonalVoiceList();
+}
+
+
+function loadPersonalVoiceList(){
+  if(!("speechSynthesis" in window)) return;
+
+  const select = $("personalVoiceSelect");
+  const selectedName = myAlertSettings?.voice_name || "";
+
+  const fillVoices = ()=>{
+    const voices = window.speechSynthesis.getVoices();
+
+    select.innerHTML =
+      '<option value="">기본 한국어 목소리</option>';
+
+    voices
+      .filter(v => v.lang.toLowerCase().startsWith("ko"))
+      .forEach(v=>{
+        const option = document.createElement("option");
+        option.value = v.name;
+        option.textContent = `${v.name} (${v.lang})`;
+        select.appendChild(option);
+      });
+
+    select.value = selectedName;
+  };
+
+  fillVoices();
+  window.speechSynthesis.onvoiceschanged = fillVoices;
+}
+
   
 function openCutHistory(){
   ensureCutHistoryUI();
