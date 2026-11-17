@@ -1789,16 +1789,13 @@ function speak(text){
 let cutHistoryMode = "boss";
 let cutHistoryModal = null;
 
+
 function ensureCutHistoryUI(){
   const list = $("historyList");
   if(!list) return;
 
-  ensureParticipationUI();
-  
-  // 기존 히스토리 영역은 메인 화면에서 숨김
   list.style.display = "none";
 
-  // 히스토리 열기 버튼 중복 생성 방지
   if(!$("openCutHistoryBtn")){
     const btn = document.createElement("button");
     btn.id = "openCutHistoryBtn";
@@ -1815,7 +1812,6 @@ function ensureCutHistoryUI(){
     });
   }
 
-  // 별도 히스토리 화면 생성
   if(!$("cutHistoryModal")){
     const modal = document.createElement("div");
     modal.id = "cutHistoryModal";
@@ -1856,20 +1852,27 @@ function ensureCutHistoryUI(){
         </div>
 
         <div style="
-          display:flex;
-          gap:8px;
+          display:grid;
+          grid-template-columns:repeat(3,minmax(0,1fr));
+          gap:6px;
           margin-bottom:15px;
         ">
           <button id="historyBossMode"
             type="button"
-            style="flex:1;padding:12px;font-weight:900">
+            style="padding:12px 4px;font-weight:900">
             보스별 보기
           </button>
 
           <button id="historyRecentMode"
             type="button"
-            style="flex:1;padding:12px;font-weight:900">
+            style="padding:12px 4px;font-weight:900">
             최근 컷 순서
+          </button>
+
+          <button id="historyParticipationMode"
+            type="button"
+            style="padding:12px 4px;font-weight:900">
+            혈맹원 참여도
           </button>
         </div>
 
@@ -1889,7 +1892,10 @@ function ensureCutHistoryUI(){
       }
     });
 
-    $("closeCutHistoryBtn").addEventListener("click",closeCutHistory);
+    $("closeCutHistoryBtn").addEventListener(
+      "click",closeCutHistory
+    );
+
     $("historyBossMode").addEventListener("click",()=>{
       cutHistoryMode = "boss";
       renderHistory();
@@ -1897,6 +1903,11 @@ function ensureCutHistoryUI(){
 
     $("historyRecentMode").addEventListener("click",()=>{
       cutHistoryMode = "recent";
+      renderHistory();
+    });
+
+    $("historyParticipationMode").addEventListener("click",()=>{
+      cutHistoryMode = "participation";
       renderHistory();
     });
 
