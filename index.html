@@ -1907,6 +1907,7 @@ function checkVoice(boss, at, ms) {
 
 
 
+
 function speak(text){
   if(!soundOn) return;
 
@@ -1925,6 +1926,25 @@ function speak(text){
     utterance.rate = 0.9;
     utterance.pitch = 1;
 
+    // 개인이 선택한 목소리 적용
+    const voices = synth.getVoices();
+    const selectedVoiceName = myAlertSettings?.voice_name || "";
+
+    let selectedVoice = voices.find(
+      v => v.name === selectedVoiceName
+    );
+
+    // 선택한 목소리가 없으면 한국어 목소리 사용
+    if(!selectedVoice){
+      selectedVoice = voices.find(
+        v => v.lang.toLowerCase().startsWith("ko")
+      );
+    }
+
+    if(selectedVoice){
+      utterance.voice = selectedVoice;
+    }
+
     utterance.onstart = ()=>{
       console.log("음성 재생 시작:", text);
     };
@@ -1940,139 +1960,6 @@ function speak(text){
   }
 }
 
-
-
-
-
-
-let cutHistoryMode = "boss";
-let cutHistoryModal = null;
-
-
-function ensureCutHistoryUI(){
-  const list = $("historyList");
-  if(!list) return;
-
-  list.style.display = "none";
-
-  if(!$("openCutHistoryBtn")){
-    const btn = document.createElement("button");
-    btn.id = "openCutHistoryBtn";
-    btn.type = "button";
-    btn.className = "primary";
-    btn.textContent = "📜 컷 히스토리 보기";
-    btn.style.cssText =
-      "width:100%;margin:10px 0;padding:13px;font-weight:900;";
-
-    list.parentElement.insertBefore(btn,list);
-
-    btn.addEventListener("click",()=>{
-      openCutHistory();
-    });
-  }
-
-  if(!$("cutHistoryModal")){
-    const modal = document.createElement("div");
-    modal.id = "cutHistoryModal";
-    modal.style.cssText = `
-      display:none;
-      position:fixed;
-      inset:0;
-      z-index:99999;
-      background:rgba(0,0,0,.94);
-      overflow-y:auto;
-      padding:15px;
-      box-sizing:border-box;
-    `;
-
-    modal.innerHTML = `
-      <div style="
-        max-width:850px;
-        margin:10px auto;
-        background:#101a2b;
-        border:1px solid #806b3e;
-        border-radius:14px;
-        padding:15px;
-        color:#fff;
-      ">
-        <div style="
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:8px;
-          margin-bottom:15px;
-        ">
-          <b style="font-size:19px;color:#e8c879">
-            📜 컷 히스토리
-          </b>
-          <button id="closeCutHistoryBtn"
-            class="danger"
-            type="button">닫기 ✕</button>
-        </div>
-
-        <div style="
-          display:grid;
-          grid-template-columns:repeat(3,minmax(0,1fr));
-          gap:6px;
-          margin-bottom:15px;
-        ">
-          <button id="historyBossMode"
-            type="button"
-            style="padding:12px 4px;font-weight:900">
-            보스별 보기
-          </button>
-
-          <button id="historyRecentMode"
-            type="button"
-            style="padding:12px 4px;font-weight:900">
-            최근 컷 순서
-          </button>
-
-          <button id="historyParticipationMode"
-            type="button"
-            style="padding:12px 4px;font-weight:900">
-            혈맹원 참여도
-          </button>
-        </div>
-
-        <div id="cutHistoryDescription"
-          style="font-size:12px;color:#c5b995;margin-bottom:12px">
-        </div>
-
-        <div id="cutHistoryContent"></div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    modal.addEventListener("click",e=>{
-      if(e.target === modal){
-        closeCutHistory();
-      }
-    });
-
-    $("closeCutHistoryBtn").addEventListener(
-      "click",closeCutHistory
-    );
-
-    $("historyBossMode").addEventListener("click",()=>{
-      cutHistoryMode = "boss";
-      renderHistory();
-    });
-
-    $("historyRecentMode").addEventListener("click",()=>{
-      cutHistoryMode = "recent";
-      renderHistory();
-    });
-
-    $("historyParticipationMode").addEventListener("click",()=>{
-      cutHistoryMode = "participation";
-      renderHistory();
-    });
-
-    cutHistoryModal = modal;
-  }
-}
 
 function openCutHistory(){
   ensureCutHistoryUI();
