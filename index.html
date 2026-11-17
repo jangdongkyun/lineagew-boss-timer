@@ -1612,31 +1612,41 @@ function renderBosses(){
       card = document.createElement("div");
       card.className = "boss-card";
       card.dataset.bossCard = b.id;
-      card.innerHTML = `
-<div class="boss-main">
-  <div class="boss-name"></div>
-  <div class="boss-alias"></div>
-  <div class="unregistered-count" data-missed></div>
-</div>
-        <div>
-          <button class="timer normal" data-timer></button>
-          <div class="timer-label" data-label></div>
-        </div>
-   
-        <div class="boss-actions">
-          <button class="good" data-quick>현재 시각으로 컷 등록</button>
-          <div class="cut-time">
-            <input data-cut-input="${b.id}" placeholder="2135 / 21:35" maxlength="5">
-            <button class="primary" data-row-cut>등록</button>
-          </div>
-          <button class="ghost" data-rollback style="grid-column:1/-1">
-            이전으로 리셋
-          </button>
-          <div class="muted">위 시간 입력은 해당 보스의 컷 시간입니다.</div>
-        </div>
+card.innerHTML = `
+  <div class="boss-main">
+    <div class="boss-name"></div>
+    <div class="boss-alias"></div>
+    <div class="unregistered-count" data-missed></div>
+  </div>
 
-      `;
+  <div>
+    <button class="timer normal" data-timer></button>
+    <div class="timer-label" data-label></div>
+  </div>
 
+  <div class="boss-actions">
+    <button class="good" data-quick>
+      현재 시각으로 컷 등록
+    </button>
+
+    <div class="cut-time">
+      <input
+        data-cut-input="${b.id}"
+        placeholder="2135 / 21:35"
+        maxlength="5"
+      >
+      <button class="primary" data-row-cut>등록</button>
+    </div>
+
+    <button class="ghost" data-rollback>
+      이전으로 리셋
+    </button>
+
+    <div class="muted">
+      위 시간 입력은 해당 보스의 컷 시간입니다.
+    </div>
+  </div>
+`;
       card.querySelector("[data-timer]").addEventListener("click",()=>{
         quickCut(b.id);
       });
