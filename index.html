@@ -1929,6 +1929,7 @@ function closeCutHistory(){
   if(modal) modal.style.display = "none";
 }
 
+
 function renderHistory(){
   ensureCutHistoryUI();
 
@@ -1937,14 +1938,20 @@ function renderHistory(){
 
   if(!content) return;
 
-  $("historyBossMode").style.background =
-    cutHistoryMode === "boss" ? "#806b3e" : "#26364d";
+  const modes = [
+    ["historyBossMode","boss"],
+    ["historyRecentMode","recent"],
+    ["historyParticipationMode","participation"]
+  ];
 
-  $("historyRecentMode").style.background =
-    cutHistoryMode === "recent" ? "#806b3e" : "#26364d";
+  modes.forEach(([id,mode])=>{
+    const btn = $(id);
+    if(!btn) return;
 
-  $("historyBossMode").style.color = "#fff";
-  $("historyRecentMode").style.color = "#fff";
+    btn.style.background =
+      cutHistoryMode === mode ? "#806b3e" : "#26364d";
+    btn.style.color = "#fff";
+  });
 
   // 컷 시간 기준 최신순 정렬
   const newestFirst = [...cuts].sort((a,b)=>{
@@ -1952,6 +1959,77 @@ function renderHistory(){
            new Date(a.cut_at).getTime();
   });
 
+  // ---------------------------------
+  // 1. 혈맹원 참여도
+  // ---------------------------------
+  if(cutHistoryMode === "participation"){
+    description.textContent =
+      "월별 혈맹원 컷 참여 순위 및 개인별 상세 기록";
+
+    content.innerHTML = `
+      <div style="margin-bottom:15px">
+        <label style="
+          display:block;
+          color:#c5b995;
+          font-size:12px;
+          margin-bottom:6px;
+        ">통계 조회 월</label>
+
+        <input id="participationMonth"
+          type="month"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:12px;
+            border-radius:8px;
+            background:#26364d;
+            color:#fff;
+            border:1px solid #806b3e;
+            font-size:15px;
+          ">
+      </div>
+
+      <div id="participationSummary"
+        style="
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:10px;
+          margin-bottom:16px;
+        ">
+      </div>
+
+      <div style="
+        color:#e8c879;
+        font-weight:900;
+        margin-bottom:10px;
+      ">
+        🥇 혈맹원 참여 순위
+      </div>
+
+      <div id="participationRanking"></div>
+
+      <div id="participationMemberDetail"
+        style="margin-top:18px">
+      </div>
+    `;
+
+    const monthInput = $("participationMonth");
+    const now = new Date();
+
+    monthInput.value =
+      `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+
+    monthInput.addEventListener("change",()=>{
+      renderParticipationHistory();
+    });
+
+    renderParticipationHistory();
+    return;
+  }
+
+  // ---------------------------------
+  // 2. 컷 기록이 없는 경우
+  // ---------------------------------
   if(!cuts.length){
     description.textContent = "등록된 컷 기록이 없습니다.";
     content.innerHTML = `
@@ -1963,7 +2041,7 @@ function renderHistory(){
   }
 
   // ---------------------------------
-  // 1. 보스별 보기: ㄱㄴㄷ 순서, 최근 3개
+  // 3. 보스별 보기: ㄱㄴㄷ 순서, 최근 3개
   // ---------------------------------
   if(cutHistoryMode === "boss"){
     description.textContent =
@@ -2055,7 +2133,7 @@ function renderHistory(){
   }
 
   // ---------------------------------
-  // 2. 최근 컷 순서: 전체 최신 26개
+  // 4. 최근 컷 순서: 전체 최신 26개
   // ---------------------------------
   else{
     description.textContent =
