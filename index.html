@@ -625,13 +625,23 @@ h3{font-size:14px;margin:0 0 10px}
     관리자 푸시 알림 사용
   </label>
 
-  <div id="adminPushOptions" style="margin-top:12px">
-    <label><input type="checkbox" id="adminPush3m"> 3분 전</label><br>
-    <label><input type="checkbox" id="adminPush1m"> 1분 전</label><br>
-    <label><input type="checkbox" id="adminPush30s"> 30초 전</label><br>
-    <label><input type="checkbox" id="adminPush10s"> 10초 전</label><br>
-    <label><input type="checkbox" id="adminPushSpawn"> 보스 출현</label>
+
+<div id="adminPushOptions" style="margin-top:12px">
+  <p style="color:#e8c879;font-weight:bold">푸시 알림 시점</p>
+  <label><input type="checkbox" id="adminPush3m"> 3분 전</label><br>
+  <label><input type="checkbox" id="adminPush1m"> 1분 전</label><br>
+  <label><input type="checkbox" id="adminPush30s"> 30초 전</label><br>
+  <label><input type="checkbox" id="adminPush10s"> 10초 전</label><br>
+  <label><input type="checkbox" id="adminPushSpawn"> 보스 출현</label>
+
+  <hr style="border-color:#806b3e;margin:14px 0">
+
+  <p style="color:#e8c879;font-weight:bold">보스별 푸시 알림 선택</p>
+  <div id="adminPushBossOptions"
+       style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
   </div>
+</div>
+
 
   <button class="primary" id="saveAdminPushSettingsBtn" type="button">
     관리자 푸시 설정 저장
@@ -845,57 +855,28 @@ async function loadAdminPushSettings(){
   $("adminPush10s").checked = !!data.push_alert_10s;
   $("adminPushSpawn").checked = !!data.push_alert_spawn;
 
+  const pushBossSettings = data.push_boss_settings || {};
+
+  $("adminPushBossOptions").innerHTML = bosses.map(b=>`
+    <label style="
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px;
+      margin:4px 0;
+      border:1px solid #806b3e;
+      border-radius:8px;
+    ">
+      <input type="checkbox"
+        data-admin-push-boss="${escapeHtml(b.id)}"
+        ${pushBossSettings[b.id] !== false ? "checked" : ""}>
+      ${escapeHtml(b.name)}
+    </label>
+  `).join("");
+
   $("adminPushOptions").style.display =
     data.push_enabled ? "block" : "none";
 }
-// =========================================
-// 관리자 푸시 알림 설정 저장
-// =========================================
-async function saveAdminPushSettings(){
-  if(!isAdmin() || !user){
-    alert("관리자만 설정할 수 있습니다.");
-    return;
-  }
-
-  const btn = $("saveAdminPushSettingsBtn");
-  btn.disabled = true;
-  btn.textContent = "저장 중...";
-
-  const updated = {
-    user_id: user.id,
-    push_enabled: $("adminPushEnabled").checked,
-    push_alert_3m: $("adminPush3m").checked,
-    push_alert_1m: $("adminPush1m").checked,
-    push_alert_30s: $("adminPush30s").checked,
-    push_alert_10s: $("adminPush10s").checked,
-    push_alert_spawn: $("adminPushSpawn").checked,
-    updated_at: new Date().toISOString()
-  };
-
-  try{
-    const {data,error} = await db
-      .from("user_alert_settings")
-      .upsert(updated,{onConflict:"user_id"})
-      .select()
-      .single();
-
-    if(error) throw error;
-
-    myAlertSettings = {
-      ...myAlertSettings,
-      ...data
-    };
-
-    $("adminPushMessage").textContent = "관리자 푸시 설정이 저장되었습니다.";
-  }catch(e){
-    console.error("관리자 푸시 설정 저장 실패:",e);
-    $("adminPushMessage").textContent = "저장 실패: " + e.message;
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "관리자 푸시 설정 저장";
-  }
-}  
-
 async function saveAlertSettings() {
   if (!isAdmin()) {
     alert("관리자만 설정할 수 있습니다.");
