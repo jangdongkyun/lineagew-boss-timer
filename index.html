@@ -960,6 +960,17 @@ $("openAdminVoiceSettingsBtn").addEventListener("click",()=>{
 
   openPersonalAlertSettings();
 });
+// 관리자 푸시 설정 저장 버튼
+$("saveAdminPushSettingsBtn").addEventListener(
+  "click",
+  saveAdminPushSettings
+);
+
+// 푸시 사용 여부에 따라 설정 항목 표시
+$("adminPushEnabled").addEventListener("change",()=>{
+  $("adminPushOptions").style.display =
+    $("adminPushEnabled").checked ? "block" : "none";
+});
   
 // 관리자 설정 열기/닫기
 $("adminSettingsBtn").addEventListener("click",()=>{
