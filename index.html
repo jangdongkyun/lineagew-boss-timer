@@ -2164,6 +2164,58 @@ function previewPersonalVoice(){
 
 $("previewPersonalVoice").addEventListener("click",previewPersonalVoice);
 
+
+async function savePersonalAlertSettings(){
+  if(!user || !myAlertSettings) return;
+
+  const bossSettings = {};
+
+  document.querySelectorAll("[data-personal-boss]").forEach(el=>{
+    bossSettings[el.dataset.personalBoss] = el.checked;
+  });
+
+  const updated = {
+    ...myAlertSettings,
+
+    voice_enabled: $("personalVoiceEnabled").checked,
+    voice_3m: $("myVoice3m").checked,
+    voice_1m: $("myVoice1m").checked,
+    voice_30s: $("myVoice30s").checked,
+    voice_10s: $("myVoice10s").checked,
+    voice_spawn: $("myVoiceSpawn").checked,
+
+    voice_name: $("personalVoiceSelect").value,
+    boss_settings: bossSettings,
+
+    voice_quiet_hours_enabled: $("personalVoiceQuiet").checked,
+    voice_quiet_hours_start: $("personalVoiceQuietStart").value || "22:00",
+    voice_quiet_hours_end: $("personalVoiceQuietEnd").value || "08:00",
+
+    updated_at: new Date().toISOString()
+  };
+
+  const {data,error} = await db
+    .from("user_alert_settings")
+    .upsert(updated,{onConflict:"user_id"})
+    .select()
+    .single();
+
+  if(error){
+    console.error("개인 알림 설정 저장 실패:",error);
+    alert("설정 저장 실패: " + error.message);
+    return;
+  }
+
+  myAlertSettings = data;
+  $("personalAlertModal").style.display = "none";
+  alert("개인 알림 설정이 저장되었습니다.");
+}
+
+$("savePersonalAlertBtn").addEventListener(
+  "click",
+  savePersonalAlertSettings
+);
+  
   
 function openCutHistory(){
   ensureCutHistoryUI();
@@ -3090,6 +3142,13 @@ function ensureParticipationUI(){
       }
     });
 
+
+$("personalVoiceEnabled").addEventListener("change",()=>{
+  $("personalVoiceOptions").style.display =
+    $("personalVoiceEnabled").checked ? "block" : "none";
+});
+
+    
     $("closeParticipationBtn").addEventListener("click",()=>{
       modal.style.display = "none";
     });
