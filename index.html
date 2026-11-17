@@ -3016,12 +3016,29 @@ function renderAdminMembers(){
 }
 
 function renderAdmin(){
-  $("adminSettingsBtn").style.display = isAdmin() ? "inline-block" : "none";
-  $("adminPanel").style.display = isAdmin() ? "block" : "none";
-  $("adminTools").classList.toggle("is-open",isAdmin() && adminToolsExpanded);
+const adminSettingsBtn = $("adminSettingsBtn");
+const adminPanel = $("adminPanel");
+const adminTools = $("adminTools");
+
+if(adminSettingsBtn){
+  adminSettingsBtn.style.display = isAdmin() ? "inline-block" : "none";
+}
+
+if(adminPanel){
+  adminPanel.style.display = isAdmin() ? "block" : "none";
+}
+
+if(adminTools){
+  adminTools.classList.toggle(
+    "is-open",
+    isAdmin() && adminToolsExpanded
+  );
+}
   if(!isAdmin()){
     adminToolsExpanded = false;
-    $("adminSettingsBtn").textContent = "⚙ 관리자 설정";
+if(adminSettingsBtn){
+  adminSettingsBtn.textContent = "⚙ 관리자 설정";
+}
   }
   renderAdminMembers();
   if(!isAdmin()) return;
