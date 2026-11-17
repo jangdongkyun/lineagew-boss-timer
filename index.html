@@ -929,11 +929,32 @@ async function loadAdminPushSettings(){
         background: #fff5d8;
       }
 
-      @media (max-width: 480px) {
-        #adminPushBossOptions .admin-push-boss-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
+@media (max-width: 480px) {
+  #adminPushBossOptions .admin-push-boss-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  #adminPushBossOptions .admin-push-boss-card {
+    padding: 7px 4px;
+    gap: 3px;
+    font-size: 10px;
+  }
+
+  #adminPushBossOptions .admin-push-boss-card input {
+    width: 25px;
+    height: 15px;
+  }
+
+  #adminPushBossOptions .admin-push-boss-card input:before {
+    width: 11px;
+    height: 11px;
+  }
+
+  #adminPushBossOptions .admin-push-boss-card input:checked:before {
+    transform: translateX(10px);
+  }
+}
     </style>
 
     <div class="admin-push-boss-grid">
