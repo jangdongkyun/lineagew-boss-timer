@@ -2047,6 +2047,22 @@ function ensurePersonalAlertUI(){
   `;
 
   document.body.appendChild(modal);
+// 개인 알림 설정 버튼 이벤트 연결
+$("previewPersonalVoice").addEventListener(
+  "click",
+  previewPersonalVoice
+);
+
+$("savePersonalAlertBtn").addEventListener(
+  "click",
+  savePersonalAlertSettings
+);
+
+// 음성 알림 사용 여부 변경
+$("personalVoiceEnabled").addEventListener("change",()=>{
+  $("personalVoiceOptions").style.display =
+    $("personalVoiceEnabled").checked ? "block" : "none";
+});
 
   $("closePersonalAlertBtn").addEventListener("click",()=>{
     modal.style.display = "none";
@@ -2162,7 +2178,6 @@ function previewPersonalVoice(){
   window.speechSynthesis.speak(utterance);
 }
 
-$("previewPersonalVoice").addEventListener("click",previewPersonalVoice);
 
 
 async function savePersonalAlertSettings(){
@@ -2211,10 +2226,7 @@ async function savePersonalAlertSettings(){
   alert("개인 알림 설정이 저장되었습니다.");
 }
 
-$("savePersonalAlertBtn").addEventListener(
-  "click",
-  savePersonalAlertSettings
-);
+
   
   
 function openCutHistory(){
@@ -3143,10 +3155,7 @@ function ensureParticipationUI(){
     });
 
 
-$("personalVoiceEnabled").addEventListener("change",()=>{
-  $("personalVoiceOptions").style.display =
-    $("personalVoiceEnabled").checked ? "block" : "none";
-});
+
 
     
     $("closeParticipationBtn").addEventListener("click",()=>{
