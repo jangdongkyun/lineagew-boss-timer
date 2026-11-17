@@ -620,9 +620,23 @@ h3{font-size:14px;margin:0 0 10px}
         <label>별명 (쉼표로 구분)</label>
         <input id="bossAliases" placeholder="별명1, 별명2">
       </div>
-      <div class="field">
-        <label>재출현 시간 (시간 단위)</label>
-        <input id="respawnHours" type="number" min="0.1" step="0.1" placeholder="예: 4">
+
+<div class="field">
+  <label>재출현 시간 (시간 단위)</label>
+  <input id="respawnHours" type="number" min="0.1" step="0.1" placeholder="예: 4">
+</div>
+
+<div class="field">
+  <label>전체 보스 재출현 시간 배율</label>
+  <div class="row" style="gap:8px;flex-wrap:wrap">
+    <button type="button" class="ghost" data-respawn-multiplier="0.5">0.5배 (절반)</button>
+    <button type="button" class="ghost" data-respawn-multiplier="1">1배 (기본)</button>
+    <button type="button" class="ghost" data-respawn-multiplier="2">2배</button>
+  </div>
+  <div id="respawnMultiplierMessage" class="muted" style="margin-top:6px">
+    현재 배율을 불러오는 중...
+  </div>
+
       </div>
       <div class="field">
         <label>최초 출현 예정 시각</label>
@@ -658,6 +672,7 @@ let profile = null;
 let adminToolsExpanded = false;
 let bosses = [];
 let cuts = [];
+let currentRespawnMultiplier = 1;
 let presenceRows = [];
 let members = [];
 let offlineExpanded = false;
@@ -1660,16 +1675,27 @@ async function loadProfile(){
   if(!profile) throw new Error("회원 프로필을 찾을 수 없습니다.");
 }
 
+
 async function loadBosses(){
-  // 삭제 처리된 보스(is_active=false)는 타이머와 보스 목록에서 제외합니다.
-  // 기존 컷 기록은 보존합니다.
+  // 삭제 처리된 보스는 제외하고 불러옵니다.
   const {data,error} = await db.from("bosses")
     .select("*")
     .or("is_active.is.null,is_active.eq.true")
     .order("name");
 
   if(error) throw error;
+
   bosses = data || [];
+
+  // 현재 적용된 전체 보스 배율을 읽습니다.
+  const savedMultiplier = bosses.find(
+    b => Number(b.respawn_multiplier) > 0
+  )?.respawn_multiplier;
+
+  currentRespawnMultiplier =
+    Number(savedMultiplier) > 0
+      ? Number(savedMultiplier)
+      : 1;
 }
 
 async function loadCuts(){
