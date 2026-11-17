@@ -640,7 +640,7 @@ h3{font-size:14px;margin:0 0 10px}
     보스 목록을 불러오는 중...
   </div>
 
-  <div style="margin-top:14px;padding:12px;border:1px solid #806b3e;border-radius:9px">
+<div style="display:none;margin-top:14px;padding:12px;border:1px solid #806b3e;border-radius:9px">
     <label>선택한 보스의 배율</label>
 
     <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
@@ -670,7 +670,7 @@ h3{font-size:14px;margin:0 0 10px}
     </div>
   </div>
 
-  <div style="margin-top:14px;padding:12px;border:1px solid #806b3e;border-radius:9px">
+<div style="display:none;margin-top:14px;padding:12px;border:1px solid #806b3e;border-radius:9px">
     <label>전체 보스 기준 재출현 시간 일괄 편집</label>
     <div class="muted" style="font-size:12px;margin-bottom:9px">
       보스별 기준 시간을 수정한 뒤 한 번에 저장합니다.
@@ -1076,6 +1076,7 @@ function renderRespawnMultiplier(){
 }
 
 
+
 function renderRespawnBulkManager(){
   if(!isAdmin()) return;
 
@@ -1084,122 +1085,137 @@ function renderRespawnBulkManager(){
 
   if(!bossList || !timeList) return;
 
- 
-  // 선택 보스 목록 및 현재 배율 표시
-  bossList.innerHTML = bosses.map(b=>{
-    const multiplier = Number(b.respawn_multiplier || 1);
-    const baseHours = Number(
-      b.base_respawn_hours ?? b.respawn_hours
-    );
+  // 기존 일괄 편집 영역은 새 화면에서 사용하지 않음
+  timeList.innerHTML = "";
 
-    return `
-      <label style="
-        display:flex;
+  bossList.innerHTML = `
+    <style>
+      @keyframes respawnFlash {
+        0%,100% {
+          box-shadow:0 0 4px #d6a849;
+          background:#493817;
+        }
+        50% {
+          box-shadow:0 0 16px #ffd76a;
+          background:#806329;
+        }
+      }
+
+      .respawn-choice{
+        width:100%;
+        padding:10px 3px;
+        border:1px solid #665638;
+        border-radius:7px;
+        background:#171717;
+        color:#aaa;
+        font-weight:bold;
+        cursor:pointer;
+      }
+
+      .respawn-choice.active{
+        color:#fff3c4;
+        border:2px solid #f0c36b;
+        animation:respawnFlash 1.2s infinite;
+      }
+
+      .respawn-boss-row{
+        display:grid;
+        grid-template-columns:minmax(75px,1fr) repeat(3,minmax(0,1fr));
+        gap:6px;
         align-items:center;
-        gap:7px;
-        padding:8px;
-        border:1px solid #806b3e;
-        border-radius:8px;
-        color:#fff0c8;
-        font-size:12px;
-      ">
-        <input type="checkbox"
-          data-respawn-select="${escapeHtml(b.id)}"
-          ${selectedRespawnBossIds.has(b.id) ? "checked" : ""}>
-
-        <span style="flex:1">
-          ${escapeHtml(b.name)}
-        </span>
-
-        <span style="color:#f0c36b;white-space:nowrap">
-          ${multiplier}배
-        </span>
-      </label>
-    `;
-  }).join("");
-
-
-  // 기준 시간 및 실제 재출현 시간 표시
-  timeList.innerHTML = bosses.map(b=>{
-    const baseHours = Number(
-      b.base_respawn_hours ?? b.respawn_hours
-    );
-
-    const multiplier = Number(b.respawn_multiplier || 1);
-    const actualHours = Number(
-      (baseHours * multiplier).toFixed(2)
-    );
-
-    return `
-      <div style="
-        padding:10px 0;
+        padding:9px 0;
         border-bottom:1px solid var(--line);
-      ">
-        <div style="
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          gap:8px;
-          margin-bottom:8px;
-        ">
-          <strong style="font-size:13px;color:#fff0c8">
+      }
+    </style>
+
+    <div class="respawn-boss-row"
+         style="font-size:11px;color:#f0c36b;font-weight:bold">
+      <span>보스 이름</span>
+      <span style="text-align:center">0.5배</span>
+      <span style="text-align:center">1배</span>
+      <span style="text-align:center">2배</span>
+    </div>
+
+    ${bosses.map(b=>{
+      const base = Number(
+        b.base_respawn_hours ?? b.respawn_hours
+      );
+      const current = Number(b.respawn_multiplier || 1);
+
+      return `
+        <div class="respawn-boss-row">
+          <strong style="
+            color:#fff0c8;
+            font-size:12px;
+            word-break:keep-all;
+          ">
             ${escapeHtml(b.name)}
+            <div style="
+              color:#f0c36b;
+              font-size:10px;
+              margin-top:3px;
+              font-weight:normal;
+            ">
+              기준 ${base}시간
+            </div>
           </strong>
 
-          <span style="
-            color:#f0c36b;
-            font-size:12px;
-            font-weight:bold;
-          ">
-            ${multiplier}배
-          </span>
+          ${[0.5,1,2].map(multiplier=>{
+            const actual = Number(
+              (base * multiplier).toFixed(2)
+            );
+
+            const active = Math.abs(current-multiplier)<0.001;
+
+            return `
+              <button type="button"
+                class="respawn-choice ${active ? "active" : ""}"
+                data-boss-id="${escapeHtml(b.id)}"
+                data-multiplier="${multiplier}">
+                ${actual}시간
+                ${active ? "<div style='font-size:10px'>적용 중</div>" : ""}
+              </button>
+            `;
+          }).join("")}
         </div>
+      `;
+    }).join("")}
+  `;
 
-        <div style="
-          display:grid;
-          grid-template-columns:1fr 1fr;
-          gap:8px;
-        ">
-          <div>
-            <label style="font-size:11px">기준 시간</label>
-            <input type="number"
-              min="0.1"
-              step="0.1"
-              value="${baseHours}"
-              data-respawn-base="${escapeHtml(b.id)}"
-              style="width:100%;min-width:0">
-          </div>
+  bossList.querySelectorAll(".respawn-choice").forEach(btn=>{
+    btn.addEventListener("click",async()=>{
+      const id = btn.dataset.bossId;
+      const multiplier = Number(btn.dataset.multiplier);
 
-          <div>
-            <label style="font-size:11px;color:#f0c36b">
-              실제 재출현 시간
-            </label>
+      if(!isAdmin()) return;
 
-            <div style="
-              padding:9px;
-              border:1px solid #806b3e;
-              border-radius:7px;
-              color:#f0c36b;
-              font-weight:bold;
-              text-align:center;
-            ">
-              ${actualHours}시간
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
+      const rowButtons = bossList.querySelectorAll(
+        `[data-boss-id="${CSS.escape(id)}"]`
+      );
 
-  // 개별 보스 선택 상태 저장
-  bossList.querySelectorAll("[data-respawn-select]").forEach(input=>{
-    input.addEventListener("change",()=>{
-      const id = input.dataset.respawnSelect;
+      rowButtons.forEach(button=>button.disabled=true);
 
-      if(input.checked){
-        selectedRespawnBossIds.add(id);
-      }else{
-        selectedRespawnBossIds.delete(id);
+      try{
+        const {error} = await db.rpc(
+          "admin_set_selected_boss_multipliers",
+          {
+            p_updates:[{
+              id,
+              multiplier
+            }]
+          }
+        );
+
+        if(error) throw error;
+
+        await loadBosses();
+        renderAll();
+        renderRespawnBulkManager();
+
+      }catch(e){
+        alert("배율 적용 실패: " + (e.message || e));
+      }finally{
+        rowButtons.forEach(button=>button.disabled=false);
       }
     });
   });
@@ -1207,18 +1223,10 @@ function renderRespawnBulkManager(){
   const messageEl = $("respawnBulkMessage");
   if(messageEl){
     messageEl.textContent =
-      `등록된 보스 ${bosses.length}개 · 선택된 보스 ${selectedRespawnBossIds.size}개`;
+      `보스 ${bosses.length}개 · 각 보스의 현재 적용 시간 표시`;
   }
 }
 
-// 보스 재출현 시간 관리: 전체 선택
-const selectAllRespawnBtn = $("selectAllRespawnBosses");
-if(selectAllRespawnBtn){
-  selectAllRespawnBtn.addEventListener("click",()=>{
-    selectedRespawnBossIds = new Set(bosses.map(b=>b.id));
-    renderRespawnBulkManager();
-  });
-}
 
 // 보스 재출현 시간 관리: 전체 해제
 const clearRespawnBtn = $("clearRespawnBosses");
