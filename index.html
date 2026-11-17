@@ -626,16 +626,76 @@ h3{font-size:14px;margin:0 0 10px}
   <input id="respawnHours" type="number" min="0.1" step="0.1" placeholder="예: 4">
 </div>
 
+
 <div class="field">
-  <label>전체 보스 재출현 시간 배율</label>
-  <div class="row" style="gap:8px;flex-wrap:wrap">
-    <button type="button" class="ghost" data-respawn-multiplier="0.5">0.5배 (절반)</button>
-    <button type="button" class="ghost" data-respawn-multiplier="1">1배 (기본)</button>
-    <button type="button" class="ghost" data-respawn-multiplier="2">2배</button>
+  <label>보스별 재출현 시간 일괄 관리</label>
+
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <button type="button" class="ghost" id="selectAllRespawnBosses">전체 선택</button>
+    <button type="button" class="ghost" id="clearRespawnBosses">전체 해제</button>
   </div>
-  <div id="respawnMultiplierMessage" class="muted" style="margin-top:6px">
-    현재 배율을 불러오는 중...
+
+  <div id="respawnBulkBossList"
+       style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px">
+    보스 목록을 불러오는 중...
   </div>
+
+  <div style="margin-top:14px;padding:12px;border:1px solid #806b3e;border-radius:9px">
+    <label>선택한 보스의 배율</label>
+
+    <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="respawnBulkMultiplier"
+             type="number"
+             min="0.1"
+             max="100"
+             step="0.1"
+             value="2"
+             style="max-width:110px">
+      <span>배</span>
+      <button type="button" class="primary" id="applyRespawnBulkMultiplier">
+        배율 적용
+      </button>
+    </div>
+
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:9px">
+      <button type="button" class="ghost" id="doubleRespawnSelected">
+        2배로 설정
+      </button>
+      <button type="button" class="ghost" id="halfRespawnSelected">
+        절반으로 설정
+      </button>
+      <button type="button" class="ghost" id="resetRespawnSelected">
+        선택 보스 1배 복구
+      </button>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;padding:12px;border:1px solid #806b3e;border-radius:9px">
+    <label>전체 보스 기준 재출현 시간 일괄 편집</label>
+    <div class="muted" style="font-size:12px;margin-bottom:9px">
+      보스별 기준 시간을 수정한 뒤 한 번에 저장합니다.
+    </div>
+
+    <div id="respawnBulkTimeList">
+      보스 시간 목록을 불러오는 중...
+    </div>
+
+    <button type="button"
+            class="primary"
+            id="saveAllRespawnTimes"
+            style="width:100%;margin-top:12px">
+      전체 보스 시간 일괄 저장
+    </button>
+  </div>
+
+  <div id="respawnBulkMessage"
+       class="muted"
+       style="margin-top:8px">
+    보스별 배율과 기준 시간을 관리할 수 있습니다.
+  </div>
+</div>
+
+
 
       </div>
       <div class="field">
@@ -673,6 +733,7 @@ let adminToolsExpanded = false;
 let bosses = [];
 let cuts = [];
 let currentRespawnMultiplier = 1;
+let selectedRespawnBossIds = new Set();
 let presenceRows = [];
 let members = [];
 let offlineExpanded = false;
@@ -1011,6 +1072,94 @@ function renderRespawnMultiplier(){
   });
 }
 
+
+function renderRespawnBulkManager(){
+  if(!isAdmin()) return;
+
+  const bossList = $("respawnBulkBossList");
+  const timeList = $("respawnBulkTimeList");
+
+  if(!bossList || !timeList) return;
+
+  // 선택 보스 목록
+  bossList.innerHTML = bosses.map(b=>`
+    <label style="
+      display:flex;
+      align-items:center;
+      gap:7px;
+      padding:8px;
+      border:1px solid #806b3e;
+      border-radius:8px;
+      color:#fff0c8;
+      font-size:12px;
+    ">
+      <input type="checkbox"
+        data-respawn-select="${escapeHtml(b.id)}"
+        ${selectedRespawnBossIds.has(b.id) ? "checked" : ""}>
+      <span>${escapeHtml(b.name)}</span>
+    </label>
+  `).join("");
+
+  // 기준 시간 일괄 편집 목록
+  timeList.innerHTML = bosses.map(b=>`
+    <div style="
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 100px;
+      gap:8px;
+      align-items:center;
+      padding:7px 0;
+      border-bottom:1px solid var(--line);
+    ">
+      <span style="font-size:12px;color:#fff0c8">
+        ${escapeHtml(b.name)}
+      </span>
+      <input type="number"
+        min="0.1"
+        step="0.1"
+        value="${Number(b.base_respawn_hours ?? b.respawn_hours)}"
+        data-respawn-base="${escapeHtml(b.id)}"
+        style="width:100%;min-width:0">
+    </div>
+  `).join("");
+
+  // 개별 보스 선택 상태 저장
+  bossList.querySelectorAll("[data-respawn-select]").forEach(input=>{
+    input.addEventListener("change",()=>{
+      const id = input.dataset.respawnSelect;
+
+      if(input.checked){
+        selectedRespawnBossIds.add(id);
+      }else{
+        selectedRespawnBossIds.delete(id);
+      }
+    });
+  });
+
+  const messageEl = $("respawnBulkMessage");
+  if(messageEl){
+    messageEl.textContent =
+      `등록된 보스 ${bosses.length}개 · 선택된 보스 ${selectedRespawnBossIds.size}개`;
+  }
+}
+
+// 보스 재출현 시간 관리: 전체 선택
+const selectAllRespawnBtn = $("selectAllRespawnBosses");
+if(selectAllRespawnBtn){
+  selectAllRespawnBtn.addEventListener("click",()=>{
+    selectedRespawnBossIds = new Set(bosses.map(b=>b.id));
+    renderRespawnBulkManager();
+  });
+}
+
+// 보스 재출현 시간 관리: 전체 해제
+const clearRespawnBtn = $("clearRespawnBosses");
+if(clearRespawnBtn){
+  clearRespawnBtn.addEventListener("click",()=>{
+    selectedRespawnBossIds.clear();
+    renderRespawnBulkManager();
+  });
+}
+  
   
 function message(text){
   $("message").textContent = text || "";
@@ -3014,6 +3163,8 @@ if(adminSettingsBtn){
   }
   renderAdminMembers();
   if(!isAdmin()) return;
+
+renderRespawnBulkManager();
 
   $("adminBossList").innerHTML = bosses.map(b=>`
     <div class="history-item">
