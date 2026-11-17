@@ -1081,24 +1081,40 @@ function renderRespawnBulkManager(){
 
   if(!bossList || !timeList) return;
 
-  // 선택 보스 목록
-  bossList.innerHTML = bosses.map(b=>`
-    <label style="
-      display:flex;
-      align-items:center;
-      gap:7px;
-      padding:8px;
-      border:1px solid #806b3e;
-      border-radius:8px;
-      color:#fff0c8;
-      font-size:12px;
-    ">
-      <input type="checkbox"
-        data-respawn-select="${escapeHtml(b.id)}"
-        ${selectedRespawnBossIds.has(b.id) ? "checked" : ""}>
-      <span>${escapeHtml(b.name)}</span>
-    </label>
-  `).join("");
+ 
+  // 선택 보스 목록 및 현재 배율 표시
+  bossList.innerHTML = bosses.map(b=>{
+    const multiplier = Number(b.respawn_multiplier || 1);
+    const baseHours = Number(
+      b.base_respawn_hours ?? b.respawn_hours
+    );
+
+    return `
+      <label style="
+        display:flex;
+        align-items:center;
+        gap:7px;
+        padding:8px;
+        border:1px solid #806b3e;
+        border-radius:8px;
+        color:#fff0c8;
+        font-size:12px;
+      ">
+        <input type="checkbox"
+          data-respawn-select="${escapeHtml(b.id)}"
+          ${selectedRespawnBossIds.has(b.id) ? "checked" : ""}>
+
+        <span style="flex:1">
+          ${escapeHtml(b.name)}
+        </span>
+
+        <span style="color:#f0c36b;white-space:nowrap">
+          ${multiplier}배
+        </span>
+      </label>
+    `;
+  }).join("");
+
 
   // 기준 시간 일괄 편집 목록
   timeList.innerHTML = bosses.map(b=>`
