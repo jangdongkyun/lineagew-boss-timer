@@ -1758,37 +1758,51 @@ if(overdue && elapsed <= 300000){
 }
 
 
-function checkVoice(boss,at,ms){
-  // 관리자만 음성 알림 사용
-  if(!isAdmin() || !soundOn || !("speechSynthesis" in window)) return;
 
-  const schedule = at;
+function checkVoice(boss, at, ms) {
+  if (!user || !soundOn || !("speechSynthesis" in window)) return;
+
+  const settings = myAlertSettings;
+  if (!settings || !settings.voice_enabled) return;
+
+  // 선택한 보스만 알림
+  const bossSettings = settings.boss_settings || {};
+  if (bossSettings[boss.id] === false) return;
+
+  // 음성 방해금지 시간 확인
+  if (isVoiceQuietHours(settings)) return;
 
   const thresholds = [
-    {ms:180000,text:"3분 전",enabled:alertSettings["3m"]},
-    {ms:60000,text:"1분 전",enabled:alertSettings["1m"]},
-    {ms:30000,text:"30초 전",enabled:alertSettings["30s"]},
-    {ms:10000,text:"10초 전",enabled:alertSettings["10s"]}
+    { ms: 180000, text: "3분 전", enabled: settings.voice_3m },
+    { ms: 60000, text: "1분 전", enabled: settings.voice_1m },
+    { ms: 30000, text: "30초 전", enabled: settings.voice_30s },
+    { ms: 10000, text: "10초 전", enabled: settings.voice_10s }
   ];
 
-  thresholds.forEach(t=>{
-    if(!t.enabled) return;
+  thresholds.forEach(t => {
+    if (!t.enabled) return;
 
-    const key = `${boss.id}-${schedule}-${t.ms}`;
+    const key = `${user.id}-${boss.id}-${at}-${t.ms}`;
 
-    if(ms>0 && ms<=t.ms && !alerted.has(key)){
+    if (ms > 0 && ms <= t.ms && !alerted.has(key)) {
       alerted.add(key);
       speak(`${boss.name}, ${t.text}입니다.`);
     }
   });
 
-  const spawnKey = `${boss.id}-${schedule}-spawn`;
+  const spawnKey = `${user.id}-${boss.id}-${at}-spawn`;
 
-  if(alertSettings["spawn"] && ms<=0 && ms>=-5000 && !alerted.has(spawnKey)){
+  if (
+    settings.voice_spawn &&
+    ms <= 0 &&
+    ms >= -5000 &&
+    !alerted.has(spawnKey)
+  ) {
     alerted.add(spawnKey);
     speak(`${boss.name}, 출현 시간입니다.`);
   }
 }
+
 
 
 
