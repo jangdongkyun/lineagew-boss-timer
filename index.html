@@ -859,9 +859,10 @@ async function loadAdminPushSettings(){
     <style>
 #adminPushBossOptions .admin-push-boss-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 2fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-columns: calc((100% - 14px) / 3);
   gap: 7px;
-  width: 100%;
+  width: 200%;
 }
       #adminPushBossOptions .admin-push-boss-card {
         display: flex;
