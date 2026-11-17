@@ -666,14 +666,7 @@ let soundOn = false;
 let myAlertSettings = null;
 let cutHistoryMode = "boss";
 
-// 관리자 알림 설정 기본값
-let alertSettings = {
-  "3m": true,
-  "1m": true,
-  "30s": true,
-  "10s": true,
-  "spawn": true
-};
+
 
 let editingBossId = null;
 let realtimeChannels = [];
@@ -683,40 +676,6 @@ let lastPresenceUpdate = 0;
 const $ = id => document.getElementById(id);
 
 // Supabase에서 알림 설정 불러오기
-async function loadAlertSettings() {
-  if (!isAdmin()) return;
-
-  const { data, error } = await db
-    .from("boss_timer_settings")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("알림 설정 불러오기 실패:", error);
-    return;
-  }
-
-  if (data) {
-    alertSettings = {
-      "3m": data.alert_3m,
-      "1m": data.alert_1m,
-      "30s": data.alert_30s,
-      "10s": data.alert_10s,
-      "spawn": data.alert_spawn
-    };
-  }
-
-  $("alert3m").checked = alertSettings["3m"];
-  $("alert1m").checked = alertSettings["1m"];
-  $("alert30s").checked = alertSettings["30s"];
-  $("alert10s").checked = alertSettings["10s"];
-  $("alertSpawn").checked = alertSettings["spawn"];
-}
-
-// 관리자 알림 설정 저장
-
-
 
 async function loadMyAlertSettings() {
   if (!user) return;
