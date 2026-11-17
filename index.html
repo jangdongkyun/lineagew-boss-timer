@@ -938,6 +938,80 @@ $("adminSettingsBtn").addEventListener("click",()=>{
 });
 
 
+// 전체 보스 재출현 시간 배율 버튼
+document.querySelectorAll("[data-respawn-multiplier]").forEach(btn=>{
+  btn.addEventListener("click",async()=>{
+    const multiplier = Number(btn.dataset.respawnMultiplier);
+
+    if(!isAdmin()){
+      alert("관리자만 변경할 수 있습니다.");
+      return;
+    }
+
+    if(![0.5,1,2].includes(multiplier)) return;
+
+    const label = multiplier + "배";
+    const ok = confirm(
+      `전체 보스 재출현 시간을 ${label}로 변경할까요?\n\n` +
+      "보스별 기존 재출현 시간은 기준값으로 보존됩니다."
+    );
+
+    if(!ok) return;
+
+    const buttons = document.querySelectorAll(
+      "[data-respawn-multiplier]"
+    );
+
+    buttons.forEach(b=>b.disabled=true);
+
+    try{
+      const {data,error} = await db.rpc(
+        "admin_set_boss_respawn_multiplier",
+        {p_multiplier:multiplier}
+      );
+
+      if(error) throw error;
+
+      await loadBosses();
+      renderAll();
+
+      renderRespawnMultiplier();
+
+      alert(
+        `전체 보스 배율이 ${label}로 변경되었습니다.\n` +
+        `적용된 보스: ${data ?? 0}개`
+      );
+    }catch(e){
+      alert("배율 변경 실패: " + (e.message || e));
+    }finally{
+      buttons.forEach(b=>b.disabled=false);
+    }
+  });
+});
+  
+
+function renderRespawnMultiplier(){
+  const messageEl = $("respawnMultiplierMessage");
+  if(!messageEl) return;
+
+  const multiplier = Number(currentRespawnMultiplier || 1);
+
+  messageEl.textContent =
+    `현재 적용 배율: ${multiplier}배`;
+
+  document.querySelectorAll(
+    "[data-respawn-multiplier]"
+  ).forEach(btn=>{
+    const active =
+      Number(btn.dataset.respawnMultiplier) === multiplier;
+
+    btn.style.background = active ? "#80602b" : "";
+    btn.style.borderColor = active ? "#f0c36b" : "";
+    btn.style.color = active ? "#fff0c8" : "";
+  });
+}
+
+  
 function message(text){
   $("message").textContent = text || "";
 }
@@ -2964,7 +3038,8 @@ if(adminSettingsBtn){
       editingBossId = b.id;
       $("bossName").value = b.name;
       $("bossAliases").value = (b.aliases || []).join(", ");
-      $("respawnHours").value = b.respawn_hours;
+      $("respawnHours").value =
+  b.base_respawn_hours ?? b.respawn_hours;
       $("initialSpawn").value = b.initial_spawn_at
         ? new Date(b.initial_spawn_at).toISOString().slice(0,16)
         : "";
@@ -3020,6 +3095,7 @@ function resetBossForm(){
   $("addBossBtn").textContent = "보스 추가";
 }
 
+
 async function saveBoss(){
   if(!isAdmin()) return alert("관리자만 사용할 수 있습니다.");
 
@@ -3036,13 +3112,17 @@ async function saveBoss(){
     return alert("재출현 시간을 올바르게 입력하세요.");
   }
 
+  const multiplier = Number(currentRespawnMultiplier || 1);
+
   const payload = {
     name,
     aliases,
-    respawn_hours:respawn,
-    initial_spawn_at:initial,
-    is_active:true,
-    updated_at:new Date().toISOString()
+    base_respawn_hours: respawn,
+    respawn_hours: Number((respawn * multiplier).toFixed(2)),
+    respawn_multiplier: multiplier,
+    initial_spawn_at: initial,
+    is_active: true,
+    updated_at: new Date().toISOString()
   };
 
   let result;
@@ -3061,8 +3141,9 @@ async function saveBoss(){
   resetBossForm();
   await loadBosses();
   renderAll();
-  // 저장 완료 팝업은 표시하지 않습니다.
+  renderRespawnMultiplier();
 }
+
 async function resetAllBossTimes(){
   if(!isAdmin()){
     alert("관리자만 사용할 수 있습니다.");
