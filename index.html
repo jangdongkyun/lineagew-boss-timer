@@ -852,72 +852,102 @@ async function loadAdminPushSettings(){
   $("adminPush10s").checked = !!data.push_alert_10s;
   $("adminPushSpawn").checked = !!data.push_alert_spawn;
 
+
   const pushBossSettings = data.push_boss_settings || {};
 
-$("adminPushBossOptions").innerHTML = `
-  <style>
-    .admin-push-boss-grid {
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:7px;
-    }
-    .admin-push-boss-card {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:4px;
-      min-width:0;
-      padding:9px 7px;
-      background:linear-gradient(145deg,#202b3c,#101722);
-      border:1px solid #66552f;
-      border-radius:8px;
-      color:#eee0bd;
-      font-size:12px;
-    }
-    .admin-push-boss-card input {
-      appearance:none;
-      flex-shrink:0;
-      width:30px;
-      height:17px;
-      margin:0;
-      border-radius:20px;
-      background:#555;
-      position:relative;
-      cursor:pointer;
-      transition:.2s;
-    }
-    .admin-push-boss-card input:checked {
-      background:#b89542;
-    }
-    .admin-push-boss-card input:before {
-      content:"";
-      position:absolute;
-      width:13px;
-      height:13px;
-      left:2px;
-      top:2px;
-      border-radius:50%;
-      background:#eee;
-      transition:.2s;
-    }
-    .admin-push-boss-card input:checked:before {
-      transform:translateX(13px);
-      background:#fff5d8;
-    }
-  </style>
-  <div class="admin-push-boss-grid">
-    ${bosses.map(b=>`
-      <label class="admin-push-boss-card">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          ${escapeHtml(b.name)}
-        </span>
-        <input type="checkbox"
-          data-admin-push-boss="${escapeHtml(b.id)}"
-          ${pushBossSettings[b.id] !== false ? "checked" : ""}>
-      </label>
-    `).join("")}
-  </div>
-`;
+  $("adminPushBossOptions").innerHTML = `
+    <style>
+      #adminPushBossOptions .admin-push-boss-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        width: 100%;
+      }
+
+      #adminPushBossOptions .admin-push-boss-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        min-width: 0;
+        min-height: 42px;
+        box-sizing: border-box;
+        padding: 9px 8px;
+        background: linear-gradient(145deg,#202b3c,#101722);
+        border: 1px solid #66552f;
+        border-radius: 8px;
+        color: #eee0bd;
+        font-size: 12px;
+        line-height: 1.35;
+        cursor: pointer;
+      }
+
+      #adminPushBossOptions .admin-push-boss-card span {
+        display: block;
+        flex: 1;
+        min-width: 0;
+        color: #eee0bd;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: break-word;
+        word-break: keep-all;
+      }
+
+      #adminPushBossOptions .admin-push-boss-card input {
+        appearance: none;
+        -webkit-appearance: none;
+        flex-shrink: 0;
+        width: 30px;
+        height: 17px;
+        margin: 0;
+        border-radius: 20px;
+        background: #555;
+        position: relative;
+        cursor: pointer;
+        transition: .2s;
+      }
+
+      #adminPushBossOptions .admin-push-boss-card input:checked {
+        background: #b89542;
+      }
+
+      #adminPushBossOptions .admin-push-boss-card input:before {
+        content: "";
+        position: absolute;
+        width: 13px;
+        height: 13px;
+        left: 2px;
+        top: 2px;
+        border-radius: 50%;
+        background: #eee;
+        transition: .2s;
+      }
+
+      #adminPushBossOptions .admin-push-boss-card input:checked:before {
+        transform: translateX(13px);
+        background: #fff5d8;
+      }
+
+      @media (max-width: 480px) {
+        #adminPushBossOptions .admin-push-boss-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+
+    <div class="admin-push-boss-grid">
+      ${bosses.map(b=>`
+        <label class="admin-push-boss-card">
+          <span>${escapeHtml(b.name)}</span>
+          <input type="checkbox"
+            data-admin-push-boss="${escapeHtml(b.id)}"
+            ${pushBossSettings[b.id] !== false ? "checked" : ""}>
+        </label>
+      `).join("")}
+    </div>
+  `;
+
 
   $("adminPushOptions").style.display =
     data.push_enabled ? "block" : "none";
