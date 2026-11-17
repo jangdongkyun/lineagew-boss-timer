@@ -1214,6 +1214,36 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;}}
 
+
+
+/* 클릭형 이전 컷 선택창 */
+.cut-choice-overlay{
+  position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
+  padding:18px;background:rgba(0,0,0,.82);backdrop-filter:blur(5px);
+}
+.cut-choice-modal{
+  width:min(520px,100%);max-height:min(82vh,720px);overflow:auto;padding:22px;
+  color:#ead9b8;background:linear-gradient(145deg,#211a16,#100e0d 72%);
+  border:1px solid #947448;border-radius:15px;box-shadow:0 22px 80px rgba(0,0,0,.75),inset 0 0 0 4px rgba(177,137,77,.08);
+}
+.cut-choice-heading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:18px}
+.cut-choice-kicker{font-size:10px;letter-spacing:2px;color:#b99a65;font-weight:900}
+.cut-choice-heading h3{margin:5px 0 6px;color:#f1dfbd;font-size:19px}
+.cut-choice-heading p{margin:0;color:#b9a78c;font-size:12px}
+.cut-choice-close{border:1px solid #655039;background:#211a16;color:#e8d4b0;border-radius:8px;font-size:23px;width:36px;height:36px;cursor:pointer}
+.cut-choice-list{display:grid;gap:9px}
+.cut-choice-option{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:13px 12px;
+  border:1px solid #665039;border-radius:10px;background:linear-gradient(100deg,rgba(126,91,49,.22),rgba(20,16,13,.9));color:#ead9b8;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+.cut-choice-option:hover,.cut-choice-option:focus-visible{border-color:#d0ad70;background:rgba(151,111,55,.28);transform:translateY(-1px);outline:none}
+.cut-choice-number{flex:0 0 30px;height:30px;display:grid;place-items:center;border:1px solid #a98a58;border-radius:50%;color:#e6c78f;font-weight:900}
+.cut-choice-details{display:grid;gap:4px;min-width:0;flex:1}
+.cut-choice-details strong{font-size:13px;color:#f1dfbd}
+.cut-choice-details small{font-size:11px;color:#b9a78c}
+.cut-choice-details em{font-size:10px;color:#ffbd68;font-style:normal}
+.cut-choice-arrow{font-size:11px;color:#c6a36b;white-space:nowrap}
+.cut-choice-cancel{width:100%;margin-top:13px;padding:11px;border:1px solid #594a3b;border-radius:8px;background:#171310;color:#cbb99c;cursor:pointer}
+@media(max-width:480px){.cut-choice-modal{padding:17px}.cut-choice-heading h3{font-size:17px}.cut-choice-option{padding:12px 9px;gap:9px}.cut-choice-arrow{font-size:10px}}
+
 </style>
 </head>
 <body>
@@ -2050,6 +2080,61 @@ return true;
 
 
 
+function choosePreviousCut(bossName, choices){
+  return new Promise(resolve=>{
+    const overlay = document.createElement("div");
+    overlay.className = "cut-choice-overlay";
+    overlay.innerHTML = `
+      <div class="cut-choice-modal" role="dialog" aria-modal="true" aria-label="이전 컷 기록 선택">
+        <div class="cut-choice-heading">
+          <div>
+            <div class="cut-choice-kicker">BOSS CHRONICLE</div>
+            <h3>${escapeHtml(bossName)} · 이전 컷 선택</h3>
+            <p>복구할 기록을 아래에서 직접 눌러주세요.</p>
+          </div>
+          <button type="button" class="cut-choice-close" data-choice-cancel aria-label="닫기">×</button>
+        </div>
+        <div class="cut-choice-list">
+          ${choices.map((c,i)=>`
+            <button type="button" class="cut-choice-option" data-choice-index="${i}">
+              <span class="cut-choice-number">${i+1}</span>
+              <span class="cut-choice-details">
+                <strong>${escapeHtml(new Date(c.cut_at).toLocaleString("ko-KR"))}</strong>
+                <small>등록자 · ${escapeHtml(c.created_by_nickname || "이름 없음")}</small>
+                ${c.pending_delete_at ? '<em>삭제 대기 중</em>' : ''}
+              </span>
+              <span class="cut-choice-arrow">선택 ›</span>
+            </button>
+          `).join("")}
+        </div>
+        <button type="button" class="cut-choice-cancel" data-choice-cancel>취소</button>
+      </div>
+    `;
+
+    const finish = value=>{
+      overlay.remove();
+      document.removeEventListener("keydown", onKeyDown);
+      resolve(value);
+    };
+    const onKeyDown = event=>{
+      if(event.key === "Escape") finish(null);
+    };
+    overlay.addEventListener("click", event=>{
+      if(event.target === overlay || event.target.closest("[data-choice-cancel]")){
+        finish(null);
+        return;
+      }
+      const option = event.target.closest("[data-choice-index]");
+      if(option){
+        finish(choices[Number(option.dataset.choiceIndex)] || null);
+      }
+    });
+    document.addEventListener("keydown", onKeyDown);
+    document.body.appendChild(overlay);
+  });
+}
+
+
 async function rollbackCut(bossId){
   if(!user) {
     alert("로그인이 필요합니다.");
@@ -2081,37 +2166,8 @@ async function rollbackCut(bossId){
   // 전체 기록 중 최신 3개만 복구 대상으로 표시
   const choices = bossCuts.slice(0, 3);
 
-  const choiceText = choices.map((c, i) => {
-    const time = new Date(c.cut_at).toLocaleString("ko-KR");
-    const author = c.created_by_nickname || "이름 없음";
-    const pending = c.pending_delete_at
-      ? " [삭제 대기 중]"
-      : "";
-
-    return `${i + 1}. ${time} / ${author}${pending}`;
-  }).join("\n");
-
-  const answer = prompt(
-    `${boss.name} 보스\n\n` +
-    `복구할 기록을 선택하세요.\n\n` +
-    choiceText +
-    `\n\n1~${choices.length} 숫자를 입력하세요.`
-  );
-
-  if(answer === null) return;
-
-  const selectedNumber = Number(answer.trim());
-
-  if(
-    !Number.isInteger(selectedNumber) ||
-    selectedNumber < 1 ||
-    selectedNumber > choices.length
-  ){
-    alert("올바른 번호를 입력해 주세요.");
-    return;
-  }
-
-  const selected = choices[selectedNumber - 1];
+  const selected = await choosePreviousCut(boss.name, choices);
+  if(!selected) return;
 
   const selectedIndex = bossCuts.findIndex(
     c => String(c.id) === String(selected.id)
