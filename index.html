@@ -663,6 +663,7 @@ let members = [];
 let offlineExpanded = false;
 let onlineExpanded = false;
 let soundOn = false;
+let myAlertSettings = null;
 
 // 관리자 알림 설정 기본값
 let alertSettings = {
@@ -713,6 +714,77 @@ async function loadAlertSettings() {
 }
 
 // 관리자 알림 설정 저장
+
+
+
+async function loadMyAlertSettings() {
+  if (!user) return;
+
+  const { data, error } = await db
+    .from("user_alert_settings")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("개인 알림 설정 불러오기 실패:", error);
+    return;
+  }
+
+  // 기존 설정이 없으면 기본 설정 생성
+  if (!data) {
+    const defaultSettings = {
+      user_id: user.id,
+
+      voice_enabled: true,
+      voice_3m: true,
+      voice_1m: true,
+      voice_30s: true,
+      voice_10s: true,
+      voice_spawn: true,
+
+      push_enabled: false,
+      push_3m: false,
+      push_1m: false,
+      push_30s: false,
+      push_10s: false,
+      push_spawn: false,
+
+      boss_settings: {},
+
+      voice_quiet_hours_enabled: false,
+      voice_quiet_hours_start: "22:00:00",
+      voice_quiet_hours_end: "08:00:00",
+
+      push_quiet_hours_enabled: false,
+      push_quiet_hours_start: "22:00:00",
+      push_quiet_hours_end: "08:00:00",
+
+      timezone: "Asia/Seoul",
+      updated_at: new Date().toISOString(),
+      voice_name: ""
+    };
+
+    const { data: savedData, error: saveError } = await db
+      .from("user_alert_settings")
+      .upsert(defaultSettings, { onConflict: "user_id" })
+      .select()
+      .single();
+
+    if (saveError) {
+      console.error("개인 알림 기본 설정 저장 실패:", saveError);
+      alert("개인 알림 설정을 저장하지 못했습니다. 관리자에게 문의하세요.");
+      return;
+    }
+
+    myAlertSettings = savedData;
+    return;
+  }
+
+  // 기존 설정이 있으면 그대로 사용
+  myAlertSettings = data;
+}
+
 
 async function saveAlertSettings() {
   if (!isAdmin()) {
