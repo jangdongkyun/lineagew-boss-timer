@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -28,7 +29,7 @@ body{
   color:var(--text);
   font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;
 }
-button,input,select,textarea{font:inherit}
+button,input,select{font:inherit}
 button{
   cursor:pointer;
   border:1px solid var(--line);
@@ -439,7 +440,8 @@ h3{font-size:14px;margin:0 0 10px}
     <button type="button" id="adminSettingsBtn">⚙ 관리자 설정</button>
     <a href="https://lineagew.plaync.com/" target="_blank" rel="noopener">리니지W 공식 홈페이지</a>
     <a href="https://trade.ssatem.com/" target="_blank" rel="noopener">싸템 바로가기</a>
-    <a href="https://www.barotem.com/" target="_blank" rel="noopener">바로템 바로가기</a>    
+    <a href="https://www.barotem.com/" target="_blank" rel="noopener">바로템 바로가기</a>
+    <a href="https://www.youtube.com/" target="_blank" rel="noopener">유튜브</a>    
   </div>
 </header>
 
@@ -572,7 +574,7 @@ h3{font-size:14px;margin:0 0 10px}
 
   <div class="panel admin-only" id="adminPanel">
     <h2>관리자 · 보스 관리</h2>
-
+    
 
 
     <div class="section-grid">
@@ -673,6 +675,7 @@ async function loadAlertSettings() {
   $("alert1m").checked = alertSettings["1m"];
   $("alert30s").checked = alertSettings["30s"];
   $("alert10s").checked = alertSettings["10s"];
+  $("alertSpawn").checked = alertSettings["spawn"];
 }
 
 // 관리자 알림 설정 저장
@@ -1251,7 +1254,7 @@ async function quickCut(bossId){
 }
 
 async function rowCut(bossId){
-
+ 
 
   const boss = bosses.find(b=>String(b.id)===String(bossId));
 
@@ -1421,7 +1424,7 @@ function renderBosses(){
           <button class="timer normal" data-timer></button>
           <div class="timer-label" data-label></div>
         </div>
-
+   
         <div class="boss-actions">
           <button class="good" data-quick>현재 시각으로 컷 등록</button>
           <div class="cut-time">
@@ -1480,11 +1483,14 @@ function updateTimers(){
 
 const missedBadge = card.querySelector("[data-missed]");
 
-if(missed > 0){
-  missedBadge.textContent = `미등록 ${missed}회`;
-  missedBadge.style.display = "inline-block";
-}else{
-  missedBadge.style.display = "none";
+if(missedBadge){
+  if(missed > 0){
+    missedBadge.textContent = `미등록 ${missed}회`;
+    missedBadge.style.display = "inline-block";
+  }else{
+    missedBadge.textContent = "";
+    missedBadge.style.display = "none";
+  }
 }
     const at = nextAt(b);
 card.classList.remove("card-soon","card-imminent","card-spawn");
@@ -1650,542 +1656,8 @@ function renderHistory(){
              삭제 예정: ${formatDate(c.pending_delete_at)}
            </div>`
         : "";
+
       rows.push(`
-        <tr style="${isPending ? "background:rgba(255,170,50,.08)" : ""}">
-          <td>
-            ${index === 0 ? `<b>${escapeHtml(b.name)}</b>` : escapeHtml(b.name)}
-            ${pendingText}
-          </td>
-          <td>
-            ${formatDate(c.cut_at)}
-            ${pendingTime}
-          </td>
-          <td>${escapeHtml(c.created_by_nickname || "알 수 없음")}</td>
-          <td>
-            <button
-              class="ghost"
-              data-edit-cut="${escapeHtml(c.id)}"
-              style="padding:5px 8px;font-size:11px"
-            >수정</button>
-          </td>
-        </tr>
-      `);
-    });
-  });
-
-  if(!rows.length){
-    list.textContent = "기록이 없습니다.";
-    return;
-  }
-
-  list.innerHTML = `
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center">
-        <thead>
-          <tr style="background:rgba(255,255,255,.07)">
-            <th style="padding:9px 5px">보스 이름</th>
-            <th style="padding:9px 5px">컷 시간</th>
-            <th style="padding:9px 5px">등록자</th>
-            <th style="padding:9px 5px">관리</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  list.querySelectorAll("[data-edit-cut]").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      editCut(btn.dataset.editCut);
-    });
-  });
-}
-
-
-
-
-function renderOnline(){
-  const now = Date.now();
-  const activeIds = new Set(
-    presenceRows
-      .filter(p=>now-new Date(p.last_seen).getTime() < 120000)
-      .map(p=>String(p.user_id))
-  );
-  const visibleMembers = members.filter(m=>(m.account_status || "active")==="active");
-  const online = visibleMembers.filter(m=>activeIds.has(String(m.id)))
-    .sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
-  const offline = visibleMembers.filter(m=>!activeIds.has(String(m.id)))
-    .sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
-
-  $("onlineCount").textContent = online.length;
-  $("onlineCountTop").textContent = online.length;
-  $("offlineCount").textContent = offline.length;
-  $("offlineCountStat").textContent = offline.length;
-  $("onlineList").classList.toggle("is-open", onlineExpanded);
-  $("onlineToggle").setAttribute("aria-expanded", String(onlineExpanded));
-  $("offlineList").classList.toggle("is-open", offlineExpanded);
-  $("offlineToggle").setAttribute("aria-expanded", String(offlineExpanded));
-  $("onlineList").innerHTML = online.length
-    ? online.map(m=>`<span class="online-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
-    : '<span class="online-empty">현재 온라인 혈맹원이 없습니다.</span>';
-  $("offlineList").innerHTML = offline.length
-    ? offline.map(m=>`<span class="offline-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
-    : '<span class="online-empty">오프라인 회원이 없습니다.</span>';
-}
-
-$("onlineToggle").addEventListener("click",()=>{
-  onlineExpanded = !onlineExpanded;
-  $("onlineList").classList.toggle("is-open", onlineExpanded);
-  $("onlineToggle").setAttribute("aria-expanded", String(onlineExpanded));
-});
-
-$("offlineToggle").addEventListener("click",()=>{
-  offlineExpanded = !offlineExpanded;
-  $("offlineList").classList.toggle("is-open", offlineExpanded);
-  $("offlineToggle").setAttribute("aria-expanded", String(offlineExpanded));
-});
-
-async function setMemberStatus(memberId,status){
-  if(!isAdmin()) return alert("관리자만 사용할 수 있습니다.");
-  const target = members.find(m=>String(m.id)===String(memberId));
-  if(!target) return alert("회원을 찾을 수 없습니다.");
-  const label = status==="banned" ? "영구 추방" : status==="active" ? "추방 해제" : "탈퇴 처리";
-  if(!confirm(`${target.nickname || "해당 회원"} 회원을 ${label}할까요?`)) return;
-  try{
-    const {error} = await db.rpc("admin_set_member_status",{p_user_id:memberId,p_status:status});
-    if(error) throw error;
-    await loadMembers();
-    renderOnline();
-    renderAdminMembers();
-  }catch(e){
-    alert(`${label} 실패: ${e.message || e}`);
-  }
-}
-
-function renderAdminMembers(){
-  const panel = $("adminMemberPanel");
-  if(!panel) return;
-  panel.style.display = isAdmin() ? "block" : "none";
-  if(!isAdmin()) return;
-  const list = $("adminMemberList");
-  const sorted = [...members].sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
-  list.innerHTML = sorted.length ? sorted.map(m=>{
-    const status = m.account_status || "active";
-    const statusLabel = status==="banned" ? "영구 추방" : status==="withdrawn" ? "탈퇴" : "정상";
-    const statusClass = status==="banned" ? "banned" : status==="withdrawn" ? "withdrawn" : "";
-    const created = m.created_at ? new Date(m.created_at).toLocaleDateString("ko-KR") : "정보 없음";
-    let actions = "";
-    if(status==="active"){
-      actions = `<button class="danger" data-member-status="banned" data-member-id="${escapeHtml(m.id)}">영구 추방</button><button class="ghost" data-member-status="withdrawn" data-member-id="${escapeHtml(m.id)}">탈퇴 처리</button>`;
-    }else if(status==="banned"){
-      actions = `<button class="good" data-member-status="active" data-member-id="${escapeHtml(m.id)}">추방 해제</button><button class="ghost" data-member-status="withdrawn" data-member-id="${escapeHtml(m.id)}">탈퇴 처리</button>`;
-    }else{
-      actions = `<span class="muted">탈퇴 처리된 계정</span>`;
-    }
-    return `<div class="member-admin-item"><div><b>${escapeHtml(m.nickname || "닉네임 없음")}</b> <span class="member-state ${statusClass}">${statusLabel}</span><div class="member-admin-meta">가입일: ${escapeHtml(created)} · ${m.role==="admin" ? "관리자" : "일반 회원"}</div></div><div class="member-admin-actions">${actions}</div></div>`;
-  }).join("") : '<div class="muted">가입 회원이 없습니다.</div>';
-  list.querySelectorAll("[data-member-status]").forEach(btn=>{
-    btn.addEventListener("click",()=>setMemberStatus(btn.dataset.memberId,btn.dataset.memberStatus));
-  });
-}
-
-function renderAdmin(){
-  $("adminSettingsBtn").style.display = isAdmin() ? "inline-block" : "none";
-  $("soundBtn").style.display = isAdmin() ? "inline-block" : "none";
-  $("adminPanel").style.display = isAdmin() ? "block" : "none";
-  $("adminTools").classList.toggle("is-open",isAdmin() && adminToolsExpanded);
-  if(!isAdmin()){
-    adminToolsExpanded = false;
-    $("adminSettingsBtn").textContent = "⚙ 관리자 설정";
-  }
-  renderAdminMembers();
-  if(!isAdmin()) return;
-
-  $("adminBossList").innerHTML = bosses.map(b=>`
-    <div class="history-item">
-      <div>
-        <b>${escapeHtml(b.name)}</b>
-        <div class="muted">
-          재출현 ${escapeHtml(b.respawn_hours)}시간
-          · 별명 ${escapeHtml((b.aliases || []).join(", "))}
-        </div>
-      </div>
-      <div class="row">
-        <button class="ghost" data-edit="${b.id}">수정</button>
-        <button class="danger" data-delete="${b.id}">삭제</button>
-      </div>
-    </div>
-  `).join("");
-
-  $("adminBossList").querySelectorAll("[data-edit]").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      const b = bosses.find(x=>x.id===btn.dataset.edit);
-      if(!b) return;
-      editingBossId = b.id;
-      $("bossName").value = b.name;
-      $("bossAliases").value = (b.aliases || []).join(", ");
-      $("respawnHours").value = b.respawn_hours;
-      $("initialSpawn").value = b.initial_spawn_at
-        ? new Date(b.initial_spawn_at).toISOString().slice(0,16)
-        : "";
-      $("addBossBtn").textContent = "보스 수정 저장";
-      $("adminPanel").scrollIntoView({behavior:"smooth"});
-    });
-  });
-
-  $("adminBossList").querySelectorAll("[data-delete]").forEach(btn=>{
-    btn.addEventListener("click",async()=>{
-      const b = bosses.find(x=>x.id===btn.dataset.delete);
-      if(!b) return;
-      if(!confirm(`${b.name} 보스를 삭제할까요?\n타이머와 보스 목록에서 숨겨지며, 기존 컷 기록은 보존됩니다.`)) return;
-
-      // 컷 기록의 외래키 제약과 관계없이 관리자가 보스를 삭제할 수 있도록
-      // 실제 행과 기록은 보존하고 비활성 상태로 전환합니다.
-      const {data,error} = await db.from("bosses")
-        .update({is_active:false,updated_at:new Date().toISOString()})
-        .eq("id",b.id)
-        .select("id");
-      if(error){
-        alert("삭제 실패: "+error.message);
-        return;
-      }
-      if(!data || data.length===0){
-        alert("삭제 실패: 관리자 권한이 없거나 보스를 찾을 수 없습니다.");
-        return;
-      }
-      await loadBosses();
-      renderAll();
-    });
-  });
-}
-
-function renderAll(){
-  if(!profile || !user) return;
-  $("welcome").textContent = profile.nickname || "혈맹원";
-  $("roleText").textContent = isAdmin() ? "관리자" : "일반 회원";
-  $("newNick").value = profile.nickname || "";
-  renderBosses();
-  renderHistory();
-  renderAdmin();
-  renderOnline();
-  updateTimers();
-}
-
-function resetBossForm(){
-  editingBossId = null;
-  $("bossName").value = "";
-  $("bossAliases").value = "";
-  $("respawnHours").value = "";
-  $("initialSpawn").value = "";
-  $("addBossBtn").textContent = "보스 추가";
-}
-
-async function saveBoss(){
-  if(!isAdmin()) return alert("관리자만 사용할 수 있습니다.");
-
-  const name = $("bossName").value.trim();
-  const respawn = Number($("respawnHours").value);
-  const aliases = $("bossAliases").value.split(",")
-    .map(x=>x.trim()).filter(Boolean);
-  const initial = $("initialSpawn").value
-    ? new Date($("initialSpawn").value).toISOString()
-    : null;
-
-  if(!name) return alert("보스 이름을 입력하세요.");
-  if(!Number.isFinite(respawn) || respawn<=0){
-    return alert("재출현 시간을 올바르게 입력하세요.");
-  }
-
-  const payload = {
-    name,
-    aliases,
-    respawn_hours:respawn,
-    initial_spawn_at:initial,
-    is_active:true,
-    updated_at:new Date().toISOString()
-  };
-
-  let result;
-  if(editingBossId){
-    result = await db.from("bosses")
-      .update(payload).eq("id",editingBossId);
-  }else{
-    result = await db.from("bosses").insert(payload);
-  }
-
-  if(result.error){
-    alert("저장 실패: "+result.error.message);
-    return;
-  }
-
-  resetBossForm();
-  await loadBosses();
-  renderAll();
-  // 저장 완료 팝업은 표시하지 않습니다.
-}
-async function resetAllBossTimes(){
-  if(!isAdmin()){
-    alert("관리자만 사용할 수 있습니다.");
-    return;
-  }
-
-  const ok = confirm(
-    "정말 모든 보스의 시간을 초기화할까요?\n\n" +
-    "모든 보스가 미등록 상태가 됩니다.\n" +
-    "보스 이름, 별명, 리젠 시간과 과거 컷 기록은 보존됩니다."
-  );
-
-  if(!ok) return;
-
-  const btn = $("resetAllBossBtn");
-  if(btn) btn.disabled = true;
-
-  try{
-    const {data,error} = await db.rpc("admin_reset_all_boss_times");
-
-    if(error) throw error;
-
-    await Promise.all([loadBosses(),loadCuts()]);
-    alerted.clear();
-    renderAll();
-
-    alert(`초기화 완료! ${data ?? 0}개 보스가 초기화되었습니다.`);
-  }catch(e){
-    alert("전체 초기화 실패: " + (e.message || e));
-  }finally{
-    if(btn) btn.disabled = false;
-  }
-}
-async function changeNickname(){
-  const nickname = $("newNick").value.trim();
-  if(!nickname) return alert("닉네임을 입력하세요.");
-  if(nickname.length>20) return alert("닉네임은 20자 이내로 입력하세요.");
-
-  const {error} = await db.from("profiles")
-    .update({nickname}).eq("id",user.id);
-
-  if(error) return alert("닉네임 변경 실패: "+error.message);
-
-  await loadProfile();
-  renderAll();
-  // 변경 완료 팝업은 표시하지 않습니다.
-}
-
-function setupRealtime(){
-  realtimeChannels.forEach(c=>db.removeChannel(c));
-  realtimeChannels = [];
-
-  const channel = db.channel("boss-command-live")
-    .on("postgres_changes",{
-      event:"*",schema:"public",table:"bosses"
-    },async()=>{
-      await loadBosses();
-      renderAll();
-    })
-    .on("postgres_changes",{
-      event:"*",schema:"public",table:"cut_records"
-    },async()=>{
-      await loadCuts();
-      renderAll();
-    })
-    .on("postgres_changes",{
-      event:"*",schema:"public",table:"profiles"
-    },async()=>{
-      await loadProfile();
-      await loadMembers();
-      if(profile && (profile.account_status || "active") !== "active"){
-        await db.auth.signOut();
-        await leaveApp();
-        alert("관리자에 의해 계정 이용이 중지되었습니다.");
-        return;
-      }
-      renderAll();
-    })
-    .on("postgres_changes",{
-      event:"*",schema:"public",table:"presence"
-    },async()=>{
-      await loadPresence();
-      renderOnline();
-    })
-    .subscribe();
-
-  realtimeChannels.push(channel);
-}
-
-async function enterApp(currentUser){
-  user = currentUser;
-  $("auth").style.display = "none";
-  $("app").style.display = "block";
-
-
-try{
-  await loadAll();
-  await loadAlertSettings();
-
-  const accountStatus = profile.account_status || "active";
-
-    if(accountStatus !== "active"){
-      await db.auth.signOut();
-      await leaveApp();
-      alert(accountStatus==="banned" ? "관리자에 의해 영구 추방된 계정입니다." : "탈퇴 처리된 계정입니다. 관리자에게 문의하세요.");
-      return;
-    }
-    await updatePresence();
-    setupRealtime();
-  }catch(e){
-    console.error("데이터 불러오기 오류:",e);
-    alert("데이터 불러오기 실패: "+e.message+"\n\n오류 위치:\n"+e.stack);
-  }
-}
-
-async function leaveApp(){
-  realtimeChannels.forEach(c=>db.removeChannel(c));
-  realtimeChannels = [];
-  user = null;
-  profile = null;
-  bosses = [];
-  cuts = [];
-  presenceRows = [];
-  members = [];
-  offlineExpanded = false;
-  onlineExpanded = false;
-  $("app").style.display = "none";
-  $("auth").style.display = "block";
-}
-
-$("loginBtn").addEventListener("click",async()=>{
-  message("");
-  const email = $("email").value.trim();
-  const password = $("password").value;
-
-  const {data,error} = await db.auth.signInWithPassword({email,password});
-  if(error) return message("로그인 실패: "+error.message);
-  await enterApp(data.user);
-});
-
-$("signupBtn").addEventListener("click",async()=>{
-  const box = $("signupNickBox");
-  if(box.style.display === "none"){
-    box.style.display = "block";
-    $("signupBtn").textContent = "회원가입 진행";
-    return;
-  }
-
-  const email = $("email").value.trim();
-  const password = $("password").value;
-  const nickname = $("signupNick").value.trim();
-
-  if(!email || !password || !nickname){
-    return message("이메일, 비밀번호, 닉네임을 모두 입력하세요.");
-  }
-  if(password.length<6){
-    return message("비밀번호는 6자 이상 입력하세요.");
-  }
-
-  const {data,error} = await db.auth.signUp({
-    email,password,
-    options:{data:{nickname}}
-  });
-
-  if(error) return message("회원가입 실패: "+error.message);
-
-  if(data.session){
-    await enterApp(data.user);
-  }else{
-    message("회원가입이 완료되었습니다. 이메일 인증이 필요한 경우 인증 후 로그인하세요.");
-  }
-});
-
-$("logoutBtn").addEventListener("click",async()=>{
-  if(user){
-    await db.from("presence").update({last_seen:new Date(Date.now()-180000).toISOString()}).eq("user_id",user.id);
-  }
-  await db.auth.signOut();
-  await leaveApp();
-});
-
-$("nickToggle").addEventListener("click",()=>{
-  $("nickBox").style.display =
-    $("nickBox").style.display==="none" ? "block" : "none";
-});
-
-$("saveNickBtn").addEventListener("click",changeNickname);
-$("manualCutBtn").addEventListener("click",manualCut);
-  $("manualBossName").addEventListener("focus",renderManualBossList);
-
-$("manualBossName").addEventListener("input",renderManualBossList);
-
-document.addEventListener("click",e=>{
-  if(!e.target.closest(".boss-picker")){
-    $("manualBossList").classList.remove("show");
-  }
-});
-$("addBossBtn").addEventListener("click",saveBoss);
-  $("resetAllBossBtn").addEventListener("click",resetAllBossTimes);
-$("clearBossForm").addEventListener("click",resetBossForm);
-
-$("soundBtn").addEventListener("click",()=>{
-  if(!("speechSynthesis" in window)){
-    alert("현재 브라우저는 음성 알림을 지원하지 않습니다.");
-    return;
-  }
-
-  soundOn = !soundOn;
-  $("soundBtn").textContent = soundOn
-    ? "음성 알림 끄기"
-    : "음성 알림 켜기";
-
-  if(soundOn){
-    speak("보스 출현 음성 알림을 시작합니다.");
-  }else{
-    window.speechSynthesis.cancel();
-  }
-});
-
-/* 1초마다 타이머와 정렬 갱신 */
-setInterval(()=>{
-  if(user){
-    updateTimers();
-  }
-},1000);
-
-/* 접속 상태는 30초마다 갱신 */
-setInterval(async()=>{
-  if(!user) return;
-  if(Date.now()-lastPresenceUpdate>=25000){
-    await updatePresence();
-  }
-},10000);
-
-/* 온라인 상태 다시 확인 */
-setInterval(async()=>{
-  if(!user) return;
-  await Promise.all([loadPresence(),loadMembers()]);
-  renderOnline();
-},30000);
-
-/* 인증 상태 복구 */
-db.auth.getSession().then(async({data,error})=>{
-  if(error){
-    message("인증 상태 확인 실패: "+error.message);
-    return;
-  }
-  if(data.session?.user){
-    await enterApp(data.session.user);
-  }
-});
-
-db.auth.onAuthStateChange((event,session)=>{
-  if(event==="SIGNED_OUT"){
-    leaveApp();
-  }
-});
-</script>
-<script src="./push.js"></script>
-</body>
-</html>
         <tr style="${isPending ? "background:rgba(255,170,50,.08)" : ""}">
           <td>
             ${index === 0 ? `<b>${escapeHtml(b.name)}</b>` : escapeHtml(b.name)}
