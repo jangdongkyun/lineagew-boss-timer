@@ -857,22 +857,70 @@ async function loadAdminPushSettings(){
 
   const pushBossSettings = data.push_boss_settings || {};
 
-  $("adminPushBossOptions").innerHTML = bosses.map(b=>`
-    <label style="
+$("adminPushBossOptions").innerHTML = `
+  <style>
+    .admin-push-boss-grid {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:7px;
+    }
+    .admin-push-boss-card {
       display:flex;
       align-items:center;
-      gap:8px;
-      padding:8px;
-      margin:4px 0;
-      border:1px solid #806b3e;
+      justify-content:space-between;
+      gap:4px;
+      min-width:0;
+      padding:9px 7px;
+      background:linear-gradient(145deg,#202b3c,#101722);
+      border:1px solid #66552f;
       border-radius:8px;
-    ">
-      <input type="checkbox"
-        data-admin-push-boss="${escapeHtml(b.id)}"
-        ${pushBossSettings[b.id] !== false ? "checked" : ""}>
-      ${escapeHtml(b.name)}
-    </label>
-  `).join("");
+      color:#eee0bd;
+      font-size:12px;
+    }
+    .admin-push-boss-card input {
+      appearance:none;
+      flex-shrink:0;
+      width:30px;
+      height:17px;
+      margin:0;
+      border-radius:20px;
+      background:#555;
+      position:relative;
+      cursor:pointer;
+      transition:.2s;
+    }
+    .admin-push-boss-card input:checked {
+      background:#b89542;
+    }
+    .admin-push-boss-card input:before {
+      content:"";
+      position:absolute;
+      width:13px;
+      height:13px;
+      left:2px;
+      top:2px;
+      border-radius:50%;
+      background:#eee;
+      transition:.2s;
+    }
+    .admin-push-boss-card input:checked:before {
+      transform:translateX(13px);
+      background:#fff5d8;
+    }
+  </style>
+  <div class="admin-push-boss-grid">
+    ${bosses.map(b=>`
+      <label class="admin-push-boss-card">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${escapeHtml(b.name)}
+        </span>
+        <input type="checkbox"
+          data-admin-push-boss="${escapeHtml(b.id)}"
+          ${pushBossSettings[b.id] !== false ? "checked" : ""}>
+      </label>
+    `).join("")}
+  </div>
+`;
 
   $("adminPushOptions").style.display =
     data.push_enabled ? "block" : "none";
@@ -2272,14 +2320,78 @@ function openPersonalAlertSettings(){
 
   const bossSettings = s.boss_settings || {};
 
-  $("personalBossOptions").innerHTML = bosses.map(b=>`
-    <label style="display:block;padding:6px 0">
-      <input type="checkbox"
-        data-personal-boss="${escapeHtml(b.id)}"
-        ${bossSettings[b.id] !== false ? "checked" : ""}>
-      ${escapeHtml(b.name)}
-    </label>
-  `).join("");
+
+$("personalBossOptions").innerHTML = `
+  <style>
+    .personal-boss-grid {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:7px;
+    }
+    .personal-boss-card {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:4px;
+      min-width:0;
+      padding:9px 7px;
+      background:linear-gradient(145deg,#202b3c,#101722);
+      border:1px solid #66552f;
+      border-radius:8px;
+      color:#eee0bd;
+      font-size:12px;
+    }
+    .personal-boss-card input {
+      appearance:none;
+      flex-shrink:0;
+      width:30px;
+      height:17px;
+      margin:0;
+      border-radius:20px;
+      background:#555;
+      position:relative;
+      cursor:pointer;
+      transition:.2s;
+    }
+    .personal-boss-card input:checked {
+      background:#b89542;
+    }
+    .personal-boss-card input:before {
+      content:"";
+      position:absolute;
+      width:13px;
+      height:13px;
+      left:2px;
+      top:2px;
+      border-radius:50%;
+      background:#eee;
+      transition:.2s;
+    }
+    .personal-boss-card input:checked:before {
+      transform:translateX(13px);
+      background:#fff5d8;
+    }
+    @media(max-width:380px) {
+      .personal-boss-card {
+        font-size:11px;
+        padding:8px 5px;
+      }
+    }
+  </style>
+  <div class="personal-boss-grid">
+    ${bosses.map(b=>`
+      <label class="personal-boss-card">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${escapeHtml(b.name)}
+        </span>
+        <input type="checkbox"
+          data-personal-boss="${escapeHtml(b.id)}"
+          ${bossSettings[b.id] !== false ? "checked" : ""}>
+      </label>
+    `).join("")}
+  </div>
+`;
+
 
   $("personalVoiceOptions").style.display =
     s.voice_enabled ? "block" : "none";
