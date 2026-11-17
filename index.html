@@ -960,62 +960,11 @@ async function saveAdminPushSettings(){
   }
 }
 
-async function saveAlertSettings() {
-  if (!isAdmin()) {
-    alert("관리자만 설정할 수 있습니다.");
-    return;
-  }
 
-  const btn = $("saveAlertSettingsBtn");
-  btn.disabled = true;
-  btn.textContent = "저장 중...";
-
-  const settings = {
-    alert_3m: $("alert3m").checked,
-    alert_1m: $("alert1m").checked,
-    alert_30s: $("alert30s").checked,
-    alert_10s: $("alert10s").checked,
-    alert_spawn: $("alertSpawn").checked,
-    updated_at: new Date().toISOString()
-  };
-
-  try {
-    const { data, error } = await db
-      .from("boss_timer_settings")
-      .update(settings)
-      .eq("id", 1)
-      .select("id");
-
-    if (error) throw error;
-
-    if (!data || data.length === 0) {
-      throw new Error("저장할 설정 행이 없습니다.");
-    }
-
-    alertSettings = {
-      "3m": settings.alert_3m,
-      "1m": settings.alert_1m,
-      "30s": settings.alert_30s,
-      "10s": settings.alert_10s,
-      "spawn": settings.alert_spawn
-    };
-
-    $("alertSettingsMessage").textContent =
-      "알림 설정이 저장되었습니다.";
-
-  } catch (e) {
-    console.error("알림 설정 저장 실패:", e);
-    $("alertSettingsMessage").textContent =
-      "저장 실패: " + e.message;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "알림 설정 저장";
-  }
-}
 
 
 // 저장 버튼 연결
-$("saveAlertSettingsBtn").addEventListener("click", saveAlertSettings);
+
 $("saveAdminPushSettingsBtn").addEventListener(
   "click",
   saveAdminPushSettings
