@@ -4515,9 +4515,9 @@ function kobotHandleCommand(transcript){
               `${pending.boss.name} 컷 기록을 등록했어요.`,
               ()=>{
                 if(!kobotActive) return;
-                kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
-                질문을 말씀해 주세요. 계속 듣고 있어요.
-                kobotStartRecognition();
+kobotSetStatus("말씀을 듣고 있어요.","active");
+kobotSetMessage("질문을 말씀해 주세요. 계속 듣고 있어요.");
+kobotStartRecognition();
               }
             );
           }catch(error){
