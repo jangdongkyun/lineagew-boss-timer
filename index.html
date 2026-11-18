@@ -4769,16 +4769,8 @@ function kobotCreateRecognition(){
       const transcript = String(result[0]?.transcript || "").trim();
       if(!transcript) continue;
 
-      if(kobotMode === "wake"){
-      const normalized = transcript.replace(/[\s.,!?~。！？]/g,"");
-        if(normalized.includes("코봇")){
-          kobotHandleWakeWord(transcript);
-          return;
-        }
-      }else{
-        kobotHandleCommand(transcript);
-        return;
-      }
+kobotHandleCommand(transcript);
+return;
     }
   };
 
