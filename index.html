@@ -3231,6 +3231,38 @@ $("personalBossOptions").innerHTML = `
         padding:8px 5px;
       }
     }
+
+/* 수기 보스컷 화면 하단 고정 */
+.manual-cut-fixed {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 1100px);
+  box-sizing: border-box;
+  z-index: 1000;
+  margin: 0;
+  border: 1px solid #806b3e;
+  border-radius: 12px 12px 0 0;
+  background: #111923;
+  box-shadow: 0 -5px 20px rgba(0,0,0,.65);
+}
+
+/* 고정 패널에 본문이 가려지지 않도록 여백 확보 */
+body {
+  padding-bottom: 190px;
+}
+
+@media (max-width: 600px) {
+  .manual-cut-fixed {
+    width: 100%;
+    border-radius: 12px 12px 0 0;
+  }
+
+  body {
+    padding-bottom: 220px;
+  }
+}    
   </style>
   <div class="personal-boss-grid">
     ${bosses.map(b=>`
