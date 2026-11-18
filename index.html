@@ -4526,6 +4526,7 @@ function kobotHandleCommand(transcript){
 
   const text = kobotNormalizeText(transcript);
   if(!text) return;
+  const intent = kobotDetectIntent(text);
 
   // 답변 후 기존 음성 인식 대기 상태로 복귀
 function kobotRespond(message){
@@ -4712,12 +4713,7 @@ function kobotRespond(message){
   }
 
   // 첫 번째 다음 보스
-  if(
-    text.includes("다음 보스") ||
-    text.includes("가장 먼저 나올") ||
-    text.includes("먼저 나올 보스") ||
-    text.includes("다음에 리스폰")
-  ){
+if(intent === "next_boss"){
     const list = kobotGetUpcomingBosses();
 
     if(!list.length){
