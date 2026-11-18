@@ -4658,7 +4658,7 @@ function kobotRespond(message){
   }
 
   // 도움말
-  if(text.includes("도움말") || text.includes("무슨 명령")){
+  if(intent === "help"){
     kobotRespond(
       "다음 보스 누구야, 그다음 보스는, 가스트 언제 나와처럼 물어보세요. 보스 이름과 컷 시간을 말하면 컷 등록도 도와드릴게요."
     );
@@ -4666,12 +4666,7 @@ function kobotRespond(message){
   }
 
   // 전체 보스 현황
-  if(
-    text.includes("보스 현황") ||
-    text.includes("전체 보스") ||
-    text.includes("보스 목록") ||
-    text.includes("보스 상황")
-  ){
+if(intent === "all_bosses"){
     const list = kobotGetUpcomingBosses();
 
     if(!list.length){
@@ -4689,13 +4684,7 @@ function kobotRespond(message){
   }
 
   // 두 번째 보스
-  if(
-    text.includes("그다음 보스") ||
-    text.includes("두 번째 보스") ||
-    text.includes("2번째 보스") ||
-    text.includes("다음 다음 보스") ||
-    text.includes("그다음은")
-  ){
+if(intent === "second_boss"){
     const list = kobotGetUpcomingBosses();
 
     if(list.length < 2){
