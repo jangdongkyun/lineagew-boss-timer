@@ -5112,6 +5112,39 @@ $("loginBtn").addEventListener("click",async()=>{
 });
 
 $("signupBtn").addEventListener("click",async()=>{
+
+  
+$("forgotPasswordBtn").addEventListener("click",async()=>{
+  const email = $("email").value.trim();
+
+  if(!email){
+    message("먼저 가입한 이메일 주소를 입력해 주세요.");
+    $("email").focus();
+    return;
+  }
+
+  const btn = $("forgotPasswordBtn");
+  btn.disabled = true;
+
+  try{
+    const {error} = await db.auth.resetPasswordForEmail(email,{
+      redirectTo: window.location.origin + window.location.pathname
+    });
+
+    if(error){
+      message("재설정 메일 발송 실패: " + error.message);
+      return;
+    }
+
+    message("비밀번호 재설정 링크를 이메일로 보냈어요. 받은편지함과 스팸함을 확인해 주세요.");
+  }catch(error){
+    message("오류가 발생했어요: " + error.message);
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+  
   const box = $("signupNickBox");
   if(box.style.display === "none"){
     box.style.display = "block";
@@ -5272,7 +5305,121 @@ db.auth.getSession().then(async({data,error})=>{
   }
 });
 
+
+function showPasswordRecoveryForm(){
+  if(document.getElementById("passwordRecoveryModal")) return;
+
+  const modal = document.createElement("div");
+  modal.id = "passwordRecoveryModal";
+  modal.style.cssText = `
+    position:fixed;
+    inset:0;
+    z-index:200000;
+    background:rgba(0,0,0,.92);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    box-sizing:border-box;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      width:100%;
+      max-width:380px;
+      padding:22px;
+      background:#101a2b;
+      border:1px solid #806b3e;
+      border-radius:14px;
+      color:white;
+      box-sizing:border-box;
+    ">
+      <h2 style="color:#e8c879;margin-top:0">
+        비밀번호 재설정
+      </h2>
+
+      <p style="color:#bbb;font-size:13px">
+        새로 사용할 비밀번호를 입력해 주세요.
+      </p>
+
+      <input
+        id="recoveryNewPassword"
+        type="password"
+        placeholder="새 비밀번호 (6자 이상)"
+        minlength="6"
+        autocomplete="new-password"
+        style="width:100%;box-sizing:border-box;padding:13px;margin-bottom:10px"
+      >
+
+      <input
+        id="recoveryConfirmPassword"
+        type="password"
+        placeholder="새 비밀번호 다시 입력"
+        autocomplete="new-password"
+        style="width:100%;box-sizing:border-box;padding:13px;margin-bottom:12px"
+      >
+
+      <div id="recoveryMessage"
+        style="font-size:13px;margin-bottom:12px;color:#e8c879">
+      </div>
+
+      <button id="recoverySaveBtn"
+        class="primary" type="button"
+        style="width:100%">
+        새 비밀번호 저장
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document.getElementById("recoverySaveBtn").addEventListener("click",async()=>{
+    const password = document.getElementById("recoveryNewPassword").value;
+    const confirmPassword = document.getElementById("recoveryConfirmPassword").value;
+    const status = document.getElementById("recoveryMessage");
+    const btn = document.getElementById("recoverySaveBtn");
+
+    if(password.length < 6){
+      status.textContent = "비밀번호는 6자 이상 입력해 주세요.";
+      return;
+    }
+
+    if(password !== confirmPassword){
+      status.textContent = "두 비밀번호가 서로 다릅니다.";
+      return;
+    }
+
+    btn.disabled = true;
+    status.textContent = "비밀번호를 변경하고 있어요.";
+
+    try{
+      const {error} = await db.auth.updateUser({password});
+
+      if(error){
+        status.textContent = "변경 실패: " + error.message;
+        btn.disabled = false;
+        return;
+      }
+
+      status.textContent = "비밀번호가 변경되었습니다. 다시 로그인해 주세요.";
+      alert("비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해 주세요.");
+
+      modal.remove();
+      await db.auth.signOut();
+
+    }catch(error){
+      status.textContent = "오류: " + error.message;
+      btn.disabled = false;
+    }
+  });
+}
+
+  
 db.auth.onAuthStateChange((event,session)=>{
+  if(event==="PASSWORD_RECOVERY"){
+    showPasswordRecoveryForm();
+  }
+
   if(event==="SIGNED_OUT"){
     leaveApp();
   }
