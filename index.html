@@ -4403,8 +4403,10 @@ function kobotDetectIntent(text){
 }
 
 
+
 function kobotFindBossInText(text){
-  const normalized = kobotNormalizeText(text);
+  const normalized = kobotNormalizeText(text)
+    .replace(/\s/g,"");
 
   const candidates = [];
 
@@ -4414,18 +4416,78 @@ function kobotFindBossInText(text){
       : String(boss.aliases || "").split(",");
 
     [boss.name, ...aliases].forEach(name => {
-      const alias = kobotNormalizeText(name);
+      const alias = kobotNormalizeText(name)
+        .replace(/\s/g,"");
+
       if(alias && normalized.includes(alias)){
         candidates.push({
           boss,
-          length: alias.length
+          length: alias.length,
+          exact: true
         });
       }
     });
   });
 
+  // 정확히 일치하는 보스가 있으면 우선 반환
   candidates.sort((a,b) => b.length - a.length);
-  return candidates.length ? candidates[0].boss : null;
+
+  if(candidates.length){
+    return candidates[0].boss;
+  }
+
+  // 음성인식 오타를 위한 글자 유사도 계산
+  function similarity(a,b){
+    if(!a || !b) return 0;
+
+    const previous = Array.from(
+      {length:b.length+1},
+      (_,i)=>i
+    );
+
+    for(let i=1;i<=a.length;i++){
+      let diagonal = previous[0];
+      previous[0] = i;
+
+      for(let j=1;j<=b.length;j++){
+        const old = previous[j];
+        previous[j] = Math.min(
+          previous[j]+1,
+          previous[j-1]+1,
+          diagonal+(a[i-1] === b[j-1] ? 0 : 1)
+        );
+        diagonal = old;
+      }
+    }
+
+    return 1-previous[b.length]/Math.max(a.length,b.length);
+  }
+
+  let bestBoss = null;
+  let bestScore = 0;
+
+  (bosses || []).forEach(boss=>{
+    const aliases = Array.isArray(boss.aliases)
+      ? boss.aliases
+      : String(boss.aliases || "").split(",");
+
+    [boss.name,...aliases].forEach(name=>{
+      const alias = kobotNormalizeText(name)
+        .replace(/\s/g,"");
+
+      if(alias.length < 2) return;
+
+      const score = similarity(normalized,alias);
+
+      if(score > bestScore){
+        bestScore = score;
+        bestBoss = boss;
+      }
+    });
+  });
+
+  // 유사도가 충분히 높을 때만 보스 선택
+  return bestScore >= 0.72 ? bestBoss : null;
 }
 
 function kobotGetUpcomingBosses(){
@@ -4665,6 +4727,12 @@ function kobotRespond(message){
     return;
   }
 
+  // 감사 인사
+if(intent === "thanks"){
+  kobotRespond("천만에요. 도움이 되어서 기뻐요. 다른 보스 정보도 필요하시면 말씀해 주세요.");
+  return;
+}
+  
   // 전체 보스 현황
 if(intent === "all_bosses"){
     const list = kobotGetUpcomingBosses();
