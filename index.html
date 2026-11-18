@@ -583,6 +583,42 @@ h3{font-size:14px;margin:0 0 10px}
   .kobot-buttons button{flex:1}
 }
 
+
+/* 수기 컷 입력창 화면 하단 고정 */
+.manual-cut-fixed {
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 0 !important;
+  transform: translateX(-50%) !important;
+  width: min(100%, 1150px) !important;
+  max-height: 55vh;
+  overflow-y: auto;
+  z-index: 99999 !important;
+  margin: 0 !important;
+  padding: 14px !important;
+  box-sizing: border-box;
+  border: 1px solid #806b3e;
+  border-radius: 12px 12px 0 0;
+  background: #111923;
+  box-shadow: 0 -5px 20px rgba(0,0,0,.65);
+}
+
+body {
+  padding-bottom: 280px !important;
+}
+
+@media (max-width: 600px) {
+  .manual-cut-fixed {
+    width: 100% !important;
+    max-height: 55vh;
+  }
+
+  body {
+    padding-bottom: 320px !important;
+  }
+}
+
+    
 </style>
 </head>
 <body>
