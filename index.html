@@ -4237,12 +4237,14 @@ try{
   }
 }
 
+
 function kobotSpeak(message, after){
   kobotSetMessage(message);
   kobotAddReply(message);
 
-  // 글씨 전용 모드에서도 화면 표시와 음성 인식은 계속 동작합니다.
   if(!kobotVoiceReplyEnabled || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    kobotIsSpeaking = false;
+    kobotCurrentSpeechText = "";
     if(typeof after === "function") after();
     return;
   }
@@ -4250,6 +4252,10 @@ function kobotSpeak(message, after){
   try{
     const synth = window.speechSynthesis;
     synth.cancel();
+
+    kobotIsSpeaking = true;
+    kobotCurrentSpeechText = String(message || "");
+    kobotSpeechCancelledByUser = false;
 
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = "ko-KR";
@@ -4268,8 +4274,11 @@ function kobotSpeak(message, after){
     const finish = ()=>{
       if(finished) return;
       finished = true;
+      kobotIsSpeaking = false;
+      kobotCurrentSpeechText = "";
       if(typeof after === "function") after();
     };
+
     utterance.onend = finish;
     utterance.onerror = finish;
 
@@ -4277,10 +4286,13 @@ function kobotSpeak(message, after){
     synth.speak(utterance);
   }catch(error){
     console.error("코봇 음성 응답 오류:",error);
+    kobotIsSpeaking = false;
+    kobotCurrentSpeechText = "";
     kobotSetStatus("음성 응답을 재생하지 못해 글씨로 표시했어요.","error");
     if(typeof after === "function") after();
   }
 }
+
 
 function kobotHandleWakeWord(transcript){
   kobotMode = "command";
