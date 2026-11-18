@@ -4271,13 +4271,22 @@ function kobotSpeak(message, after){
     if(voice) utterance.voice = voice;
 
     let finished = false;
-    const finish = ()=>{
-      if(finished) return;
-      finished = true;
-      kobotIsSpeaking = false;
-      kobotCurrentSpeechText = "";
-      if(typeof after === "function") after();
-    };
+const finish = ()=>{
+  if(finished) return;
+  finished = true;
+
+  const cancelledByUser = kobotSpeechCancelledByUser;
+
+  kobotIsSpeaking = false;
+  kobotCurrentSpeechText = "";
+  kobotSpeechCancelledByUser = false;
+
+  // 사용자가 말을 시작해서 중단한 경우
+  // 기존 응답 완료 콜백은 실행하지 않음
+  if(cancelledByUser) return;
+
+  if(typeof after === "function") after();
+};
 
     utterance.onend = finish;
     utterance.onerror = finish;
@@ -4755,18 +4764,43 @@ function kobotCreateRecognition(){
     }
   };
 
-  recognition.onresult = (event)=>{
-    if(!kobotActive) return;
-    for(let i=event.resultIndex;i<event.results.length;i++){
-      const result = event.results[i];
-      if(!result.isFinal) continue;
-      const transcript = String(result[0]?.transcript || "").trim();
-      if(!transcript) continue;
+  
+recognition.onresult = (event)=>{
+  if(!kobotActive) return;
 
-kobotHandleCommand(transcript);
-return;
+  for(let i=event.resultIndex;i<event.results.length;i++){
+    const result = event.results[i];
+    const transcript = String(result[0]?.transcript || "").trim();
+
+    if(!transcript) continue;
+
+    // 코봇이 말하는 도중 사람의 음성이 들어왔는지 확인
+    if(kobotIsSpeaking && !result.isFinal){
+      const normalized = transcript.replace(/[\s.,!?~。！？]/g,"");
+      const spoken = String(kobotCurrentSpeechText || "")
+        .replace(/[\s.,!?~。！？]/g,"");
+
+      // 코봇 자신의 음성이 그대로 인식된 경우 무시
+      if(normalized.length < 2) continue;
+      if(spoken.includes(normalized)) continue;
+
+      // 사람의 말로 판단되면 코봇 음성 중단
+      kobotSpeechCancelledByUser = true;
+      kobotIsSpeaking = false;
+      kobotCurrentSpeechText = "";
+
+      if("speechSynthesis" in window){
+        window.speechSynthesis.cancel();
+      }
     }
-  };
+
+    if(!result.isFinal) continue;
+
+    kobotHandleCommand(transcript);
+    return;
+  }
+};
+
 
   recognition.onerror = (event)=>{
     console.warn("코봇 음성인식 오류:",event.error);
