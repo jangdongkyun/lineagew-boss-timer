@@ -4301,7 +4301,7 @@ function kobotHandleWakeWord(transcript){
             kobotPauseRecognition = false;
             kobotSpeak("말씀을 듣지 못했어요. 다시 부르려면 코봇이라고 말씀해 주세요.",()=>{
               if(kobotActive){
-                kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
+                kobotSetMessage("질문을 말씀해 주세요. 계속 듣고 있어요.");
                 kobotStartRecognition();
               }
             });
