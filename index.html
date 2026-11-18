@@ -503,6 +503,86 @@ h3{font-size:14px;margin:0 0 10px}
   display:none !important;
 }
 
+
+/* KOBOT 음성 비서 */
+.kobot-panel{
+  border:1px solid #806b3e;
+  background:linear-gradient(145deg,#172235,#101722);
+}
+.kobot-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.kobot-title{
+  color:#f0d58d;
+  font-size:16px;
+  font-weight:900;
+  letter-spacing:.4px;
+}
+.kobot-status-line{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-top:6px;
+  color:#c5cbd5;
+  font-size:12px;
+}
+.kobot-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#7b8491;
+  display:inline-block;
+}
+.kobot-dot.active{background:#63d69b;box-shadow:0 0 8px #63d69b99}
+.kobot-dot.error{background:#ff6666;box-shadow:0 0 8px #ff666699}
+.kobot-buttons{display:flex;gap:7px;flex-wrap:wrap}
+.kobot-message{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:8px;
+  background:#0d131d;
+  color:#e8d8ad;
+  font-size:13px;
+  line-height:1.5;
+}
+.kobot-transcript{
+  margin-top:8px;
+  min-height:34px;
+  padding:9px 12px;
+  border:1px solid #303b4d;
+  border-radius:8px;
+  color:#c5d1e0;
+  font-size:12px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.kobot-reply-panel{
+  border:1px solid #665a3d;
+  background:linear-gradient(145deg,#151e2b,#101722);
+}
+.kobot-reply-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.kobot-reply-log{
+  margin-top:10px; padding:9px 11px; border-radius:8px;
+  background:#0b111a; border:1px solid #303b4d;
+  min-height:112px; max-height:156px; overflow-y:auto;
+  display:flex; flex-direction:column; gap:6px;
+}
+.kobot-reply-line{font-size:12px;line-height:1.45;color:#e6eaf0;overflow-wrap:anywhere}
+.kobot-reply-line .reply-time{color:#8f9bad;font-size:10px;margin-right:6px}
+.kobot-reply-line .reply-label{color:#f0d58d;font-weight:800;margin-right:5px}
+.kobot-reply-controls{display:flex;gap:7px;flex-wrap:wrap}
+.kobot-reply-controls button{min-width:135px}
+@media(max-width:600px){.kobot-reply-head{align-items:flex-start}.kobot-reply-controls{width:100%}.kobot-reply-controls button{flex:1;min-width:0}}
+@media(max-width:600px){
+  .kobot-top{align-items:flex-start}
+  .kobot-buttons{width:100%}
+  .kobot-buttons button{flex:1}
+}
+
 </style>
 </head>
 <body>
@@ -561,6 +641,31 @@ h3{font-size:14px;margin:0 0 10px}
     </div>
   </div>
 
+  <div class="panel kobot-panel" id="kobotPanel">
+    <div class="kobot-top">
+      <div>
+        <div class="kobot-title">🤖 KOBOT · 코봇</div>
+        <div class="kobot-status-line">
+          <span class="kobot-dot" id="kobotStatusDot"></span>
+          <span id="kobotStatus">로그인 후 시작할 수 있어요.</span>
+        </div>
+      </div>
+      <div class="kobot-buttons">
+        <button class="primary" id="kobotStartBtn" type="button">🎙 코봇 시작</button>
+        <button class="ghost" id="kobotStopBtn" type="button" disabled>코봇 종료</button>
+      </div>
+    </div>
+    <div class="kobot-message" id="kobotMessage">
+      코봇 시작을 누르고 마이크 권한을 허용한 뒤 “코봇!”이라고 불러보세요.
+    </div>
+    <div class="kobot-transcript" id="kobotTranscript" aria-live="polite">
+      음성 인식 내용이 여기에 표시됩니다.
+    </div>
+    <div class="muted" style="margin-top:8px">
+      화면이 열려 있고 로그인된 동안에만 대기합니다. 다른 화면으로 이동하거나 로그아웃하면 마이크 대기가 멈춥니다.
+    </div>
+  </div>
+
   <div class="stats">
     <div class="stat">등록 보스 <b id="bossCount">0</b></div>
     <div class="stat">온라인 <b id="onlineCount">0</b></div>
@@ -585,6 +690,21 @@ h3{font-size:14px;margin:0 0 10px}
         <div class="member-status-title"><span style="color:#b8c3d1">⚪ 오프라인</span><button type="button" class="member-count-btn" id="offlineToggle" aria-expanded="false"><span id="offlineCount">0</span>명</button></div>
         <div id="offlineList" class="member-list"></div>
       </div>
+    </div>
+  </div>
+  <div class="panel kobot-reply-panel" id="kobotReplyPanel">
+    <div class="kobot-reply-head">
+      <div>
+        <h2 style="margin:0">🤖 코봇 대답</h2>
+        <div class="muted" style="font-size:11px;margin-top:5px">최근 대답을 글로 확인할 수 있어요. 최대 5개까지 표시됩니다.</div>
+      </div>
+      <div class="kobot-reply-controls">
+        <button class="primary" type="button" id="kobotVoiceModeBtn" aria-pressed="true">🔊 음성 대답 켜짐</button>
+        <button class="ghost" type="button" id="kobotTextModeBtn" aria-pressed="false">📝 글씨로만 대답</button>
+      </div>
+    </div>
+    <div class="kobot-reply-log" id="kobotReplyLog" aria-live="polite" aria-label="코봇 최근 대답">
+      <div class="kobot-reply-line"><span class="reply-label">코봇</span>안녕하세요! 음성 또는 글씨로 대답할 수 있어요.</div>
     </div>
   </div>
   <div class="panel">
@@ -818,6 +938,19 @@ let offlineExpanded = false;
 let onlineExpanded = false;
 let soundOn = false;
 let myAlertSettings = null;
+
+// KOBOT 음성 비서 상태
+let kobotRecognition = null;
+let kobotActive = false;
+let kobotMode = "wake";
+let kobotRestartTimer = null;
+let kobotCommandTimer = null;
+let kobotPauseRecognition = false;
+let kobotAfterStop = null;
+let kobotVoiceReplyEnabled = (()=>{
+  try{return localStorage.getItem("kobot_voice_reply") !== "false";}catch(error){return true;}
+})();
+let kobotReplyHistory = [];
 let cutHistoryMode = "boss";
 
 
@@ -892,11 +1025,13 @@ async function loadMyAlertSettings() {
     }
 
     myAlertSettings = savedData;
+    soundOn = !!myAlertSettings.voice_enabled;
     return;
   }
 
   // 기존 설정이 있으면 그대로 사용
   myAlertSettings = data;
+  soundOn = !!myAlertSettings.voice_enabled;
 }
 // =========================================
 // 관리자 푸시 알림 설정 불러오기
@@ -2780,6 +2915,23 @@ function speak(text){
   try{
     const synth = window.speechSynthesis;
 
+    // 보스 음성 알림이 나오는 동안 코봇 마이크가 스피커 소리를
+    // 명령으로 오인하지 않도록 잠시 듣기를 멈춥니다.
+    const resumeKobot = kobotActive && !document.hidden && !kobotPauseRecognition;
+    if(resumeKobot){
+      kobotPauseRecognition = true;
+      if(kobotRecognition){
+        try{kobotRecognition.stop();}catch(error){}
+      }
+    }
+
+    const resumeListening = ()=>{
+      if(resumeKobot && kobotActive && !document.hidden){
+        kobotPauseRecognition = false;
+        kobotScheduleRestart();
+      }
+    };
+
     synth.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -2810,8 +2962,10 @@ function speak(text){
       console.log("음성 재생 시작:", text);
     };
 
+    utterance.onend = resumeListening;
     utterance.onerror = (e)=>{
       console.error("음성 재생 오류:", e.error);
+      resumeListening();
     };
 
     synth.speak(utterance);
@@ -3156,6 +3310,7 @@ async function savePersonalAlertSettings(){
   }
 
   myAlertSettings = data;
+  soundOn = !!myAlertSettings.voice_enabled;
   $("personalAlertModal").style.display = "none";
   alert("개인 알림 설정이 저장되었습니다.");
 }
@@ -3933,6 +4088,380 @@ function setupRealtime(){
   realtimeChannels.push(channel);
 }
 
+
+// =========================================
+// KOBOT 음성 비서 - 1단계: 호출어 및 음성 응답
+// =========================================
+const KOBOT_RECOGNITION =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function kobotSetStatus(message, state=""){
+  const status = $("kobotStatus");
+  const dot = $("kobotStatusDot");
+  if(status) status.textContent = message;
+  if(dot) dot.className = "kobot-dot" + (state ? " " + state : "");
+}
+
+function kobotSetMessage(message){
+  const el = $("kobotMessage");
+  if(el) el.textContent = message;
+}
+
+function kobotSetTranscript(message){
+  const el = $("kobotTranscript");
+  if(el) el.textContent = message;
+}
+
+function kobotClearTimers(){
+  if(kobotRestartTimer){
+    clearTimeout(kobotRestartTimer);
+    kobotRestartTimer = null;
+  }
+  if(kobotCommandTimer){
+    clearTimeout(kobotCommandTimer);
+    kobotCommandTimer = null;
+  }
+}
+
+function kobotScheduleRestart(){
+  if(kobotRestartTimer) clearTimeout(kobotRestartTimer);
+  kobotRestartTimer = setTimeout(()=>{
+    kobotRestartTimer = null;
+    kobotStartRecognition();
+  },450);
+}
+
+function kobotStartRecognition(){
+  if(!kobotActive || !user || document.hidden || !kobotRecognition) return;
+  try{
+    kobotRecognition.start();
+  }catch(error){
+    // 이미 실행 중인 경우 InvalidStateError가 발생할 수 있습니다.
+    if(error && error.name !== "InvalidStateError"){
+      console.warn("코봇 음성인식 시작 실패:",error);
+      kobotSetStatus("마이크를 시작하지 못했어요. 다시 시작해 주세요.","error");
+    }
+  }
+}
+
+function kobotAddReply(message){
+  const text = String(message || "").trim();
+  if(!text) return;
+  kobotReplyHistory.push({message:text,time:new Date()});
+  kobotReplyHistory = kobotReplyHistory.slice(-5);
+  const log = $("kobotReplyLog");
+  if(!log) return;
+  log.innerHTML = kobotReplyHistory.map(item=>{
+    const time = item.time.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+    const safe = item.message.replace(/[&<>\"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;", "'":"&#39;"}[ch]));
+    return `<div class="kobot-reply-line"><span class="reply-time">${time}</span><span class="reply-label">코봇</span>${safe}</div>`;
+  }).join("");
+  log.scrollTop = log.scrollHeight;
+}
+
+function kobotUpdateReplyMode(){
+  const voiceBtn = $("kobotVoiceModeBtn");
+  const textBtn = $("kobotTextModeBtn");
+  if(voiceBtn){
+    voiceBtn.textContent = kobotVoiceReplyEnabled ? "🔊 음성 대답 켜짐" : "🔇 음성 대답 꺼짐";
+    voiceBtn.setAttribute("aria-pressed",String(kobotVoiceReplyEnabled));
+    voiceBtn.className = kobotVoiceReplyEnabled ? "primary" : "ghost";
+  }
+  if(textBtn){
+    textBtn.textContent = kobotVoiceReplyEnabled ? "📝 글씨로만 대답" : "✓ 글씨 전용 사용 중";
+    textBtn.setAttribute("aria-pressed",String(!kobotVoiceReplyEnabled));
+    textBtn.className = kobotVoiceReplyEnabled ? "ghost" : "primary";
+  }
+}
+
+function kobotSetReplyMode(enabled, announce=true){
+  kobotVoiceReplyEnabled = !!enabled;
+  try{localStorage.setItem("kobot_voice_reply",String(kobotVoiceReplyEnabled));}catch(error){}
+  kobotUpdateReplyMode();
+  if(announce){
+    const message = kobotVoiceReplyEnabled
+      ? "음성 대답을 켰어요. 이제 말로 대답할게요."
+      : "글씨 전용으로 바꿨어요. 이제 대답은 화면에 글씨로만 표시할게요.";
+    kobotSpeak(message);
+  }
+}
+
+function kobotSpeak(message, after){
+  kobotSetMessage(message);
+  kobotAddReply(message);
+
+  // 글씨 전용 모드에서도 화면 표시와 음성 인식은 계속 동작합니다.
+  if(!kobotVoiceReplyEnabled || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    if(typeof after === "function") after();
+    return;
+  }
+
+  try{
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = "ko-KR";
+    utterance.rate = 0.92;
+    utterance.pitch = 1.04;
+
+    const voices = synth.getVoices();
+    const selectedName = myAlertSettings?.voice_name || "";
+    let voice = voices.find(v=>v.name === selectedName);
+    if(!voice){
+      voice = voices.find(v=>v.lang && v.lang.toLowerCase().startsWith("ko"));
+    }
+    if(voice) utterance.voice = voice;
+
+    let finished = false;
+    const finish = ()=>{
+      if(finished) return;
+      finished = true;
+      if(typeof after === "function") after();
+    };
+    utterance.onend = finish;
+    utterance.onerror = finish;
+
+    kobotSetStatus("코봇이 음성으로 응답하고 있어요.","active");
+    synth.speak(utterance);
+  }catch(error){
+    console.error("코봇 음성 응답 오류:",error);
+    kobotSetStatus("음성 응답을 재생하지 못해 글씨로 표시했어요.","error");
+    if(typeof after === "function") after();
+  }
+}
+
+function kobotHandleWakeWord(transcript){
+  kobotMode = "command";
+  kobotSetTranscript("호출어 감지: " + transcript);
+  kobotSetStatus("호출을 확인했어요.","active");
+  kobotPauseRecognition = true;
+  kobotAfterStop = ()=>{
+    kobotAfterStop = null;
+    kobotPauseRecognition = false;
+    kobotSpeak("네! 듣고 있어요~",()=>{
+      if(!kobotActive) return;
+      kobotSetStatus("말씀을 듣고 있어요.","active");
+      kobotSetMessage("말씀을 해보세요. 현재 단계에서는 음성을 글자로 표시하고 응답을 확인합니다.");
+      kobotStartRecognition();
+      kobotCommandTimer = setTimeout(()=>{
+        if(!kobotActive || kobotMode !== "command") return;
+        kobotMode = "wake";
+        kobotPauseRecognition = true;
+        if(kobotRecognition){
+          kobotAfterStop = ()=>{
+            kobotAfterStop = null;
+            kobotPauseRecognition = false;
+            kobotSpeak("말씀을 듣지 못했어요. 다시 부르려면 코봇이라고 말씀해 주세요.",()=>{
+              if(kobotActive){
+                kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
+                kobotStartRecognition();
+              }
+            });
+          };
+          try{kobotRecognition.stop();}catch(e){
+            kobotPauseRecognition = false;
+            kobotSpeak("말씀을 듣지 못했어요. 다시 코봇이라고 불러주세요.",()=>{
+              if(kobotActive) kobotStartRecognition();
+            });
+          }
+        }
+      },10000);
+    });
+  };
+  if(kobotRecognition){
+    try{kobotRecognition.stop();}
+    catch(error){
+      kobotPauseRecognition = false;
+      kobotAfterStop();
+    }
+  }
+}
+
+function kobotHandleCommand(transcript){
+  if(kobotCommandTimer){
+    clearTimeout(kobotCommandTimer);
+    kobotCommandTimer = null;
+  }
+  kobotMode = "wake";
+  kobotSetTranscript("인식한 말씀: " + transcript);
+
+  const normalized = String(transcript).replace(/[\s.,!?~。！？]/g,"");
+  const turnTextOnly = /(글씨|글자|텍스트)|((음성|목소리|말로).*(끄|꺼))|소리끄|조용히대답/.test(normalized);
+  const turnVoiceOn = /(음성|목소리|말로).*(켜|사용|대답)|소리켜|말로대답해/.test(normalized);
+
+  if(turnTextOnly){
+    kobotPauseRecognition = true;
+    kobotAfterStop = ()=>{
+      kobotAfterStop = null;
+      kobotPauseRecognition = false;
+      kobotSetReplyMode(false,false);
+      kobotSpeak("글씨 전용으로 바꿨어요. 이제 대답은 화면에 글씨로만 표시할게요.",()=>{
+        if(!kobotActive) return;
+        kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
+        kobotStartRecognition();
+      });
+    };
+  }else if(turnVoiceOn){
+    kobotPauseRecognition = true;
+    kobotAfterStop = ()=>{
+      kobotAfterStop = null;
+      kobotPauseRecognition = false;
+      kobotSetReplyMode(true,false);
+      kobotSpeak("음성 대답을 켰어요. 이제 말로 대답할게요.",()=>{
+        if(!kobotActive) return;
+        kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
+        kobotStartRecognition();
+      });
+    };
+  }else{
+    kobotPauseRecognition = true;
+    kobotAfterStop = ()=>{
+      kobotAfterStop = null;
+      kobotPauseRecognition = false;
+      kobotSpeak("네, 말씀을 들었어요.",()=>{
+        if(!kobotActive) return;
+        kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
+        kobotSetMessage("다시 부르려면 “코봇!”이라고 말씀해 주세요.");
+        kobotStartRecognition();
+      });
+    };
+  }
+
+  if(kobotRecognition){
+    try{kobotRecognition.stop();}
+    catch(error){
+      if(kobotAfterStop){
+        const callback = kobotAfterStop;
+        kobotAfterStop = null;
+        callback();
+      }
+    }
+  }
+}
+
+function kobotCreateRecognition(){
+  if(!KOBOT_RECOGNITION) return null;
+
+  const recognition = new KOBOT_RECOGNITION();
+  recognition.lang = "ko-KR";
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = ()=>{
+    if(!kobotActive) return;
+    if(kobotMode === "wake"){
+      kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
+      kobotSetMessage("“코봇!”이라고 부르면 응답합니다.");
+    }else{
+      kobotSetStatus("말씀을 듣고 있어요.","active");
+    }
+  };
+
+  recognition.onresult = (event)=>{
+    if(!kobotActive) return;
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      const result = event.results[i];
+      if(!result.isFinal) continue;
+      const transcript = String(result[0]?.transcript || "").trim();
+      if(!transcript) continue;
+
+      if(kobotMode === "wake"){
+        const normalized = transcript.replace(/[\\s.,!?~。！？]/g,"");
+        if(normalized.includes("코봇")){
+          kobotHandleWakeWord(transcript);
+          return;
+        }
+      }else{
+        kobotHandleCommand(transcript);
+        return;
+      }
+    }
+  };
+
+  recognition.onerror = (event)=>{
+    console.warn("코봇 음성인식 오류:",event.error);
+    if(["not-allowed","service-not-allowed","audio-capture"].includes(event.error)){
+      kobotActive = false;
+      kobotClearTimers();
+      kobotSetStatus(
+        event.error === "audio-capture"
+          ? "마이크를 찾을 수 없어요."
+          : "마이크 권한을 확인해 주세요.",
+        "error"
+      );
+      kobotSetMessage("브라우저 주소창의 마이크 권한을 허용한 뒤 코봇 시작을 다시 눌러주세요.");
+      $("kobotStartBtn").disabled = false;
+      $("kobotStopBtn").disabled = true;
+    }
+  };
+
+  recognition.onend = ()=>{
+    if(kobotAfterStop){
+      const callback = kobotAfterStop;
+      kobotAfterStop = null;
+      callback();
+      return;
+    }
+    if(kobotPauseRecognition) return;
+    if(kobotActive && !document.hidden){
+      kobotScheduleRestart();
+    }
+  };
+
+  return recognition;
+}
+
+function startKobot(){
+  if(!user){
+    kobotSetStatus("로그인이 필요해요.","error");
+    kobotSetMessage("로그인한 뒤 코봇을 사용할 수 있습니다.");
+    return;
+  }
+  if(!KOBOT_RECOGNITION){
+    kobotSetStatus("이 브라우저는 음성인식을 지원하지 않아요.","error");
+    kobotSetMessage("PC에서는 Chrome 또는 Edge, 모바일에서는 음성인식을 지원하는 Chrome 브라우저를 권장합니다. iPhone 브라우저에서는 지원되지 않을 수 있습니다.");
+    return;
+  }
+  if(kobotActive) return;
+
+  kobotClearTimers();
+  kobotActive = true;
+  kobotMode = "wake";
+  kobotPauseRecognition = false;
+  kobotAfterStop = null;
+  kobotRecognition = kobotCreateRecognition();
+
+  $("kobotStartBtn").disabled = true;
+  $("kobotStopBtn").disabled = false;
+  kobotSetMessage("마이크 연결을 시작합니다. “코봇!”이라고 불러보세요.");
+  kobotSetStatus("마이크 연결 중...","active");
+  kobotStartRecognition();
+}
+
+function stopKobot(){
+  kobotActive = false;
+  kobotMode = "wake";
+  kobotPauseRecognition = true;
+  kobotAfterStop = null;
+  kobotClearTimers();
+
+  if(kobotRecognition){
+    try{kobotRecognition.stop();}catch(error){}
+  }
+
+  const startBtn = $("kobotStartBtn");
+  const stopBtn = $("kobotStopBtn");
+  if(startBtn) startBtn.disabled = false;
+  if(stopBtn) stopBtn.disabled = true;
+
+  kobotSetStatus("코봇이 꺼져 있어요.");
+  kobotSetMessage("사용하려면 코봇 시작 버튼을 눌러주세요.");
+  kobotSetTranscript("음성 인식 내용이 여기에 표시됩니다.");
+}
+
+
 async function enterApp(currentUser){
   user = currentUser;
   $("auth").style.display = "none";
@@ -3955,6 +4484,8 @@ await loadAdminPushSettings();
     }
     await updatePresence();
     setupRealtime();
+    kobotSetStatus("코봇 시작 버튼을 누르면 사용할 수 있어요.");
+    kobotSetMessage("마이크 권한을 허용한 뒤 “코봇!”이라고 불러보세요.");
   }catch(e){
     console.error("데이터 불러오기 오류:",e);
     alert("데이터 불러오기 실패: "+e.message+"\n\n오류 위치:\n"+e.stack);
@@ -3962,6 +4493,8 @@ await loadAdminPushSettings();
 }
 
 async function leaveApp(){
+  stopKobot();
+  soundOn = false;
   realtimeChannels.forEach(c=>db.removeChannel(c));
   realtimeChannels = [];
   user = null;
@@ -4054,6 +4587,30 @@ $("clearBossForm").addEventListener("click",resetBossForm);
 
 $("personalAlertBtn").addEventListener("click",()=>{
   openPersonalAlertSettings();
+});
+
+$("kobotStartBtn").addEventListener("click",startKobot);
+$("kobotStopBtn").addEventListener("click",stopKobot);
+$("kobotVoiceModeBtn").addEventListener("click",()=>kobotSetReplyMode(true,true));
+$("kobotTextModeBtn").addEventListener("click",()=>{
+  kobotSetReplyMode(false,false);
+  kobotSpeak("글씨 전용으로 바꿨어요. 이제 대답은 화면에 글씨로만 표시할게요.");
+});
+kobotUpdateReplyMode();
+
+document.addEventListener("visibilitychange",()=>{
+  if(!kobotActive) return;
+  if(document.hidden){
+    kobotClearTimers();
+    if(kobotRecognition){
+      try{kobotRecognition.stop();}catch(error){}
+    }
+    kobotSetStatus("화면이 숨겨져 있어 마이크 대기를 멈췄어요.");
+    kobotSetMessage("보탐봇 화면으로 돌아오면 코봇이 다시 대기합니다.");
+  }else{
+    kobotSetStatus("코봇이 다시 대기합니다.","active");
+    kobotStartRecognition();
+  }
 });
 
   
