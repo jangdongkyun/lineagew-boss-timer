@@ -5540,18 +5540,46 @@ function fixedBossRender(){
 
       timeTd.appendChild(timeInput);
 
-      if(fixedBossRows.length > 1){
-        const del = document.createElement("button");
-        del.type = "button";
-        del.textContent = "삭제";
-        del.className = "ghost";
-        del.style.cssText = "font-size:10px;padding:3px;margin-top:4px;";
-        del.addEventListener("click",()=>{
-          fixedBossRows.splice(rowIndex,1);
-          fixedBossRender();
-        });
-        timeTd.appendChild(del);
-      }
+
+      const insertBtn = document.createElement("button");
+      insertBtn.type = "button";
+      insertBtn.textContent = "＋ 위에 추가";
+      insertBtn.className = "ghost";
+      insertBtn.style.cssText =
+        "font-size:10px;padding:4px;margin-top:4px;width:100%;";
+
+      insertBtn.addEventListener("click",()=>{
+        fixedBossRows.splice(rowIndex,0,fixedBossEmptyRow());
+        fixedBossRender();
+      });
+
+      timeTd.appendChild(insertBtn);
+
+      const del = document.createElement("button");
+      del.type = "button";
+      del.textContent = "행 삭제";
+      del.className = "ghost";
+      del.style.cssText =
+        "font-size:10px;padding:4px;margin-top:4px;width:100%;color:#ff8888;";
+
+      del.addEventListener("click",()=>{
+        if(!confirm("이 행의 시간표 내용을 삭제할까요?")) return;
+
+        fixedBossRows.splice(rowIndex,1);
+
+        if(!fixedBossRows.length){
+          fixedBossRows.push(fixedBossEmptyRow());
+        }
+
+        if(fixedBossHasContent(fixedBossRows[fixedBossRows.length - 1])){
+          fixedBossRows.push(fixedBossEmptyRow());
+        }
+
+        fixedBossRender();
+      });
+
+      timeTd.appendChild(del);
+
     }else{
       timeTd.textContent = row.time;
     }
