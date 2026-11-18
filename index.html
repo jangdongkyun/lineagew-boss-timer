@@ -5796,6 +5796,7 @@ async function fixedBossLoad(){
   }
 }
 
+
 async function fixedBossSave(){
   if(!isAdmin()){
     alert("관리자만 시간표를 저장할 수 있습니다.");
@@ -5810,7 +5811,13 @@ async function fixedBossSave(){
       .filter(fixedBossHasContent)
       .map(row => ({
         time: String(row.time || "").trim(),
-        days: row.days.map(value => String(value || "").trim())
+        days: row.days.map(value => String(value || "").trim()),
+        merges: Array.isArray(row.merges)
+          ? row.merges.map(m => ({
+              start: m.start,
+              end: m.end
+            }))
+          : []
       }));
 
     const {error} = await db
@@ -5825,8 +5832,10 @@ async function fixedBossSave(){
     if(error) throw error;
 
     fixedBossRows = fixedBossNormalizeRows(rows);
+    fixedBossSelectedCells.clear();
     fixedBossRender();
-    alert("고정보스 시간표를 저장했습니다.");
+
+    alert("고정보스 시간표와 병합 정보를 저장했습니다.");
 
   }catch(error){
     console.error("고정보스 시간표 저장 오류:",error);
@@ -5835,6 +5844,7 @@ async function fixedBossSave(){
     saveBtn.disabled = false;
   }
 }
+
 
 document.getElementById("fixedBossOpenBtn").addEventListener("click",async()=>{
   const modal = document.getElementById("fixedBossModal");
