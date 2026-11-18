@@ -4837,14 +4837,14 @@ function startKobot(){
 
   kobotClearTimers();
   kobotActive = true;
-  kobotMode = "wake";
+  kobotMode = "command";
   kobotPauseRecognition = false;
   kobotAfterStop = null;
   kobotRecognition = kobotCreateRecognition();
 
   $("kobotStartBtn").disabled = true;
   $("kobotStopBtn").disabled = false;
-  kobotSetMessage("마이크 연결을 시작합니다. “코봇!”이라고 불러보세요.");
+  kobotSetMessage("질문을 말씀해 주세요. 코봇이 계속 듣고 있어요.");
   kobotSetStatus("마이크 연결 중...","active");
   kobotStartRecognition();
 }
