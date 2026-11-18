@@ -4856,15 +4856,35 @@ if(intent === "next_boss"){
       return;
     }
 
+
+  // 직전 대화의 보스에 대한 후속 질문
+  const followUpText = text.replace(/\s/g,"");
+
+  if(
+    kobotLastDiscussedBoss &&
+    (
+      /(걔는?|그보스|그건|그거는|아까말한보스|방금말한보스).*(몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간|몇시에나와|언제출현)/.test(followUpText) ||
+      /(몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간|몇시에나와|언제출현)/.test(followUpText)
+    )
+  ){
+    const previousBoss = kobotLastDiscussedBoss;
+    const at = nextAt(previousBoss);
+
+    if(at == null){
+      kobotRespond(`${previousBoss.name}의 출현 예정 시간을 확인할 수 없어요.`);
+      return;
+    }
+
     kobotRespond(
       `${previousBoss.name}은 예상 출현까지 ${kobotFormatRemaining(Number(at))} 남았어요.`
     );
     return;
   }
 
-  kobotRespond(
-    "아직 그 질문은 정확히 이해하지 못했어요. 다음 보스 누구야, 또는 보스 이름을 넣어서 물어봐 주세요."
-  );
+
+kobotRespond(
+  "말씀하신 내용을 조금 더 구체적으로 알려주시겠어요? 다음 보스 조회인지, 특정 보스 시간 조회인지, 컷 등록인지 말씀해 주시면 바로 도와드릴게요."
+);
 }
 
 function kobotCreateRecognition(){
