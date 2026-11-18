@@ -4516,7 +4516,7 @@ function kobotHandleCommand(transcript){
               ()=>{
                 if(!kobotActive) return;
                 kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
-                kobotSetMessage("다시 부르려면 코봇이라고 말씀해 주세요.");
+                질문을 말씀해 주세요. 계속 듣고 있어요.
                 kobotStartRecognition();
               }
             );
@@ -4851,7 +4851,7 @@ function startKobot(){
 
 function stopKobot(){
   kobotActive = false;
-  kobotMode = "wake";
+  kobotMode = "command";
   kobotPauseRecognition = true;
   kobotAfterStop = null;
   kobotClearTimers();
