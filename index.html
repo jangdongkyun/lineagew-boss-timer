@@ -4841,11 +4841,22 @@ if(intent === "next_boss"){
     return;
   }
 
+
   // 직전 대화의 보스에 대한 후속 질문
+  const followUpText = text.replace(/\s/g,"");
+
+  const asksClockTime =
+    /(출현예상시각|예상출현시각|몇시야|몇시인데|몇시에나와|몇시에출현|출현몇시)/.test(followUpText);
+
+  const asksRemaining =
+    /(몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간|언제출현)/.test(followUpText);
+
   if(
     kobotLastDiscussedBoss &&
-    /(걔는|그보스|몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간)/.test(
-      text.replace(/\s/g,"")
+    (
+      /(걔는?|그보스|그건|그거는|아까말한보스|방금말한보스).*(몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간|몇시에나와|언제출현|출현예상시각|예상출현시각|몇시)/.test(followUpText) ||
+      asksClockTime ||
+      asksRemaining
     )
   ){
     const previousBoss = kobotLastDiscussedBoss;
@@ -4856,22 +4867,15 @@ if(intent === "next_boss"){
       return;
     }
 
+    if(asksClockTime){
+      const expectedTime = new Date(Number(at)).toLocaleTimeString(
+        "ko-KR",
+        {hour:"numeric",minute:"2-digit",hour12:true}
+      );
 
-  // 직전 대화의 보스에 대한 후속 질문
-  const followUpText = text.replace(/\s/g,"");
-
-  if(
-    kobotLastDiscussedBoss &&
-    (
-      /(걔는?|그보스|그건|그거는|아까말한보스|방금말한보스).*(몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간|몇시에나와|언제출현)/.test(followUpText) ||
-      /(몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간|몇시에나와|언제출현)/.test(followUpText)
-    )
-  ){
-    const previousBoss = kobotLastDiscussedBoss;
-    const at = nextAt(previousBoss);
-
-    if(at == null){
-      kobotRespond(`${previousBoss.name}의 출현 예정 시간을 확인할 수 없어요.`);
+      kobotRespond(
+        `${previousBoss.name}의 예상 출현 시각은 ${expectedTime}이에요.`
+      );
       return;
     }
 
