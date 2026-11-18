@@ -4770,7 +4770,7 @@ function kobotCreateRecognition(){
       if(!transcript) continue;
 
       if(kobotMode === "wake"){
-        const normalized = transcript.replace(/[\\s.,!?~。！？]/g,"");
+      const normalized = transcript.replace(/[\s.,!?~。！？]/g,"");
         if(normalized.includes("코봇")){
           kobotHandleWakeWord(transcript);
           return;
