@@ -5270,6 +5270,15 @@ $("nickToggle").addEventListener("click",()=>{
 
 $("saveNickBtn").addEventListener("click",changeNickname);
 $("manualCutBtn").addEventListener("click",manualCut);
+  
+// 컷 시간 입력 후 Enter 키로 등록
+$("manualCutTime").addEventListener("keydown",e=>{
+  if(e.key === "Enter"){
+    e.preventDefault();
+    manualCut();
+  }
+});
+  
 $("openCutHistoryBtn").addEventListener("click",()=>{
   openCutHistory();
 });
