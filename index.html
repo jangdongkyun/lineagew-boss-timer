@@ -5470,7 +5470,8 @@ let fixedBossIsLoading = false;
 function fixedBossEmptyRow(){
   return {
     time: "",
-    days: ["","","","","","",""]
+    days: ["","","","","","",""],
+    merges: []
   };
 }
 
@@ -5487,7 +5488,21 @@ function fixedBossNormalizeRows(rows){
         time: String(row.time || ""),
         days: Array.from({length:7}, (_,i) =>
           String(row.days?.[i] || "")
-        )
+        ),
+        merges: Array.isArray(row.merges)
+          ? row.merges
+              .filter(m =>
+                Number.isInteger(m.start) &&
+                Number.isInteger(m.end) &&
+                m.start >= 0 &&
+                m.end <= 6 &&
+                m.end > m.start
+              )
+              .map(m => ({
+                start: m.start,
+                end: m.end
+              }))
+          : []
       }))
     : [];
 
