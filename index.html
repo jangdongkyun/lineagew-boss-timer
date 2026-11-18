@@ -5316,13 +5316,15 @@ function kobotMergePanels(){
 }
 
 kobotMergePanels();
-// 혈맹원 접속 현황을 코봇 바로 위로 이동
+// 접속자 정보와 오프라인 정보를 개인 설정 아래로 배치
 (function(){
   const onlinePanel = document.querySelector(".online-panel");
-  const kobotPanel = document.getElementById("kobotPanel");
+  const offlinePanel = document.querySelector(".offline-panel");
+  const personalPanel = document.getElementById("welcome")?.closest(".panel");
 
-  if(onlinePanel && kobotPanel){
-    kobotPanel.parentNode.insertBefore(onlinePanel, kobotPanel);
+  if(personalPanel && onlinePanel && offlinePanel){
+    personalPanel.insertAdjacentElement("afterend", onlinePanel);
+    onlinePanel.insertAdjacentElement("afterend", offlinePanel);
   }
 })();
 $("kobotStartBtn").addEventListener("click",startKobot);
