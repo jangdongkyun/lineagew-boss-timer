@@ -4342,6 +4342,67 @@ function kobotFormatRemaining(timestamp){
 }
 
 
+// =========================================
+// 코봇 음성 컷 등록 보조 기능
+// =========================================
+let kobotPendingCut = null;
+
+function kobotParseCutTimeFromSpeech(text){
+  const compact = kobotNormalizeText(text).replace(/\s/g,"");
+
+  // 지금 컷
+  if(
+    compact.includes("지금컷") ||
+    compact.includes("현재컷") ||
+    compact.includes("방금컷") ||
+    compact.includes("바로컷")
+  ){
+    return new Date();
+  }
+
+  let match = compact.match(/(\d{1,2})시(\d{1,2})분?/);
+
+  if(!match){
+    match = compact.match(/(\d{1,2}):(\d{2})/);
+  }
+
+  if(!match){
+    match = compact.match(/(?:^|[^0-9])(\d{4})(?:$|[^0-9])/);
+    if(match){
+      const digits = match[1];
+      match = [match[0],digits.slice(0,2),digits.slice(2,4)];
+    }
+  }
+
+  if(!match) return null;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+
+  if(hour < 0 || hour > 23 || minute < 0 || minute > 59){
+    return null;
+  }
+
+  const timeText =
+    String(hour).padStart(2,"0") + ":" +
+    String(minute).padStart(2,"0");
+
+  return parseCutTime(timeText);
+}
+
+function kobotIsPositiveConfirmation(text){
+  return /^(네|예|응|어|맞아|맞아요|그래|좋아|좋아요|확인|등록해|등록해줘|진행해|해줘|그렇게해|네등록해)$/.test(
+    kobotNormalizeText(text).replace(/\s/g,"")
+  );
+}
+
+function kobotIsNegativeConfirmation(text){
+  return /^(아니|아니요|아냐|취소|취소해|하지마|등록하지마|아니등록하지마)$/.test(
+    kobotNormalizeText(text).replace(/\s/g,"")
+  );
+}
+
+  
 function kobotHandleCommand(transcript){
   if(kobotCommandTimer){
     clearTimeout(kobotCommandTimer);
@@ -4386,6 +4447,102 @@ function kobotHandleCommand(transcript){
     }
   }
 
+
+  // 컷 등록 확인 대기 중인 경우
+  if(kobotPendingCut){
+    if(kobotIsPositiveConfirmation(text)){
+      const pending = kobotPendingCut;
+      kobotPendingCut = null;
+
+      kobotPauseRecognition = true;
+      kobotAfterStop = ()=>{
+        kobotAfterStop = null;
+        kobotPauseRecognition = false;
+
+        (async()=>{
+          try{
+            await registerCut(pending.boss,pending.cutAt);
+
+            kobotSpeak(
+              `${pending.boss.name} 컷 기록을 등록했어요.`,
+              ()=>{
+                if(!kobotActive) return;
+                kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
+                kobotSetMessage("다시 부르려면 코봇이라고 말씀해 주세요.");
+                kobotStartRecognition();
+              }
+            );
+          }catch(error){
+            console.error("코봇 컷 등록 오류:",error);
+            kobotSpeak("컷 등록에 실패했어요. 로그인 상태와 데이터 연결을 확인해 주세요.",()=>{
+              if(kobotActive) kobotStartRecognition();
+            });
+          }
+        })();
+      };
+
+      if(kobotRecognition){
+        try{kobotRecognition.stop();}
+        catch(error){
+          const callback = kobotAfterStop;
+          kobotAfterStop = null;
+          if(callback) callback();
+        }
+      }else{
+        const callback = kobotAfterStop;
+        kobotAfterStop = null;
+        if(callback) callback();
+      }
+      return;
+    }
+
+    if(kobotIsNegativeConfirmation(text)){
+      kobotPendingCut = null;
+      kobotRespond("컷 등록을 취소했어요.");
+      return;
+    }
+
+    kobotRespond("등록할까요? 네 또는 아니요로 대답해 주세요.");
+    return;
+  }
+
+  // 컷 등록 명령 감지
+  const cutIntent =
+    /(컷|기록|등록|입력|잡았|잡았어|처치)/.test(text);
+
+  if(cutIntent){
+    const cutBoss = kobotFindBossInText(text);
+
+    if(!cutBoss){
+      kobotRespond("어떤 보스의 컷을 등록할까요? 보스 이름을 함께 말씀해 주세요.");
+      return;
+    }
+
+    const cutAt = kobotParseCutTimeFromSpeech(text);
+
+    if(!cutAt){
+      kobotRespond(`${cutBoss.name} 컷 시간을 말씀해 주세요. 예를 들어 21시 35분 또는 지금 컷이라고 말하면 돼요.`);
+      return;
+    }
+
+    kobotPendingCut = {
+      boss: cutBoss,
+      cutAt: cutAt
+    };
+
+    const timeText = cutAt.toLocaleTimeString("ko-KR",{
+      hour:"2-digit",
+      minute:"2-digit",
+      hour12:false
+    });
+
+    kobotRespond(
+      `${cutBoss.name}, 오늘 ${timeText} 컷으로 등록할까요? 등록하려면 네, 취소하려면 아니요라고 말씀해 주세요.`
+    );
+    return;
+  }
+  
+  
   // 글씨 전용 모드
   if(
     text.includes("글씨로 대답") ||
