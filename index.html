@@ -952,9 +952,20 @@ let kobotRestartTimer = null;
 let kobotCommandTimer = null;
 let kobotPauseRecognition = false;
 let kobotAfterStop = null;
-let kobotVoiceReplyEnabled = (()=>{
-  try{return localStorage.getItem("kobot_voice_reply") !== "false";}catch(error){return true;}
-})();
+let kobotVoiceReplyEnabled = true;
+
+function kobotLoadReplyMode(){
+  try{
+    const key = user?.id ? `kobot_voice_reply_${user.id}` : null;
+    const saved = key ? localStorage.getItem(key) : null;
+
+    kobotVoiceReplyEnabled = saved === null ? true : saved !== "false";
+  }catch(error){
+    kobotVoiceReplyEnabled = true;
+  }
+
+  kobotUpdateReplyMode();
+}
 let kobotReplyHistory = [];
 let cutHistoryMode = "boss";
 
@@ -4208,7 +4219,11 @@ function kobotUpdateReplyMode(){
 
 function kobotSetReplyMode(enabled, announce=true){
   kobotVoiceReplyEnabled = !!enabled;
-  try{localStorage.setItem("kobot_voice_reply",String(kobotVoiceReplyEnabled));}catch(error){}
+try{
+  if(user?.id){
+    localStorage.setItem(`kobot_voice_reply_${user.id}`,String(kobotVoiceReplyEnabled));
+  }
+}catch(error){}
   kobotUpdateReplyMode();
   if(announce){
     const message = kobotVoiceReplyEnabled
@@ -4443,6 +4458,7 @@ function kobotHandleCommand(transcript){
 
   kobotMode = "wake";
   kobotSetTranscript("인식한 말씀: " + transcript);
+  kobotAddReply(transcript,"나");
 
   const text = kobotNormalizeText(transcript);
   if(!text) return;
@@ -4850,6 +4866,12 @@ function stopKobot(){
 
 async function enterApp(currentUser){
   user = currentUser;
+  kobotLoadReplyMode();
+
+  kobotReplyHistory = [];
+  const replyLog = $("kobotReplyLog");
+  if(replyLog) replyLog.innerHTML = "";
+  
   $("auth").style.display = "none";
   $("app").style.display = "block";
 
