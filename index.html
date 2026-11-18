@@ -873,16 +873,34 @@ style="
       </div>
 
       <div class="field">
-        <label>컷 시간</label>
-        <input
-          id="manualCutTime"
-          placeholder="2135 또는 21:35"
-          maxlength="5"
-        >
-      </div>
+<div class="field">
+  <label>컷 시간</label>
 
-    </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input
+      id="manualCutTime"
+      placeholder="2135 또는 21:35"
+      maxlength="5"
+      style="width:50%;min-width:0;flex:1"
+    >
 
+    <button
+      class="primary"
+      id="manualCutBtn"
+      type="button"
+      style="
+        flex:1;
+        min-width:0;
+        padding:12px 8px;
+        background:#806b3e;
+        white-space:nowrap;
+      ">
+      시간 등록
+    </button>
+  </div>
+</div>
+
+</div>
 <button class="primary"
   id="manualCutBtn"
   type="button"
