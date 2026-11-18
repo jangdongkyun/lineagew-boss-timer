@@ -4356,13 +4356,52 @@ function kobotHandleWakeWord(transcript){
 // =========================================
 let kobotLastDiscussedBoss = null;
 
+
 function kobotNormalizeText(value){
   return String(value || "")
     .toLowerCase()
-    .replace(/[.,!?~。，！？]/g, "")
+    .replace(/[.,!?~。，！？]/g, " ")
+    .replace(/[“”‘’"'`]/g, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
+
+
+function kobotDetectIntent(text){
+  const t = kobotNormalizeText(text).replace(/\s/g,"");
+
+  if(
+    /(도움말|무슨명령|어떻게사용|뭘할수있어|사용방법)/.test(t)
+  ) return "help";
+
+  if(
+    /(전체보스|보스현황|보스목록|보스상황|보스들상태)/.test(t)
+  ) return "all_bosses";
+
+  if(
+    /(그다음보스|두번째보스|2번째보스|다음다음보스|그다음은)/.test(t)
+  ) return "second_boss";
+
+  if(
+    /(다음보스|가장먼저나올|먼저나올보스|제일먼저나올|가장가까운보스|다음에나올보스|다음으로나올보스|다음리스폰)/.test(t)
+  ) return "next_boss";
+
+  if(
+    /(언제나와|몇분남았|얼마나남았|몇시간남았|출현시간|예상시간)/.test(t)
+  ) return "boss_time";
+
+  if(
+    /(컷|기록|등록|입력|잡았|처치)/.test(t)
+  ) return "cut";
+
+  if(
+    /(고마워|감사해|감사합니다|수고했어)/.test(t)
+  ) return "thanks";
+
+  return "unknown";
+}
+
 
 function kobotFindBossInText(text){
   const normalized = kobotNormalizeText(text);
