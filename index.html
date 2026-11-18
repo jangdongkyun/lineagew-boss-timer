@@ -4278,66 +4278,263 @@ function kobotHandleWakeWord(transcript){
   }
 }
 
+
+// =========================================
+// 코봇 자연어 보스 조회
+// =========================================
+let kobotLastDiscussedBoss = null;
+
+function kobotNormalizeText(value){
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[.,!?~。，！？]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function kobotFindBossInText(text){
+  const normalized = kobotNormalizeText(text);
+
+  const candidates = [];
+
+  (bosses || []).forEach(boss => {
+    const aliases = Array.isArray(boss.aliases)
+      ? boss.aliases
+      : String(boss.aliases || "").split(",");
+
+    [boss.name, ...aliases].forEach(name => {
+      const alias = kobotNormalizeText(name);
+      if(alias && normalized.includes(alias)){
+        candidates.push({
+          boss,
+          length: alias.length
+        });
+      }
+    });
+  });
+
+  candidates.sort((a,b) => b.length - a.length);
+  return candidates.length ? candidates[0].boss : null;
+}
+
+function kobotGetUpcomingBosses(){
+  return (getSortedBosses() || [])
+    .filter(boss => nextAt(boss) != null)
+    .sort((a,b) => Number(nextAt(a)) - Number(nextAt(b)));
+}
+
+function kobotFormatRemaining(timestamp){
+  const remaining = Number(timestamp) - Date.now();
+
+  if(remaining <= 0) return "예정 시간이 지났어요.";
+
+  if(typeof formatDuration === "function"){
+    return formatDuration(remaining);
+  }
+
+  const totalMinutes = Math.ceil(remaining / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return hours > 0
+    ? `${hours}시간 ${minutes}분`
+    : `${minutes}분`;
+}
+
+
 function kobotHandleCommand(transcript){
   if(kobotCommandTimer){
     clearTimeout(kobotCommandTimer);
     kobotCommandTimer = null;
   }
+
   kobotMode = "wake";
   kobotSetTranscript("인식한 말씀: " + transcript);
 
-  const normalized = String(transcript).replace(/[\s.,!?~。！？]/g,"");
-  const turnTextOnly = /(글씨|글자|텍스트)|((음성|목소리|말로).*(끄|꺼))|소리끄|조용히대답/.test(normalized);
-  const turnVoiceOn = /(음성|목소리|말로).*(켜|사용|대답)|소리켜|말로대답해/.test(normalized);
+  const text = kobotNormalizeText(transcript);
+  if(!text) return;
 
-  if(turnTextOnly){
+  // 답변 후 기존 음성 인식 대기 상태로 복귀
+  function kobotRespond(message){
     kobotPauseRecognition = true;
+
     kobotAfterStop = ()=>{
       kobotAfterStop = null;
       kobotPauseRecognition = false;
-      kobotSetReplyMode(false,false);
-      kobotSpeak("글씨 전용으로 바꿨어요. 이제 대답은 화면에 글씨로만 표시할게요.",()=>{
+
+      kobotSpeak(message,()=>{
         if(!kobotActive) return;
-        kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
-        kobotStartRecognition();
-      });
-    };
-  }else if(turnVoiceOn){
-    kobotPauseRecognition = true;
-    kobotAfterStop = ()=>{
-      kobotAfterStop = null;
-      kobotPauseRecognition = false;
-      kobotSetReplyMode(true,false);
-      kobotSpeak("음성 대답을 켰어요. 이제 말로 대답할게요.",()=>{
-        if(!kobotActive) return;
-        kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
-        kobotStartRecognition();
-      });
-    };
-  }else{
-    kobotPauseRecognition = true;
-    kobotAfterStop = ()=>{
-      kobotAfterStop = null;
-      kobotPauseRecognition = false;
-      kobotSpeak("네, 말씀을 들었어요.",()=>{
-        if(!kobotActive) return;
+
         kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
         kobotSetMessage("다시 부르려면 “코봇!”이라고 말씀해 주세요.");
         kobotStartRecognition();
       });
     };
-  }
 
-  if(kobotRecognition){
-    try{kobotRecognition.stop();}
-    catch(error){
-      if(kobotAfterStop){
+    if(kobotRecognition){
+      try{
+        kobotRecognition.stop();
+      }catch(error){
         const callback = kobotAfterStop;
         kobotAfterStop = null;
-        callback();
+        if(callback) callback();
       }
+    }else{
+      const callback = kobotAfterStop;
+      kobotAfterStop = null;
+      if(callback) callback();
     }
   }
+
+  // 글씨 전용 모드
+  if(
+    text.includes("글씨로 대답") ||
+    text.includes("글씨 전용") ||
+    text.includes("음성 끄") ||
+    text.includes("조용히 대답")
+  ){
+    kobotSetReplyMode(false,false);
+    kobotRespond("글씨 전용으로 바꿨어요. 이제 대답은 화면에 글씨로만 표시할게요.");
+    return;
+  }
+
+  // 음성 대답 모드
+  if(
+    text.includes("음성으로 대답") ||
+    text.includes("음성 켜") ||
+    text.includes("말로 대답")
+  ){
+    kobotSetReplyMode(true,false);
+    kobotRespond("음성 대답을 켰어요. 이제 말로 대답할게요.");
+    return;
+  }
+
+  // 도움말
+  if(text.includes("도움말") || text.includes("무슨 명령")){
+    kobotRespond(
+      "다음 보스 누구야, 그다음 보스는, 가스트 언제 나와처럼 물어보세요. 보스 이름과 컷 시간을 말하면 컷 등록도 도와드릴게요."
+    );
+    return;
+  }
+
+  // 전체 보스 현황
+  if(
+    text.includes("보스 현황") ||
+    text.includes("전체 보스") ||
+    text.includes("보스 목록") ||
+    text.includes("보스 상황")
+  ){
+    const list = kobotGetUpcomingBosses();
+
+    if(!list.length){
+      kobotRespond("예정된 보스 시간이 등록되어 있지 않아요.");
+      return;
+    }
+
+    const message = list.slice(0,5).map((boss,index)=>{
+      return `${index+1}번 ${boss.name}, ${kobotFormatRemaining(Number(nextAt(boss)))} 후`;
+    }).join(". ");
+
+    kobotLastDiscussedBoss = list[0];
+    kobotRespond(`가까운 보스 순서예요. ${message}`);
+    return;
+  }
+
+  // 두 번째 보스
+  if(
+    text.includes("그다음 보스") ||
+    text.includes("두 번째 보스") ||
+    text.includes("2번째 보스") ||
+    text.includes("다음 다음 보스") ||
+    text.includes("그다음은")
+  ){
+    const list = kobotGetUpcomingBosses();
+
+    if(list.length < 2){
+      kobotRespond("그다음으로 예정된 보스 정보가 없어요.");
+      return;
+    }
+
+    const boss = list[1];
+    kobotLastDiscussedBoss = boss;
+
+    kobotRespond(
+      `그다음 보스는 ${boss.name}이에요. 예상 시간까지 ${kobotFormatRemaining(Number(nextAt(boss)))} 남았어요.`
+    );
+    return;
+  }
+
+  // 첫 번째 다음 보스
+  if(
+    text.includes("다음 보스") ||
+    text.includes("가장 먼저 나올") ||
+    text.includes("먼저 나올 보스") ||
+    text.includes("다음에 리스폰")
+  ){
+    const list = kobotGetUpcomingBosses();
+
+    if(!list.length){
+      kobotRespond("예정된 보스 시간이 등록되어 있지 않아요.");
+      return;
+    }
+
+    const boss = list[0];
+    kobotLastDiscussedBoss = boss;
+
+    kobotRespond(
+      `다음 보스는 ${boss.name}이에요. 예상 시간까지 ${kobotFormatRemaining(Number(nextAt(boss)))} 남았어요.`
+    );
+    return;
+  }
+
+  // 특정 보스 조회
+  const boss = kobotFindBossInText(text);
+
+  if(boss){
+    kobotLastDiscussedBoss = boss;
+
+    const at = nextAt(boss);
+
+    if(at == null){
+      kobotRespond(`${boss.name}의 다음 출현 예정 시간을 아직 알 수 없어요.`);
+      return;
+    }
+
+    kobotRespond(
+      `${boss.name}은 예상 출현까지 ${kobotFormatRemaining(Number(at))} 남았어요.`
+    );
+    return;
+  }
+
+  // 직전 대화의 보스에 대한 후속 질문
+  if(
+    kobotLastDiscussedBoss &&
+    (
+      text.includes("걔는") ||
+      text.includes("그 보스") ||
+      text.includes("몇 분 남았") ||
+      text.includes("얼마나 남았") ||
+      text.includes("언제 나와") ||
+      text.includes("몇 시간 남았")
+    )
+  ){
+    const previousBoss = kobotLastDiscussedBoss;
+    const at = nextAt(previousBoss);
+
+    if(at == null){
+      kobotRespond(`${previousBoss.name}의 출현 예정 시간을 확인할 수 없어요.`);
+      return;
+    }
+
+    kobotRespond(
+      `${previousBoss.name}은 예상 출현까지 ${kobotFormatRemaining(Number(at))} 남았어요.`
+    );
+    return;
+  }
+
+  kobotRespond(
+    "아직 그 질문은 정확히 이해하지 못했어요. 다음 보스 누구야, 또는 보스 이름을 넣어서 물어봐 주세요."
+  );
 }
 
 function kobotCreateRecognition(){
