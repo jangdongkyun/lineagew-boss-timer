@@ -4828,6 +4828,21 @@ function startKobot(){
   }
   if(kobotActive) return;
 
+ // 시작 버튼을 누른 사용자 동작 안에서 음성 재생을 미리 활성화
+  if("speechSynthesis" in window){
+    try{
+      window.speechSynthesis.cancel();
+
+      const warmup = new SpeechSynthesisUtterance("");
+      warmup.lang = "ko-KR";
+      warmup.volume = 0;
+
+      window.speechSynthesis.speak(warmup);
+    }catch(error){
+      console.warn("코봇 음성 재생 준비 오류:",error);
+    }
+  }
+
   kobotClearTimers();
   kobotActive = true;
   kobotMode = "wake";
