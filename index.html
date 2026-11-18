@@ -4480,36 +4480,14 @@ function kobotHandleCommand(transcript){
   if(!text) return;
 
   // 답변 후 기존 음성 인식 대기 상태로 복귀
-  function kobotRespond(message){
-    kobotPauseRecognition = true;
+function kobotRespond(message){
+  kobotSpeak(message,()=>{
+    if(!kobotActive) return;
 
-    kobotAfterStop = ()=>{
-      kobotAfterStop = null;
-      kobotPauseRecognition = false;
-
-      kobotSpeak(message,()=>{
-        if(!kobotActive) return;
-
-        kobotSetStatus("말씀을 듣고 있어요.","active");
-        kobotSetMessage("질문을 말씀해 주세요. 계속 듣고 있어요.");
-        kobotStartRecognition();
-      });
-    };
-
-    if(kobotRecognition){
-      try{
-        kobotRecognition.stop();
-      }catch(error){
-        const callback = kobotAfterStop;
-        kobotAfterStop = null;
-        if(callback) callback();
-      }
-    }else{
-      const callback = kobotAfterStop;
-      kobotAfterStop = null;
-      if(callback) callback();
-    }
-  }
+    kobotSetStatus("말씀을 듣고 있어요.","active");
+    kobotSetMessage("말씀하시면 바로 들을게요.");
+  });
+}
 
 
   // 컷 등록 확인 대기 중인 경우
