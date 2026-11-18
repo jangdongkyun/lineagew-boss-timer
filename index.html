@@ -4589,6 +4589,30 @@ $("personalAlertBtn").addEventListener("click",()=>{
   openPersonalAlertSettings();
 });
 
+
+// =========================================
+// 코봇 메인 패널 통합
+// 기존 버튼과 이벤트 연결은 그대로 유지
+// =========================================
+function kobotMergePanels(){
+  const mainPanel = $("kobotPanel");
+  const replyPanel = $("kobotReplyPanel");
+
+  if(!mainPanel || !replyPanel) return;
+  if(mainPanel.contains(replyPanel)) return;
+
+  const replyContent = document.createElement("div");
+  replyContent.className = "kobot-reply-panel";
+
+  while(replyPanel.firstChild){
+    replyContent.appendChild(replyPanel.firstChild);
+  }
+
+  mainPanel.appendChild(replyContent);
+  replyPanel.remove();
+}
+
+kobotMergePanels();
 $("kobotStartBtn").addEventListener("click",startKobot);
 $("kobotStopBtn").addEventListener("click",stopKobot);
 $("kobotVoiceModeBtn").addEventListener("click",()=>kobotSetReplyMode(true,true));
