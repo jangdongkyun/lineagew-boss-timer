@@ -2920,6 +2920,14 @@ card.innerHTML = `
       card.querySelector("[data-row-cut]").addEventListener("click",()=>{
         rowCut(b.id);
       });
+
+      card.querySelector("[data-cut-input]").addEventListener("keydown",e=>{
+  if(e.key === "Enter"){
+    e.preventDefault();
+    rowCut(b.id);
+  }
+});
+      
       card.querySelector("[data-rollback]").addEventListener("click",()=>{
         rollbackCut(b.id);
       });
