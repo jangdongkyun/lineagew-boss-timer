@@ -4293,7 +4293,7 @@ function kobotHandleWakeWord(transcript){
       kobotStartRecognition();
       kobotCommandTimer = setTimeout(()=>{
         if(!kobotActive || kobotMode !== "command") return;
-        kobotMode = "wake";
+        kobotMode = "command";
         kobotPauseRecognition = true;
         if(kobotRecognition){
           kobotAfterStop = ()=>{
