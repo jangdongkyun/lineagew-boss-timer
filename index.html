@@ -340,19 +340,20 @@ h3{font-size:14px;margin:0 0 10px}
 /* 관리자 설정 팝업 배경 */
 #adminTools{
   display:none;
-  position:fixed;
-  inset:0;
+  position:fixed !important;
+  inset:0 !important;
+  width:100vw;
+  height:100vh;
   z-index:2147483647 !important;
-  background:rgba(0,0,0,.90);
+  background:rgba(0,0,0,.94);
   padding:16px;
   box-sizing:border-box;
   overflow-y:auto;
   overscroll-behavior:contain;
 }
 
-/* 팝업 열림 */
 #adminTools.is-open{
-  display:block;
+  display:block !important;
 }
 
 /* 팝업 상단 제목 */
@@ -1153,6 +1154,14 @@ let alerted = new Set();
 let lastPresenceUpdate = 0;
 
 const $ = id => document.getElementById(id);
+  // 관리자 팝업을 body 최상위로 이동
+(function(){
+  const adminTools = document.getElementById("adminTools");
+
+  if(adminTools && adminTools.parentElement !== document.body){
+    document.body.appendChild(adminTools);
+  }
+})();
 
 // Supabase에서 알림 설정 불러오기
 
