@@ -5620,6 +5620,26 @@ $("signupBtn").addEventListener("click",async()=>{
 
 $("saveNickBtn").addEventListener("click",changeNickname);
 
+
+  if(isHidden){
+    $("newNick").focus();
+  }
+});
+
+// 로그아웃
+$("logoutBtn").addEventListener("click",async()=>{
+  if(!confirm("로그아웃 하시겠습니까?")) return;
+
+  const {error} = await db.auth.signOut();
+
+  if(error){
+    alert("로그아웃 실패: " + error.message);
+    return;
+  }
+
+  await leaveApp();
+});
+  
 // 수기 컷 팝업 열기
 $("manualCutOpenBtn").addEventListener("click",()=>{
   $("manualCutModal").style.display = "flex";
