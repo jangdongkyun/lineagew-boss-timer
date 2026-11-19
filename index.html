@@ -1968,6 +1968,8 @@ $("bossDetailEditBtn").addEventListener("click",()=>{
 
   $("addBossBtn").textContent = "보스 수정 저장";
 
+  switchAdminBossView(true);
+
   // 관리자 설정 화면 안의 보스 입력 위치로 이동
   $("bossName").scrollIntoView({
     behavior:"smooth",
