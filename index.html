@@ -6883,27 +6883,54 @@ async function fixedBossSave(){
 }
 
 
-document.getElementById("fixedBossOpenBtn").addEventListener("click",async()=>{
-  const modal = document.getElementById("fixedBossModal");
-  modal.style.display = "flex";
-  await fixedBossLoad();
-});
+// =========================================
+// 고정보스 시간표 버튼 연결
+// =========================================
 
-document.getElementById("fixedBossCloseBtn").addEventListener("click",()=>{
-  document.getElementById("fixedBossModal").style.display = "none";
-});
+const fixedBossOpenBtn = document.getElementById("fixedBossOpenBtn");
+const fixedBossCloseBtn = document.getElementById("fixedBossCloseBtn");
+const fixedBossModal = document.getElementById("fixedBossModal");
+const fixedBossAddRowBtn = document.getElementById("fixedBossAddRowBtn");
+const fixedBossSaveBtn = document.getElementById("fixedBossSaveBtn");
 
-document.getElementById("fixedBossModal").addEventListener("click",event=>{
-  if(event.target.id === "fixedBossModal"){
-    event.currentTarget.style.display = "none";
-  }
-});
+// 시간표 열기
+if(fixedBossOpenBtn && fixedBossModal){
+  fixedBossOpenBtn.addEventListener("click",async()=>{
+    fixedBossModal.style.display = "flex";
+    await fixedBossLoad();
+  });
+}
 
-document.getElementById("fixedBossAddRowBtn").addEventListener("click",()=>{
-  if(!isAdmin()) return;
-  fixedBossRows.push(fixedBossEmptyRow());
-  fixedBossRender();
-});
+// 시간표 닫기
+if(fixedBossCloseBtn && fixedBossModal){
+  fixedBossCloseBtn.addEventListener("click",()=>{
+    fixedBossModal.style.display = "none";
+  });
+}
+
+// 팝업 바깥쪽 클릭 시 닫기
+if(fixedBossModal){
+  fixedBossModal.addEventListener("click",event=>{
+    if(event.target === fixedBossModal){
+      fixedBossModal.style.display = "none";
+    }
+  });
+}
+
+// 행 추가
+if(fixedBossAddRowBtn){
+  fixedBossAddRowBtn.addEventListener("click",()=>{
+    if(!isAdmin()) return;
+
+    fixedBossRows.push(fixedBossEmptyRow());
+    fixedBossRender();
+  });
+}
+
+// 시간표 저장
+if(fixedBossSaveBtn){
+  fixedBossSaveBtn.addEventListener("click",fixedBossSave);
+}
 
 document.getElementById("fixedBossSaveBtn").addEventListener("click",fixedBossSave);
 // 현재 시각에 맞춰 스케줄 강조를 매초 갱신
