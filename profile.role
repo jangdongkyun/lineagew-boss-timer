@@ -1459,17 +1459,31 @@ function closeAdminTools(){
 
 // 관리자 설정 열기
 $("adminSettingsBtn").addEventListener("click",()=>{
-  if(!isAdmin()) return;
+  console.log("관리자 버튼 클릭", {
+    profile: profile,
+    role: profile?.role,
+    isAdmin: isAdmin()
+  });
+
+  if(!isAdmin()){
+    alert(
+      "관리자 권한을 확인할 수 없습니다.\n" +
+      "현재 계정 권한: " + (profile?.role || "회원 정보 없음")
+    );
+    return;
+  }
+
+  const adminTools = $("adminTools");
+
+  if(!adminTools){
+    alert("관리자 설정 화면을 찾을 수 없습니다.");
+    return;
+  }
 
   adminToolsExpanded = true;
-
-  $("adminTools").classList.add("is-open");
-
-  $("adminSettingsBtn").textContent = "⚙ 관리자 설정";
-
-  $("adminTools").scrollTop = 0;
+  adminTools.classList.add("is-open");
+  adminTools.scrollTop = 0;
 });
-
 // 닫기 버튼
 $("adminToolsCloseBtn").addEventListener("click",()=>{
   closeAdminTools();
