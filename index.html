@@ -1959,13 +1959,20 @@ function openBossDetail(bossId){
 }
 
 // 상세 화면 닫기
-$("bossDetailCloseBtn").addEventListener("click",()=>{
-  $("bossDetailModal").style.display = "none";
-  selectedDetailBossId = null;
-});
+const bossDetailCloseBtn = $("bossDetailCloseBtn");
+
+if(bossDetailCloseBtn){
+  bossDetailCloseBtn.addEventListener("click",()=>{
+    $("bossDetailModal").style.display = "none";
+    selectedDetailBossId = null;
+  });
+}
 
 // 상세 화면에서 수정 선택
-$("bossDetailEditBtn").addEventListener("click",()=>{
+const bossDetailEditBtn = $("bossDetailEditBtn");
+
+if(bossDetailEditBtn){
+  bossDetailEditBtn.addEventListener("click",()=>{
   if(!selectedDetailBossId) return;
 
   const boss = bosses.find(b =>
