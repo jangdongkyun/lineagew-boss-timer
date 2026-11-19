@@ -997,6 +997,9 @@ style="
   <button class="primary" id="addBossBtn">보스 추가</button>
   <button class="ghost" id="clearBossForm">입력 초기화</button>
   <button class="danger" id="resetAllBossBtn">카운트 전체 초기화</button>
+  <button type="button" class="ghost" id="openBossManagerBtn">
+  보스 관리
+</button>
 </div>
 
  <div class="field">
@@ -1710,13 +1713,22 @@ function renderRespawnBulkManager(){
 
       return `
         <div class="respawn-boss-row">
-          <strong style="
-            color:#fff0c8;
-            font-size:12px;
-            word-break:keep-all;
-          ">
-            ${escapeHtml(b.name)}
-          </strong>
+<button type="button"
+  class="respawn-boss-name"
+  data-boss-detail="${escapeHtml(b.id)}"
+  style="
+    padding:0;
+    border:0;
+    background:transparent;
+    color:#fff0c8;
+    font-size:12px;
+    font-weight:bold;
+    text-align:left;
+    word-break:keep-all;
+    cursor:pointer;
+  ">
+  ${escapeHtml(b.name)}
+</button>
 
           ${[0.5,1,2].map(multiplier=>{
             const actual = Number(
@@ -1863,8 +1875,168 @@ function renderRespawnBulkManager(){
 }
 
 
+// =========================================
+// 보스 상세 정보 팝업
+// =========================================
 
+let selectedDetailBossId = null;
 
+function openBossDetail(bossId){
+  if(!isAdmin()) return;
+
+  const boss = bosses.find(b =>
+    String(b.id) === String(bossId)
+  );
+
+  if(!boss) return;
+
+  selectedDetailBossId = boss.id;
+
+  $("bossDetailTitle").textContent = boss.name;
+
+  $("bossDetailContent").innerHTML = `
+    <div style="
+      padding:12px;
+      border:1px solid #665638;
+      border-radius:8px;
+      line-height:2;
+    ">
+      <div>
+        <span style="color:#aaa">보스 이름</span><br>
+        <strong>${escapeHtml(boss.name)}</strong>
+      </div>
+
+      <div>
+        <span style="color:#aaa">기준 재출현 시간</span><br>
+        ${escapeHtml(boss.base_respawn_hours ?? boss.respawn_hours)}시간
+      </div>
+
+      <div>
+        <span style="color:#aaa">현재 적용 배율</span><br>
+        ${escapeHtml(boss.respawn_multiplier || 1)}배
+      </div>
+
+      <div>
+        <span style="color:#aaa">현재 재출현 시간</span><br>
+        ${escapeHtml(boss.respawn_hours)}시간
+      </div>
+
+      <div>
+        <span style="color:#aaa">별명</span><br>
+        ${escapeHtml((boss.aliases || []).join(", ") || "등록된 별명 없음")}
+      </div>
+
+      <div>
+        <span style="color:#aaa">최초 출현 예정 시각</span><br>
+        ${escapeHtml(formatDate(boss.initial_spawn_at))}
+      </div>
+    </div>
+  `;
+
+  $("bossDetailModal").style.display = "flex";
+}
+
+// 상세 화면 닫기
+$("bossDetailCloseBtn").addEventListener("click",()=>{
+  $("bossDetailModal").style.display = "none";
+  selectedDetailBossId = null;
+});
+
+// 상세 화면에서 수정 선택
+$("bossDetailEditBtn").addEventListener("click",()=>{
+  if(!selectedDetailBossId) return;
+
+  const boss = bosses.find(b =>
+    String(b.id) === String(selectedDetailBossId)
+  );
+
+  if(!boss) return;
+
+  $("bossDetailModal").style.display = "none";
+
+  editingBossId = boss.id;
+
+  $("bossName").value = boss.name;
+  $("bossAliases").value = (boss.aliases || []).join(", ");
+
+  $("respawnHours").value =
+    boss.base_respawn_hours ?? boss.respawn_hours;
+
+  $("initialSpawn").value = boss.initial_spawn_at
+    ? new Date(boss.initial_spawn_at).toISOString().slice(0,16)
+    : "";
+
+  $("addBossBtn").textContent = "보스 수정 저장";
+
+  // 관리자 설정 화면 안의 보스 입력 위치로 이동
+  $("bossName").scrollIntoView({
+    behavior:"smooth",
+    block:"center"
+  });
+
+  selectedDetailBossId = null;
+});
+
+// 배율 목록의 보스 이름 클릭 연결
+document.addEventListener("click",e=>{
+  const button = e.target.closest("[data-boss-detail]");
+
+  if(!button) return;
+
+  openBossDetail(button.dataset.bossDetail);
+});
+
+// =========================================
+// 보스 관리 / 배율 관리 화면 전환
+// =========================================
+
+let adminBossManagerOpen = false;
+
+function switchAdminBossView(showManager){
+  adminBossManagerOpen = showManager;
+
+  // 보스 이름·별명·시간 입력 영역
+  ["bossName","bossAliases","respawnHours","initialSpawn"]
+    .forEach(id=>{
+      const field = $(id)?.closest(".field");
+      if(field){
+        field.style.display = showManager ? "block" : "none";
+      }
+    });
+
+  // 보스 추가 및 입력 초기화 버튼
+  $("addBossBtn").style.display =
+    showManager ? "inline-block" : "none";
+
+  $("clearBossForm").style.display =
+    showManager ? "inline-block" : "none";
+
+  // 배율 관리 영역
+  const multiplierField =
+    $("respawnBulkBossList")?.closest(".field");
+
+  if(multiplierField){
+    multiplierField.style.display =
+      showManager ? "none" : "block";
+  }
+
+  // 보스 수정·삭제 목록
+  $("adminBossList").style.display =
+    showManager ? "block" : "none";
+
+  // 화면 전환 버튼 글자
+  $("openBossManagerBtn").textContent =
+    showManager ? "배율 관리로 돌아가기" : "보스 관리";
+}
+
+// 보스 관리 버튼
+$("openBossManagerBtn").addEventListener("click",()=>{
+  switchAdminBossView(!adminBossManagerOpen);
+});
+
+// 최초 화면은 기존 배율 관리 화면
+switchAdminBossView(false);
+  
 // 선택 보스 배율 저장 공통 함수
 async function saveSelectedBossMultipliers(updates, confirmText){
   if(!isAdmin()){
@@ -6114,6 +6286,56 @@ async function renderParticipationMemberDetail(userId,nickname,monthStart){
   </div>
 </div>
 
+<!-- 보스 상세 정보 팝업 -->
+<div id="bossDetailModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:10020;
+  background:rgba(0,0,0,.85);
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+">
+  <div style="
+    width:100%;
+    max-width:420px;
+    padding:18px;
+    border:1px solid #b18b45;
+    border-radius:12px;
+    background:linear-gradient(145deg,#20202a,#101016);
+    color:#fff0c8;
+    box-sizing:border-box;
+  ">
+    <h2 id="bossDetailTitle" style="
+      margin:0 0 16px;
+      color:#f0c36b;
+      text-align:center;
+    ">보스 상세 정보</h2>
+
+    <div id="bossDetailContent"></div>
+
+    <div style="
+      display:flex;
+      gap:10px;
+      margin-top:20px;
+    ">
+      <button type="button"
+        class="primary"
+        id="bossDetailEditBtn"
+        style="flex:1">
+        수정
+      </button>
+
+      <button type="button"
+        class="ghost"
+        id="bossDetailCloseBtn"
+        style="flex:1">
+        닫기
+      </button>
+    </div>
+  </div>
+</div>  
 
 <script>
 /* =====================================
