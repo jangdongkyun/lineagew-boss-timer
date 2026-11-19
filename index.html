@@ -6115,6 +6115,151 @@ let fixedBossRows = [];
 let fixedBossIsLoading = false;
 let fixedBossSelectedCells = new Map();
 
+/* 현재 시각 및 다음 고정보스 스케줄 강조 */
+(function(){
+  if(document.getElementById("fixedBossHighlightStyle")) return;
+
+  const style = document.createElement("style");
+  style.id = "fixedBossHighlightStyle";
+  style.textContent = `
+    #fixedBossTable tr.fixed-boss-active td{
+      background:rgba(181,137,53,.30) !important;
+      border-top:2px solid #e8c879 !important;
+      border-bottom:2px solid #e8c879 !important;
+    }
+
+    #fixedBossTable td.fixed-boss-blink,
+    #fixedBossTable td.fixed-boss-next{
+      background:rgba(218,166,62,.32) !important;
+      border:2px solid #e8c879 !important;
+      color:#ffe5a0 !important;
+      font-weight:bold;
+    }
+
+    #fixedBossTable td.fixed-boss-blink{
+      animation:fixedBossScheduleBlink 1s infinite;
+    }
+
+    #fixedBossTable td.fixed-boss-next{
+      box-shadow:inset 0 0 12px rgba(255,205,90,.35);
+    }
+
+    @keyframes fixedBossScheduleBlink{
+      0%,100%{
+        background:rgba(218,166,62,.18);
+        box-shadow:0 0 3px rgba(255,210,100,.2);
+      }
+      50%{
+        background:rgba(255,193,65,.65);
+        box-shadow:0 0 16px rgba(255,210,100,.9);
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+function fixedBossUpdateHighlight(){
+  const tbody = document.getElementById("fixedBossTbody");
+  if(!tbody) return;
+
+  const now = new Date();
+  const today = (now.getDay() + 6) % 7;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // 기존 강조 표시 초기화
+  tbody.querySelectorAll(".fixed-boss-active").forEach(el =>
+    el.classList.remove("fixed-boss-active")
+  );
+
+  tbody.querySelectorAll(".fixed-boss-blink, .fixed-boss-next").forEach(el => {
+    el.classList.remove("fixed-boss-blink", "fixed-boss-next");
+  });
+
+  // 현재 요일에 일정이 있는 시간만 추출
+  const events = [];
+
+  fixedBossRows.forEach((row,index)=>{
+    const time = String(row.time || "").trim();
+    const match = time.match(/^(\d{1,2}):?(\d{2})$/);
+
+    if(!match) return;
+    if(!String(row.days?.[today] || "").trim()) return;
+
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+
+    if(hour > 23 || minute > 59) return;
+
+    events.push({
+      rowIndex:index,
+      minutes:hour * 60 + minute
+    });
+  });
+
+  events.sort((a,b)=>a.minutes-b.minutes);
+
+  if(!events.length) return;
+
+  const previous = [...events].reverse().find(
+    event => event.minutes <= nowMinutes
+  );
+
+  const next = events.find(
+    event => event.minutes > nowMinutes
+  );
+
+  let target = null;
+  let blink = false;
+
+  if(previous && next){
+    // 다음 일정 5분 전까지 현재 일정 반짝임
+    if(nowMinutes < next.minutes - 5){
+      target = previous;
+      blink = true;
+    }else{
+      target = next;
+    }
+  }else if(previous){
+    target = previous;
+    blink = true;
+  }else{
+    target = next;
+  }
+
+  if(!target) return;
+
+  const tr = tbody.querySelector(
+    `tr[data-fixed-boss-row="${target.rowIndex}"]`
+  );
+
+  if(!tr) return;
+
+  tr.classList.add("fixed-boss-active");
+
+  // 현재 요일을 포함하는 셀 강조
+  const cells = tr.querySelectorAll("[data-fixed-boss-days]");
+
+  cells.forEach(td=>{
+    const range = td.dataset.fixedBossDays.split("-").map(Number);
+
+    if(today >= range[0] && today <= range[1]){
+      td.classList.add(blink
+        ? "fixed-boss-blink"
+        : "fixed-boss-next"
+      );
+    }
+  });
+
+  const timeCell = tr.querySelector("[data-fixed-boss-time]");
+  if(timeCell){
+    timeCell.classList.add(blink
+      ? "fixed-boss-blink"
+      : "fixed-boss-next"
+    );
+  }
+}
+  
+  
 function fixedBossEmptyRow(){
   return {
     time: "",
@@ -6187,8 +6332,10 @@ function fixedBossRender(){
     if(!Array.isArray(row.merges)) row.merges = [];
 
     const tr = document.createElement("tr");
+    tr.dataset.fixedBossRow = rowIndex;
 
     const timeTd = document.createElement("td");
+    timeTd.dataset.fixedBossTime = "true";
     timeTd.style.cssText =
       "border:1px solid #514832;padding:5px;background:#202630;";
 
@@ -6321,6 +6468,7 @@ function fixedBossRender(){
 
       const td = document.createElement("td");
       td.colSpan = span;
+      td.dataset.fixedBossDays = `${day}-${day + span - 1}`;
       td.style.cssText =
         "border:1px solid #514832;padding:4px;" +
         (day <= today && today <= day + span - 1
@@ -6516,6 +6664,9 @@ document.getElementById("fixedBossAddRowBtn").addEventListener("click",()=>{
 });
 
 document.getElementById("fixedBossSaveBtn").addEventListener("click",fixedBossSave);
+// 현재 시각에 맞춰 스케줄 강조를 매초 갱신
+setInterval(fixedBossUpdateHighlight, 1000);
+fixedBossUpdateHighlight();
 </script>
   
   
