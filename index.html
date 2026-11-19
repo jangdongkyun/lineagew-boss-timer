@@ -1243,6 +1243,23 @@ async function loadMyAlertSettings() {
 async function loadAdminPushSettings(){
   if(!isAdmin() || !user) return;
 
+  // 관리자 푸시 설정 화면이 없으면 건너뜁니다.
+  const requiredIds = [
+    "adminPushEnabled",
+    "adminPush3m",
+    "adminPush1m",
+    "adminPush30s",
+    "adminPush10s",
+    "adminPushSpawn",
+    "adminPushBossOptions",
+    "adminPushOptions"
+  ];
+
+  if(requiredIds.some(id => !$(id))){
+    console.warn("관리자 푸시 설정 화면의 일부 요소를 찾을 수 없습니다.");
+    return;
+  }
+
   const {data,error} = await db
     .from("user_alert_settings")
     .select("*")
@@ -1444,7 +1461,14 @@ async function saveAdminPushSettings(){
 
 // 저장 버튼 연결
 
-$("saveAdminPushSettingsBtn").addEventListener(
+const saveAdminPushBtn = $("saveAdminPushSettingsBtn");
+
+if(saveAdminPushBtn){
+  saveAdminPushBtn.addEventListener(
+    "click",
+    saveAdminPushSettings
+  );
+}
   "click",
   saveAdminPushSettings
 );
@@ -4357,17 +4381,6 @@ renderRespawnBulkManager();
   });
 }
 
-function renderAll(){
-  if(!profile || !user) return;
-  $("welcome").textContent = profile.nickname || "혈맹원";
-  $("roleText").textContent = isAdmin() ? "관리자" : "일반 회원";
-  $("newNick").value = profile.nickname || "";
-  renderBosses();
-  renderHistory();
-  renderAdmin();
-  renderOnline();
-  updateTimers();
-}
 
 function resetBossForm(){
   editingBossId = null;
@@ -5519,9 +5532,7 @@ $("loginBtn").addEventListener("click",async()=>{
   await enterApp(data.user);
 });
 
-$("signupBtn").addEventListener("click",async()=>{
-
-  
+// 비밀번호 재설정
 $("forgotPasswordBtn").addEventListener("click",async()=>{
   const email = $("email").value.trim();
 
@@ -5552,8 +5563,11 @@ $("forgotPasswordBtn").addEventListener("click",async()=>{
   }
 });
 
-  
+
+// 회원가입
+$("signupBtn").addEventListener("click",async()=>{
   const box = $("signupNickBox");
+
   if(box.style.display === "none"){
     box.style.display = "block";
     $("signupBtn").textContent = "회원가입 진행";
@@ -5567,16 +5581,20 @@ $("forgotPasswordBtn").addEventListener("click",async()=>{
   if(!email || !password || !nickname){
     return message("이메일, 비밀번호, 닉네임을 모두 입력하세요.");
   }
-  if(password.length<6){
+
+  if(password.length < 6){
     return message("비밀번호는 6자 이상 입력하세요.");
   }
 
   const {data,error} = await db.auth.signUp({
-    email,password,
+    email,
+    password,
     options:{data:{nickname}}
   });
 
-  if(error) return message("회원가입 실패: "+error.message);
+  if(error){
+    return message("회원가입 실패: " + error.message);
+  }
 
   if(data.session){
     await enterApp(data.user);
@@ -5584,20 +5602,6 @@ $("forgotPasswordBtn").addEventListener("click",async()=>{
     message("회원가입이 완료되었습니다. 이메일 인증이 필요한 경우 인증 후 로그인하세요.");
   }
 });
-
-$("logoutBtn").addEventListener("click",async()=>{
-  if(user){
-    await db.from("presence").update({last_seen:new Date(Date.now()-180000).toISOString()}).eq("user_id",user.id);
-  }
-  await db.auth.signOut();
-  await leaveApp();
-});
-
-$("nickToggle").addEventListener("click",()=>{
-  $("nickBox").style.display =
-    $("nickBox").style.display==="none" ? "block" : "none";
-});
-
 
 $("saveNickBtn").addEventListener("click",changeNickname);
 
