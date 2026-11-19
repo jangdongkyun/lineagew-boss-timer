@@ -4388,6 +4388,15 @@ renderRespawnBulkManager();
 }
 
 
+// 전체 화면 갱신
+function renderAll(){
+  renderBosses();
+  updateTimers();
+  renderOnline();
+  renderAdmin();
+}
+  
+
 function resetBossForm(){
   editingBossId = null;
   $("bossName").value = "";
