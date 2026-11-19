@@ -5623,13 +5623,35 @@ $("signupBtn").addEventListener("click",async()=>{
   }
 });
 
+
 $("saveNickBtn").addEventListener("click",changeNickname);
 
+// 닉네임 변경 창 열기 / 닫기
+$("nickToggle").addEventListener("click",()=>{
+  const box = $("nickBox");
+  const isHidden = box.style.display === "none";
+
+  box.style.display = isHidden ? "block" : "none";
 
   if(isHidden){
     $("newNick").focus();
   }
 });
+
+// 로그아웃
+$("logoutBtn").addEventListener("click",async()=>{
+  if(!confirm("로그아웃 하시겠습니까?")) return;
+
+  const {error} = await db.auth.signOut();
+
+  if(error){
+    alert("로그아웃 실패: " + error.message);
+    return;
+  }
+
+  await leaveApp();
+});
+
 
 // 로그아웃
 $("logoutBtn").addEventListener("click",async()=>{
