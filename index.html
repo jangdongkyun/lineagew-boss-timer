@@ -6388,7 +6388,6 @@ async function renderParticipationMemberDetail(userId,nickname,monthStart){
       <thead>
         <tr id="fixedBossHead">
           <th>시간</th>
-          <th>기본 위치</th>
           <th>월</th>
           <th>화</th>
           <th>수</th>
@@ -6783,7 +6782,7 @@ function fixedBossRender(){
 
   if(permission){
     permission.textContent = admin
-      ? "관리자 모드 · 기본 위치와 요일별 위치를 입력할 수 있습니다. 요일 선택 후 병합할 수 있습니다."
+      ? "관리자 모드 · 요일별 보스 이름과 출현 위치를 입력할 수 있습니다. 요일 선택 후 병합할 수 있습니다."
       : "조회 전용 · 관리자만 시간표를 수정할 수 있습니다.";
   }
 
@@ -6924,29 +6923,7 @@ function fixedBossRender(){
 
     tr.appendChild(timeTd);
 
-    // 기본 출현 위치
-    const locationTd = document.createElement("td");
-    locationTd.style.cssText =
-      "border:1px solid #514832;padding:4px;background:#202630;min-width:120px;";
 
-    if(admin){
-      const locationInput = document.createElement("input");
-      locationInput.value = row.defaultLocation || "";
-      locationInput.placeholder = "기본 출현 위치";
-      locationInput.style.cssText =
-        "width:100%;min-width:0;box-sizing:border-box;text-align:center;";
-
-      locationInput.addEventListener("change",()=>{
-        fixedBossRows[rowIndex].defaultLocation = locationInput.value;
-        fixedBossEnsureBlankRow();
-      });
-
-      locationTd.appendChild(locationInput);
-    }else{
-      locationTd.textContent = row.defaultLocation || "";
-    }
-
-    tr.appendChild(locationTd);
 
     // 월요일부터 일요일까지
     for(let day=0;day<7;day++){
