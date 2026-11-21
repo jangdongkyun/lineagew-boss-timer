@@ -6521,7 +6521,6 @@ function fixedBossUpdateHighlight(){
   const today = (now.getDay() + 6) % 7;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-  // 기존 강조 표시 초기화
   tbody.querySelectorAll(".fixed-boss-active").forEach(el =>
     el.classList.remove("fixed-boss-active")
   );
@@ -6530,7 +6529,6 @@ function fixedBossUpdateHighlight(){
     el.classList.remove("fixed-boss-blink", "fixed-boss-next");
   });
 
-  // 현재 요일에 일정이 있는 시간만 추출
   const events = [];
 
   fixedBossRows.forEach((row,index)=>{
@@ -6563,55 +6561,59 @@ function fixedBossUpdateHighlight(){
     event => event.minutes > nowMinutes
   );
 
-  let target = null;
+  let targetMinutes = null;
   let blink = false;
 
   if(previous && next){
-    // 다음 일정 5분 전까지 현재 일정 반짝임
     if(nowMinutes < next.minutes - 5){
-      target = previous;
+      targetMinutes = previous.minutes;
       blink = true;
     }else{
-      target = next;
+      targetMinutes = next.minutes;
     }
   }else if(previous){
-    target = previous;
+    targetMinutes = previous.minutes;
     blink = true;
   }else{
-    target = next;
+    targetMinutes = next.minutes;
   }
 
-  if(!target) return;
+  if(targetMinutes === null) return;
 
-  const tr = tbody.querySelector(
-    `tr[data-fixed-boss-row="${target.rowIndex}"]`
-  );
-
-  if(!tr) return;
-
-  tr.classList.add("fixed-boss-active");
-
-  // 현재 요일을 포함하는 셀 강조
-  const cells = tr.querySelectorAll("[data-fixed-boss-days]");
-
-  cells.forEach(td=>{
-    const range = td.dataset.fixedBossDays.split("-").map(Number);
-
-    if(today >= range[0] && today <= range[1]){
-      td.classList.add(blink
-        ? "fixed-boss-blink"
-        : "fixed-boss-next"
+  // 같은 시간에 출현하는 모든 보스를 함께 강조
+  events
+    .filter(event => event.minutes === targetMinutes)
+    .forEach(event => {
+      const tr = tbody.querySelector(
+        `tr[data-fixed-boss-row="${event.rowIndex}"]`
       );
-    }
-  });
 
-  const timeCell = tr.querySelector("[data-fixed-boss-time]");
-  if(timeCell){
-    timeCell.classList.add(blink
-      ? "fixed-boss-blink"
-      : "fixed-boss-next"
-    );
-  }
+      if(!tr) return;
+
+      tr.classList.add("fixed-boss-active");
+
+      const cells = tr.querySelectorAll("[data-fixed-boss-days]");
+
+      cells.forEach(td=>{
+        const range = td.dataset.fixedBossDays.split("-").map(Number);
+
+        if(today >= range[0] && today <= range[1]){
+          td.classList.add(blink
+            ? "fixed-boss-blink"
+            : "fixed-boss-next"
+          );
+        }
+      });
+
+      const timeCell = tr.querySelector("[data-fixed-boss-time]");
+
+      if(timeCell){
+        timeCell.classList.add(blink
+          ? "fixed-boss-blink"
+          : "fixed-boss-next"
+        );
+      }
+    });
 }
   
 // 고정보스 시간표 확대·축소 및 화면 이동
