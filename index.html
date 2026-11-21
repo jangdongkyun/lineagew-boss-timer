@@ -6722,7 +6722,8 @@ if(fixedBossZoomReset){
   });
 }
 
-// 마우스 이동 및 휴대폰 두 손가락 확대·축소
+
+// 마우스 이동 및 휴대폰 두 손가락 확대·축소·이동
 if(fixedBossViewport){
   const activePointers = new Map();
 
@@ -6734,16 +6735,24 @@ if(fixedBossViewport){
 
   let pinchStartDistance = 0;
   let pinchStartZoom = 1;
+  let pinchStartMidX = 0;
+  let pinchStartMidY = 0;
+  let pinchStartScrollLeft = 0;
+  let pinchStartScrollTop = 0;
 
-  function getPinchDistance(){
+  function getPinchInfo(){
     const points = [...activePointers.values()];
 
-    if(points.length < 2) return 0;
+    if(points.length < 2) return null;
 
     const dx = points[0].x - points[1].x;
     const dy = points[0].y - points[1].y;
 
-    return Math.sqrt(dx * dx + dy * dy);
+    return {
+      distance: Math.sqrt(dx * dx + dy * dy),
+      midX: (points[0].x + points[1].x) / 2,
+      midY: (points[0].y + points[1].y) / 2
+    };
   }
 
   fixedBossViewport.addEventListener("pointerdown", event => {
@@ -6758,8 +6767,18 @@ if(fixedBossViewport){
 
     if(activePointers.size === 2){
       dragging = false;
-      pinchStartDistance = getPinchDistance();
+
+      const pinch = getPinchInfo();
+
+      pinchStartDistance = pinch.distance;
       pinchStartZoom = fixedBossZoom;
+
+      pinchStartMidX = pinch.midX;
+      pinchStartMidY = pinch.midY;
+
+      pinchStartScrollLeft = fixedBossViewport.scrollLeft;
+      pinchStartScrollTop = fixedBossViewport.scrollTop;
+
       fixedBossViewport.style.cursor = "grabbing";
       return;
     }
@@ -6783,23 +6802,32 @@ if(fixedBossViewport){
     });
 
     if(activePointers.size >= 2){
-      const currentDistance = getPinchDistance();
+      const pinch = getPinchInfo();
 
       if(pinchStartDistance > 0){
+        // 두 손가락 간격으로 확대·축소
         fixedBossZoom = Math.max(
           0.5,
           Math.min(
             2.5,
-            pinchStartZoom * currentDistance / pinchStartDistance
+            pinchStartZoom * pinch.distance / pinchStartDistance
           )
         );
 
         fixedBossApplyZoom();
+
+        // 두 손가락의 중심 이동만큼 시간표도 이동
+        fixedBossViewport.scrollLeft =
+          pinchStartScrollLeft - (pinch.midX - pinchStartMidX);
+
+        fixedBossViewport.scrollTop =
+          pinchStartScrollTop - (pinch.midY - pinchStartMidY);
       }
 
       return;
     }
 
+    // 한 손가락 이동
     if(!dragging) return;
 
     fixedBossViewport.scrollLeft =
@@ -6839,6 +6867,7 @@ if(fixedBossViewport){
 }
 
 fixedBossApplyZoom();
+
 function fixedBossEmptyRow(){
   return {
     time: "",
