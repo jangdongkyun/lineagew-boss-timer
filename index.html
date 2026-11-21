@@ -7190,10 +7190,9 @@ if(merged){
           selectLabel.appendChild(document.createTextNode(" 선택"));
           td.appendChild(selectLabel);
         }
+      }
 
-
-if(admin && fixedBossEditMode){
-
+      if(admin && fixedBossEditMode){
   // 여러 보스 이름 입력
   const input = document.createElement("textarea");
   input.value = row.days[day] || "";
