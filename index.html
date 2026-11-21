@@ -6952,7 +6952,7 @@ if(saveBtn){
     timeTd.style.cssText =
       "border:1px solid #514832;padding:5px;background:#202630;min-width:90px;";
 
-    if(admin){
+    if(admin && fixedBossEditMode){
       const timeInput = document.createElement("input");
       timeInput.value = row.time || "";
       timeInput.placeholder = "시간";
