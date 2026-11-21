@@ -6508,6 +6508,30 @@ let fixedBossSelectedCells = new Map();
         box-shadow:0 0 16px rgba(255,210,100,.9);
       }
     }
+      /* 긴 보스 이름 자동 좌측 이동 */
+    .fixed-boss-marquee{
+      display:block;
+      width:100%;
+      overflow:hidden;
+      white-space:nowrap;
+      text-align:left;
+    }
+
+    .fixed-boss-marquee span{
+      display:inline-block;
+      white-space:nowrap;
+      animation:fixedBossMarquee 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes fixedBossMarquee{
+      0%,10%{
+        transform:translateX(0);
+      }
+      90%,100%{
+        transform:translateX(var(--boss-marquee-distance, 0px));
+      }
+    }
+    
   `;
   document.head.appendChild(style);
 })();
@@ -6664,46 +6688,123 @@ if(fixedBossZoomReset){
   });
 }
 
-// 마우스 또는 손가락으로 시간표 이동
+// 마우스 이동 및 휴대폰 두 손가락 확대·축소
 if(fixedBossViewport){
+  const activePointers = new Map();
+
   let dragging = false;
   let startX = 0;
   let startY = 0;
   let scrollLeft = 0;
   let scrollTop = 0;
 
+  let pinchStartDistance = 0;
+  let pinchStartZoom = 1;
+
+  function getPinchDistance(){
+    const points = [...activePointers.values()];
+
+    if(points.length < 2) return 0;
+
+    const dx = points[0].x - points[1].x;
+    const dy = points[0].y - points[1].y;
+
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
   fixedBossViewport.addEventListener("pointerdown", event => {
     if(event.target.closest("button,input,select,textarea,label")) return;
 
-    dragging = true;
-    startX = event.clientX;
-    startY = event.clientY;
-    scrollLeft = fixedBossViewport.scrollLeft;
-    scrollTop = fixedBossViewport.scrollTop;
+    activePointers.set(event.pointerId,{
+      x:event.clientX,
+      y:event.clientY
+    });
 
     fixedBossViewport.setPointerCapture(event.pointerId);
-    fixedBossViewport.style.cursor = "grabbing";
+
+    if(activePointers.size === 2){
+      dragging = false;
+      pinchStartDistance = getPinchDistance();
+      pinchStartZoom = fixedBossZoom;
+      fixedBossViewport.style.cursor = "grabbing";
+      return;
+    }
+
+    if(activePointers.size === 1){
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      scrollLeft = fixedBossViewport.scrollLeft;
+      scrollTop = fixedBossViewport.scrollTop;
+      fixedBossViewport.style.cursor = "grabbing";
+    }
   });
 
   fixedBossViewport.addEventListener("pointermove", event => {
+    if(!activePointers.has(event.pointerId)) return;
+
+    activePointers.set(event.pointerId,{
+      x:event.clientX,
+      y:event.clientY
+    });
+
+    if(activePointers.size >= 2){
+      const currentDistance = getPinchDistance();
+
+      if(pinchStartDistance > 0){
+        fixedBossZoom = Math.max(
+          0.5,
+          Math.min(
+            2.5,
+            pinchStartZoom * currentDistance / pinchStartDistance
+          )
+        );
+
+        fixedBossApplyZoom();
+      }
+
+      return;
+    }
+
     if(!dragging) return;
 
-    fixedBossViewport.scrollLeft = scrollLeft - (event.clientX - startX);
-    fixedBossViewport.scrollTop = scrollTop - (event.clientY - startY);
+    fixedBossViewport.scrollLeft =
+      scrollLeft - (event.clientX - startX);
+
+    fixedBossViewport.scrollTop =
+      scrollTop - (event.clientY - startY);
   });
 
-  function fixedBossStopDragging(){
-    dragging = false;
-    fixedBossViewport.style.cursor = "grab";
+  function fixedBossStopPointer(event){
+    activePointers.delete(event.pointerId);
+
+    if(activePointers.size < 2){
+      pinchStartDistance = 0;
+    }
+
+    if(activePointers.size === 1){
+      const point = [...activePointers.values()][0];
+
+      dragging = true;
+      startX = point.x;
+      startY = point.y;
+      scrollLeft = fixedBossViewport.scrollLeft;
+      scrollTop = fixedBossViewport.scrollTop;
+    }else{
+      dragging = false;
+    }
+
+    if(activePointers.size === 0){
+      fixedBossViewport.style.cursor = "grab";
+    }
   }
 
-  fixedBossViewport.addEventListener("pointerup", fixedBossStopDragging);
-  fixedBossViewport.addEventListener("pointercancel", fixedBossStopDragging);
-  fixedBossViewport.addEventListener("lostpointercapture", fixedBossStopDragging);
+  fixedBossViewport.addEventListener("pointerup", fixedBossStopPointer);
+  fixedBossViewport.addEventListener("pointercancel", fixedBossStopPointer);
+  fixedBossViewport.addEventListener("lostpointercapture", fixedBossStopPointer);
 }
 
-fixedBossApplyZoom();  
-
+fixedBossApplyZoom();
 function fixedBossEmptyRow(){
   return {
     time: "",
@@ -7033,10 +7134,31 @@ function fixedBossRender(){
 
         td.appendChild(dayLocationInput);
 
-      }else{
-        const bossName = document.createElement("div");
-        bossName.textContent = row.days[day] || "";
-        td.appendChild(bossName);
+}else{
+  const bossName = document.createElement("div");
+  bossName.className = "fixed-boss-marquee";
+
+  const bossNameText = document.createElement("span");
+  bossNameText.textContent = row.days[day] || "";
+
+  bossName.appendChild(bossNameText);
+  td.appendChild(bossName);
+
+  requestAnimationFrame(()=>{
+    const distance = bossNameText.scrollWidth - bossName.clientWidth;
+
+    if(distance > 4){
+      bossNameText.style.setProperty(
+        "--boss-marquee-distance",
+        `-${distance}px`
+      );
+
+      bossNameText.style.animationDuration =
+        `${Math.max(5, distance / 25)}s`;
+    }else{
+      bossNameText.style.animation = "none";
+    }
+  });
 
         const customLocation = String(row.locations[day] || "").trim();
         const defaultLocation = String(row.defaultLocation || "").trim();
