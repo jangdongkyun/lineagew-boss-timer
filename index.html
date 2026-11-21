@@ -6312,15 +6312,29 @@ async function renderParticipationMemberDetail(userId,nickname,monthStart){
 
 <!-- 고정보스 시간표 팝업 -->
 <div id="fixedBossModal" style="
-  display:none;position:fixed;inset:0;z-index:9999;
-  background:rgba(0,0,0,.82);padding:16px;
-  align-items:center;justify-content:center;
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  background:rgba(0,0,0,.88);
+  padding:6px;
+  box-sizing:border-box;
+  align-items:center;
+  justify-content:center;
 ">
   <div style="
-    width:100%;max-width:1100px;max-height:90vh;
-    overflow:hidden;background:#171b22;
-    border:1px solid #806b3e;border-radius:12px;
-    padding:16px;display:flex;flex-direction:column;
+    width:100%;
+    max-width:none;
+    height:96vh;
+    max-height:96vh;
+    overflow:hidden;
+    background:#171b22;
+    border:1px solid #806b3e;
+    border-radius:12px;
+    padding:12px;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:column;
   ">
     <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
       <h2 style="margin:0;color:#e8c879">📅 고정보스 타임스케줄</h2>
@@ -6331,21 +6345,63 @@ async function renderParticipationMemberDetail(userId,nickname,monthStart){
       시간표를 불러오는 중입니다.
     </div>
 
-    <div style="overflow:auto;max-height:65vh">
-      <table id="fixedBossTable" style="
-        width:100%;min-width:720px;border-collapse:collapse;
-        table-layout:fixed;text-align:center;
-      ">
-        <thead>
-          <tr id="fixedBossHead">
-            <th>시간</th>
-            <th>월</th><th>화</th><th>수</th><th>목</th>
-            <th>금</th><th>토</th><th>일</th>
-          </tr>
-        </thead>
-        <tbody id="fixedBossTbody"></tbody>
-      </table>
-    </div>
+<div style="
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+">
+  <span style="font-size:12px;color:#aaa;margin-right:auto;">
+    PC: 마우스로 이동 · 모바일: 손가락으로 이동
+  </span>
+
+  <button type="button" class="ghost" id="fixedBossZoomOut">－</button>
+  <span id="fixedBossZoomLabel" style="color:#e8c879;min-width:48px;text-align:center;">100%</span>
+  <button type="button" class="ghost" id="fixedBossZoomIn">＋</button>
+  <button type="button" class="ghost" id="fixedBossZoomReset">초기화</button>
+</div>
+
+<div id="fixedBossViewport" style="
+  flex:1;
+  min-height:0;
+  width:100%;
+  overflow:auto;
+  position:relative;
+  border:1px solid #454545;
+  border-radius:6px;
+  cursor:grab;
+  touch-action:none;
+">
+  <div id="fixedBossZoomContent" style="
+    min-width:900px;
+    transform-origin:top left;
+  ">
+    <table id="fixedBossTable" style="
+      width:100%;
+      min-width:900px;
+      border-collapse:collapse;
+      table-layout:fixed;
+      text-align:center;
+    ">
+      <thead>
+        <tr id="fixedBossHead">
+          <th>시간</th>
+          <th>기본 위치</th>
+          <th>월</th>
+          <th>화</th>
+          <th>수</th>
+          <th>목</th>
+          <th>금</th>
+          <th>토</th>
+          <th>일</th>
+        </tr>
+      </thead>
+      <tbody id="fixedBossTbody"></tbody>
+    </table>
+  </div>
+</div>
 
     <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px">
       <button type="button" class="ghost" id="fixedBossAddRowBtn">＋ 행 추가</button>
@@ -6558,11 +6614,101 @@ function fixedBossUpdateHighlight(){
   }
 }
   
-  
+// 고정보스 시간표 확대·축소 및 화면 이동
+let fixedBossZoom = 1;
+
+function fixedBossApplyZoom(){
+  const content = document.getElementById("fixedBossZoomContent");
+  const label = document.getElementById("fixedBossZoomLabel");
+
+  if(!content) return;
+
+  content.style.zoom = String(fixedBossZoom);
+
+  if(label){
+    label.textContent = Math.round(fixedBossZoom * 100) + "%";
+  }
+}
+
+function fixedBossChangeZoom(amount){
+  fixedBossZoom = Math.max(0.5, Math.min(2.5, fixedBossZoom + amount));
+  fixedBossApplyZoom();
+}
+
+const fixedBossZoomIn = document.getElementById("fixedBossZoomIn");
+const fixedBossZoomOut = document.getElementById("fixedBossZoomOut");
+const fixedBossZoomReset = document.getElementById("fixedBossZoomReset");
+const fixedBossViewport = document.getElementById("fixedBossViewport");
+
+if(fixedBossZoomIn){
+  fixedBossZoomIn.addEventListener("click", () => {
+    fixedBossChangeZoom(0.1);
+  });
+}
+
+if(fixedBossZoomOut){
+  fixedBossZoomOut.addEventListener("click", () => {
+    fixedBossChangeZoom(-0.1);
+  });
+}
+
+if(fixedBossZoomReset){
+  fixedBossZoomReset.addEventListener("click", () => {
+    fixedBossZoom = 1;
+    fixedBossApplyZoom();
+
+    if(fixedBossViewport){
+      fixedBossViewport.scrollTo(0, 0);
+    }
+  });
+}
+
+// 마우스 또는 손가락으로 시간표 이동
+if(fixedBossViewport){
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let scrollLeft = 0;
+  let scrollTop = 0;
+
+  fixedBossViewport.addEventListener("pointerdown", event => {
+    if(event.target.closest("button,input,select,textarea,label")) return;
+
+    dragging = true;
+    startX = event.clientX;
+    startY = event.clientY;
+    scrollLeft = fixedBossViewport.scrollLeft;
+    scrollTop = fixedBossViewport.scrollTop;
+
+    fixedBossViewport.setPointerCapture(event.pointerId);
+    fixedBossViewport.style.cursor = "grabbing";
+  });
+
+  fixedBossViewport.addEventListener("pointermove", event => {
+    if(!dragging) return;
+
+    fixedBossViewport.scrollLeft = scrollLeft - (event.clientX - startX);
+    fixedBossViewport.scrollTop = scrollTop - (event.clientY - startY);
+  });
+
+  function fixedBossStopDragging(){
+    dragging = false;
+    fixedBossViewport.style.cursor = "grab";
+  }
+
+  fixedBossViewport.addEventListener("pointerup", fixedBossStopDragging);
+  fixedBossViewport.addEventListener("pointercancel", fixedBossStopDragging);
+  fixedBossViewport.addEventListener("lostpointercapture", fixedBossStopDragging);
+}
+
+fixedBossApplyZoom();  
+
 function fixedBossEmptyRow(){
   return {
     time: "",
     days: ["","","","","","",""],
+    defaultLocation: "",
+    locations: ["","","","","","",""],
     merges: []
   };
 }
@@ -6570,7 +6716,9 @@ function fixedBossEmptyRow(){
 function fixedBossHasContent(row){
   return !!(
     String(row.time || "").trim() ||
-    (row.days || []).some(value => String(value || "").trim())
+    (row.days || []).some(value => String(value || "").trim()) ||
+    String(row.defaultLocation || "").trim() ||
+    (row.locations || []).some(value => String(value || "").trim())
   );
 }
 
@@ -6578,9 +6726,19 @@ function fixedBossNormalizeRows(rows){
   const result = Array.isArray(rows)
     ? rows.map(row => ({
         time: String(row.time || ""),
+
         days: Array.from({length:7}, (_,i) =>
           String(row.days?.[i] || "")
         ),
+
+        defaultLocation: String(
+          row.defaultLocation || row.location || ""
+        ),
+
+        locations: Array.from({length:7}, (_,i) =>
+          String(row.locations?.[i] || "")
+        ),
+
         merges: Array.isArray(row.merges)
           ? row.merges
               .filter(m =>
@@ -6598,13 +6756,19 @@ function fixedBossNormalizeRows(rows){
       }))
     : [];
 
-  while(result.length && !fixedBossHasContent(result[result.length - 1])){
+  while(
+    result.length &&
+    !fixedBossHasContent(result[result.length - 1])
+  ){
     result.pop();
   }
 
   result.push(fixedBossEmptyRow());
+
   return result;
 }
+
+
 
 
 function fixedBossRender(){
@@ -6617,32 +6781,35 @@ function fixedBossRender(){
 
   if(permission){
     permission.textContent = admin
-      ? "관리자 모드 · 요일 선택 후 병합하거나 병합 해제할 수 있습니다."
+      ? "관리자 모드 · 기본 위치와 요일별 위치를 입력할 수 있습니다. 요일 선택 후 병합할 수 있습니다."
       : "조회 전용 · 관리자만 시간표를 수정할 수 있습니다.";
   }
 
-  document.getElementById("fixedBossAddRowBtn").style.display =
-    admin ? "" : "none";
+  const addBtn = document.getElementById("fixedBossAddRowBtn");
+  const saveBtn = document.getElementById("fixedBossSaveBtn");
 
-  document.getElementById("fixedBossSaveBtn").style.display =
-    admin ? "" : "none";
+  if(addBtn) addBtn.style.display = admin ? "" : "none";
+  if(saveBtn) saveBtn.style.display = admin ? "" : "none";
 
   tbody.innerHTML = "";
 
   fixedBossRows.forEach((row,rowIndex) => {
     if(!Array.isArray(row.merges)) row.merges = [];
+    if(!Array.isArray(row.days)) row.days = ["","","","","","",""];
+    if(!Array.isArray(row.locations)) row.locations = ["","","","","","",""];
 
     const tr = document.createElement("tr");
     tr.dataset.fixedBossRow = rowIndex;
 
+    // 출현 시간
     const timeTd = document.createElement("td");
     timeTd.dataset.fixedBossTime = "true";
     timeTd.style.cssText =
-      "border:1px solid #514832;padding:5px;background:#202630;";
+      "border:1px solid #514832;padding:5px;background:#202630;min-width:90px;";
 
     if(admin){
       const timeInput = document.createElement("input");
-      timeInput.value = row.time;
+      timeInput.value = row.time || "";
       timeInput.placeholder = "시간";
       timeInput.style.cssText =
         "width:100%;min-width:0;text-align:center;box-sizing:border-box;";
@@ -6736,7 +6903,7 @@ function fixedBossRender(){
         );
 
         if(!values.every(value => value === values[0])){
-          alert("선택한 칸들의 내용이 서로 다릅니다. 같은 내용으로 맞춘 뒤 병합해 주세요.");
+          alert("선택한 칸들의 보스 이름이 서로 다릅니다. 같은 내용으로 맞춘 뒤 병합해 주세요.");
           return;
         }
 
@@ -6748,12 +6915,38 @@ function fixedBossRender(){
       });
 
       timeTd.appendChild(mergeBtn);
+
     }else{
-      timeTd.textContent = row.time;
+      timeTd.textContent = row.time || "";
     }
 
     tr.appendChild(timeTd);
 
+    // 기본 출현 위치
+    const locationTd = document.createElement("td");
+    locationTd.style.cssText =
+      "border:1px solid #514832;padding:4px;background:#202630;min-width:120px;";
+
+    if(admin){
+      const locationInput = document.createElement("input");
+      locationInput.value = row.defaultLocation || "";
+      locationInput.placeholder = "기본 출현 위치";
+      locationInput.style.cssText =
+        "width:100%;min-width:0;box-sizing:border-box;text-align:center;";
+
+      locationInput.addEventListener("change",()=>{
+        fixedBossRows[rowIndex].defaultLocation = locationInput.value;
+        fixedBossEnsureBlankRow();
+      });
+
+      locationTd.appendChild(locationInput);
+    }else{
+      locationTd.textContent = row.defaultLocation || "";
+    }
+
+    tr.appendChild(locationTd);
+
+    // 월요일부터 일요일까지
     for(let day=0;day<7;day++){
       const merged = row.merges.find(m =>
         day >= m.start && day <= m.end
@@ -6793,6 +6986,7 @@ function fixedBossRender(){
           });
 
           td.appendChild(unmergeBtn);
+
         }else{
           const selectLabel = document.createElement("label");
           selectLabel.style.cssText =
@@ -6822,9 +7016,10 @@ function fixedBossRender(){
           td.appendChild(selectLabel);
         }
 
+        // 보스 이름
         const input = document.createElement("input");
         input.value = row.days[day] || "";
-        input.placeholder = "입력";
+        input.placeholder = "보스 이름";
         input.style.cssText =
           "width:100%;min-width:0;box-sizing:border-box;text-align:center;";
 
@@ -6839,8 +7034,42 @@ function fixedBossRender(){
         });
 
         td.appendChild(input);
+
+        // 요일별 개별 위치
+        const dayLocationInput = document.createElement("input");
+        dayLocationInput.value = row.locations[day] || "";
+        dayLocationInput.placeholder = "개별 위치(선택)";
+        dayLocationInput.style.cssText =
+          "width:100%;min-width:0;box-sizing:border-box;text-align:center;margin-top:4px;";
+
+        dayLocationInput.addEventListener("change",()=>{
+          const end = merged ? merged.end : day;
+
+          for(let d=day;d<=end;d++){
+            fixedBossRows[rowIndex].locations[d] = dayLocationInput.value;
+          }
+
+          fixedBossEnsureBlankRow();
+        });
+
+        td.appendChild(dayLocationInput);
+
       }else{
-        td.textContent = row.days[day] || "";
+        const bossName = document.createElement("div");
+        bossName.textContent = row.days[day] || "";
+        td.appendChild(bossName);
+
+        const customLocation = String(row.locations[day] || "").trim();
+        const defaultLocation = String(row.defaultLocation || "").trim();
+        const shownLocation = customLocation || defaultLocation;
+
+        if(shownLocation){
+          const locationText = document.createElement("div");
+          locationText.textContent = "📍 " + shownLocation;
+          locationText.style.cssText =
+            "font-size:11px;color:#d7b86a;margin-top:4px;white-space:normal;";
+          td.appendChild(locationText);
+        }
       }
 
       tr.appendChild(td);
@@ -6893,6 +7122,7 @@ async function fixedBossLoad(){
 }
 
 
+
 async function fixedBossSave(){
   if(!isAdmin()){
     alert("관리자만 시간표를 저장할 수 있습니다.");
@@ -6900,6 +7130,9 @@ async function fixedBossSave(){
   }
 
   const saveBtn = document.getElementById("fixedBossSaveBtn");
+
+  if(!saveBtn) return;
+
   saveBtn.disabled = true;
 
   try{
@@ -6907,7 +7140,19 @@ async function fixedBossSave(){
       .filter(fixedBossHasContent)
       .map(row => ({
         time: String(row.time || "").trim(),
-        days: row.days.map(value => String(value || "").trim()),
+
+        days: Array.from({length:7}, (_,i) =>
+          String(row.days?.[i] || "").trim()
+        ),
+
+        defaultLocation: String(
+          row.defaultLocation || ""
+        ).trim(),
+
+        locations: Array.from({length:7}, (_,i) =>
+          String(row.locations?.[i] || "").trim()
+        ),
+
         merges: Array.isArray(row.merges)
           ? row.merges.map(m => ({
               start: m.start,
@@ -6931,15 +7176,21 @@ async function fixedBossSave(){
     fixedBossSelectedCells.clear();
     fixedBossRender();
 
-    alert("고정보스 시간표와 병합 정보를 저장했습니다.");
+    alert("고정보스 시간표와 출현 위치를 저장했습니다.");
 
   }catch(error){
     console.error("고정보스 시간표 저장 오류:",error);
-    alert("저장 실패: " + (error.message || "오류가 발생했습니다."));
+
+    alert(
+      "저장 실패: " +
+      (error.message || "오류가 발생했습니다.")
+    );
+
   }finally{
     saveBtn.disabled = false;
   }
 }
+
 
 
 // =========================================
