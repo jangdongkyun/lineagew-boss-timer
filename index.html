@@ -7247,20 +7247,19 @@ if(merged){
 
   const defaultLocation = String(row.defaultLocation || "").trim();
 
-  bossNames.forEach((name,index)=>{
-    const customLocation = locations[index] || "";
-    const shownLocation = customLocation || defaultLocation;
 
+  bossNames.forEach((name,index)=>{
     const bossLine = document.createElement("div");
     bossLine.className = "fixed-boss-marquee";
     bossLine.style.textAlign = "center";
     bossLine.style.marginBottom = "4px";
+    bossLine.style.fontSize = "12px";
 
     const bossText = document.createElement("span");
-    bossText.textContent =
-      shownLocation ? `${name} - ${shownLocation}` : name;
+    bossText.textContent = name;
 
     bossLine.appendChild(bossText);
+
     td.appendChild(bossLine);
 
     requestAnimationFrame(()=>{
