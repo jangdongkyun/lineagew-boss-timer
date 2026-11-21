@@ -7213,39 +7213,16 @@ if(merged){
 
   td.appendChild(input);
 
-  // 여러 보스의 개별 위치 입력
-  const dayLocationInput = document.createElement("textarea");
-  dayLocationInput.value = row.locations[day] || "";
-  dayLocationInput.placeholder = "위치 (보스 순서대로 줄바꿈)";
-  dayLocationInput.rows = 3;
-  dayLocationInput.style.cssText =
-    "width:100%;min-width:0;box-sizing:border-box;text-align:center;margin-top:4px;resize:vertical;";
-
-  dayLocationInput.addEventListener("change",()=>{
-    const end = merged ? merged.end : day;
-
-    for(let d=day;d<=end;d++){
-      fixedBossRows[rowIndex].locations[d] = dayLocationInput.value;
-    }
-
-    fixedBossEnsureBlankRow();
-  });
-
-  td.appendChild(dayLocationInput);
 
 }else{
 
-  // 보스 이름과 장소를 같은 줄에 표시
+
   const bossNames = String(row.days[day] || "")
     .split(/\r?\n/)
     .map(name => name.trim())
     .filter(Boolean);
 
-  const locations = String(row.locations[day] || "")
-    .split(/\r?\n/)
-    .map(location => location.trim());
 
-  const defaultLocation = String(row.defaultLocation || "").trim();
 
 
   bossNames.forEach((name,index)=>{
