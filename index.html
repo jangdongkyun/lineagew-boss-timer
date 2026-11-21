@@ -6403,8 +6403,17 @@ async function renderParticipationMemberDetail(userId,nickname,monthStart){
 </div>
 
     <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px">
-      <button type="button" class="ghost" id="fixedBossAddRowBtn">＋ 행 추가</button>
-      <button type="button" class="primary" id="fixedBossSaveBtn">시간표 저장</button>
+<button type="button" class="primary" id="fixedBossEditBtn" style="display:none;">
+  시간표 수정
+</button>
+
+<button type="button" class="ghost" id="fixedBossAddRowBtn" style="display:none;">
+  ＋ 행 추가
+</button>
+
+<button type="button" class="primary" id="fixedBossSaveBtn" style="display:none;">
+  수정 완료 · 저장
+</button>
     </div>
   </div>
 </div>
@@ -6468,6 +6477,7 @@ async function renderParticipationMemberDetail(userId,nickname,monthStart){
 let fixedBossRows = [];
 let fixedBossIsLoading = false;
 let fixedBossSelectedCells = new Map();
+let fixedBossEditMode = false;
 
 /* 현재 시각 및 다음 고정보스 스케줄 강조 */
 (function(){
@@ -6911,12 +6921,21 @@ function fixedBossRender(){
       : "조회 전용 · 관리자만 시간표를 수정할 수 있습니다.";
   }
 
-  const addBtn = document.getElementById("fixedBossAddRowBtn");
-  const saveBtn = document.getElementById("fixedBossSaveBtn");
+const editBtn = document.getElementById("fixedBossEditBtn");
+const addBtn = document.getElementById("fixedBossAddRowBtn");
+const saveBtn = document.getElementById("fixedBossSaveBtn");
 
-  if(addBtn) addBtn.style.display = admin ? "" : "none";
-  if(saveBtn) saveBtn.style.display = admin ? "" : "none";
+if(editBtn) editBtn.style.display = admin ? "" : "none";
 
+if(addBtn){
+  addBtn.style.display =
+    admin && fixedBossEditMode ? "" : "none";
+}
+
+if(saveBtn){
+  saveBtn.style.display =
+    admin && fixedBossEditMode ? "" : "none";
+}
   tbody.innerHTML = "";
 
   fixedBossRows.forEach((row,rowIndex) => {
