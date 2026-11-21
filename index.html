@@ -7121,11 +7121,28 @@ if(saveBtn){
       const td = document.createElement("td");
       td.colSpan = span;
       td.dataset.fixedBossDays = `${day}-${day + span - 1}`;
-      td.style.cssText =
-        "border:1px solid #514832;padding:4px;" +
-        (day <= today && today <= day + span - 1
-          ? "background:rgba(181,137,53,.28);"
-          : "background:#202630;");
+
+td.style.cssText =
+  "border:1px solid #514832;padding:4px;" +
+  "vertical-align:middle;text-align:center;" +
+  (day <= today && today <= day + span - 1
+    ? "background:rgba(181,137,53,.28);"
+    : "background:#202630;");
+
+if(merged){
+  // 병합된 칸 안에도 은은한 요일 구분선 표시
+  td.style.backgroundImage =
+    "repeating-linear-gradient(to right," +
+    "transparent 0," +
+    "transparent calc(100% - 1px)," +
+    "rgba(190,170,125,.22) 100%)";
+
+  td.style.backgroundSize =
+    `${100 / span}% 100%`;
+
+  td.style.backgroundRepeat = "repeat-x";
+}
+
 
        if(admin && fixedBossEditMode){
         if(merged){
@@ -7174,82 +7191,96 @@ if(saveBtn){
           td.appendChild(selectLabel);
         }
 
-        // 보스 이름
-        const input = document.createElement("input");
-        input.value = row.days[day] || "";
-        input.placeholder = "보스 이름";
-        input.style.cssText =
-          "width:100%;min-width:0;box-sizing:border-box;text-align:center;";
 
-        input.addEventListener("change",()=>{
-          const end = merged ? merged.end : day;
+if(admin && fixedBossEditMode){
 
-          for(let d=day;d<=end;d++){
-            fixedBossRows[rowIndex].days[d] = input.value;
-          }
+  // 여러 보스 이름 입력
+  const input = document.createElement("textarea");
+  input.value = row.days[day] || "";
+  input.placeholder = "보스 이름 (여러 개는 줄바꿈)";
+  input.rows = 3;
+  input.style.cssText =
+    "width:100%;min-width:0;box-sizing:border-box;text-align:center;resize:vertical;";
 
-          fixedBossEnsureBlankRow();
-        });
+  input.addEventListener("change",()=>{
+    const end = merged ? merged.end : day;
 
-        td.appendChild(input);
-
-        // 요일별 개별 위치
-        const dayLocationInput = document.createElement("input");
-        dayLocationInput.value = row.locations[day] || "";
-        dayLocationInput.placeholder = "개별 위치(선택)";
-        dayLocationInput.style.cssText =
-          "width:100%;min-width:0;box-sizing:border-box;text-align:center;margin-top:4px;";
-
-        dayLocationInput.addEventListener("change",()=>{
-          const end = merged ? merged.end : day;
-
-          for(let d=day;d<=end;d++){
-            fixedBossRows[rowIndex].locations[d] = dayLocationInput.value;
-          }
-
-          fixedBossEnsureBlankRow();
-        });
-
-        td.appendChild(dayLocationInput);
-
-}else{
-  const bossName = document.createElement("div");
-  bossName.className = "fixed-boss-marquee";
-
-  const bossNameText = document.createElement("span");
-  bossNameText.textContent = row.days[day] || "";
-
-  bossName.appendChild(bossNameText);
-  td.appendChild(bossName);
-
-  requestAnimationFrame(()=>{
-    const distance = bossNameText.scrollWidth - bossName.clientWidth;
-
-    if(distance > 4){
-      bossNameText.style.setProperty(
-        "--boss-marquee-distance",
-        `-${distance}px`
-      );
-
-      bossNameText.style.animationDuration =
-        `${Math.max(5, distance / 25)}s`;
-    }else{
-      bossNameText.style.animation = "none";
+    for(let d=day;d<=end;d++){
+      fixedBossRows[rowIndex].days[d] = input.value;
     }
+
+    fixedBossEnsureBlankRow();
   });
 
-        const customLocation = String(row.locations[day] || "").trim();
-        const defaultLocation = String(row.defaultLocation || "").trim();
-        const shownLocation = customLocation || defaultLocation;
+  td.appendChild(input);
 
-        if(shownLocation){
-          const locationText = document.createElement("div");
-          locationText.textContent = "📍 " + shownLocation;
-          locationText.style.cssText =
-            "font-size:11px;color:#d7b86a;margin-top:4px;white-space:normal;";
-          td.appendChild(locationText);
-        }
+  // 여러 보스의 개별 위치 입력
+  const dayLocationInput = document.createElement("textarea");
+  dayLocationInput.value = row.locations[day] || "";
+  dayLocationInput.placeholder = "위치 (보스 순서대로 줄바꿈)";
+  dayLocationInput.rows = 3;
+  dayLocationInput.style.cssText =
+    "width:100%;min-width:0;box-sizing:border-box;text-align:center;margin-top:4px;resize:vertical;";
+
+  dayLocationInput.addEventListener("change",()=>{
+    const end = merged ? merged.end : day;
+
+    for(let d=day;d<=end;d++){
+      fixedBossRows[rowIndex].locations[d] = dayLocationInput.value;
+    }
+
+    fixedBossEnsureBlankRow();
+  });
+
+  td.appendChild(dayLocationInput);
+
+}else{
+
+  // 보스 이름과 장소를 같은 줄에 표시
+  const bossNames = String(row.days[day] || "")
+    .split(/\r?\n/)
+    .map(name => name.trim())
+    .filter(Boolean);
+
+  const locations = String(row.locations[day] || "")
+    .split(/\r?\n/)
+    .map(location => location.trim());
+
+  const defaultLocation = String(row.defaultLocation || "").trim();
+
+  bossNames.forEach((name,index)=>{
+    const customLocation = locations[index] || "";
+    const shownLocation = customLocation || defaultLocation;
+
+    const bossLine = document.createElement("div");
+    bossLine.className = "fixed-boss-marquee";
+    bossLine.style.textAlign = "center";
+    bossLine.style.marginBottom = "4px";
+
+    const bossText = document.createElement("span");
+    bossText.textContent =
+      shownLocation ? `${name} - ${shownLocation}` : name;
+
+    bossLine.appendChild(bossText);
+    td.appendChild(bossLine);
+
+    requestAnimationFrame(()=>{
+      const distance = bossText.scrollWidth - bossLine.clientWidth;
+
+      if(distance > 4){
+        bossText.style.setProperty(
+          "--boss-marquee-distance",
+          `-${distance}px`
+        );
+
+        bossText.style.animationDuration =
+          `${Math.max(5, distance / 25)}s`;
+      }else{
+        bossText.style.animation = "none";
       }
+    });
+  });
+}
 
       tr.appendChild(td);
     }
