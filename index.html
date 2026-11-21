@@ -7318,8 +7318,10 @@ async function fixedBossSave(){
 
     fixedBossRows = fixedBossNormalizeRows(rows);
     fixedBossSelectedCells.clear();
-    fixedBossRender();
 
+    fixedBossEditMode = false;
+
+    fixedBossRender();
     alert("고정보스 시간표와 출현 위치를 저장했습니다.");
 
   }catch(error){
