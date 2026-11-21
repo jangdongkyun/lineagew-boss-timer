@@ -7348,7 +7348,8 @@ const fixedBossCloseBtn = document.getElementById("fixedBossCloseBtn");
 const fixedBossModal = document.getElementById("fixedBossModal");
 const fixedBossAddRowBtn = document.getElementById("fixedBossAddRowBtn");
 const fixedBossSaveBtn = document.getElementById("fixedBossSaveBtn");
-
+const fixedBossEditBtn = document.getElementById("fixedBossEditBtn");
+  
 // 시간표 열기
 if(fixedBossOpenBtn && fixedBossModal){
   fixedBossOpenBtn.addEventListener("click",async()=>{
@@ -7378,6 +7379,16 @@ if(fixedBossModal){
   });
 }
 
+// 시간표 수정 모드 진입
+if(fixedBossEditBtn){
+  fixedBossEditBtn.addEventListener("click",()=>{
+    if(!isAdmin()) return;
+
+    fixedBossEditMode = true;
+    fixedBossRender();
+  });
+}
+  
 // 행 추가
 if(fixedBossAddRowBtn){
   fixedBossAddRowBtn.addEventListener("click",()=>{
@@ -7388,6 +7399,8 @@ if(fixedBossAddRowBtn){
   });
 }
 
+
+  
 // 시간표 저장
 if(fixedBossSaveBtn){
   fixedBossSaveBtn.addEventListener("click",fixedBossSave);
