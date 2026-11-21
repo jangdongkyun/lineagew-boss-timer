@@ -6915,12 +6915,18 @@ function fixedBossRender(){
 
   if(!tbody) return;
 
-  if(permission){
-    permission.textContent = admin
-      ? "관리자 모드 · 요일별 보스 이름과 출현 위치를 입력할 수 있습니다. 요일 선택 후 병합할 수 있습니다."
-      : "조회 전용 · 관리자만 시간표를 수정할 수 있습니다.";
+if(permission){
+  if(admin && fixedBossEditMode){
+    permission.textContent =
+      "관리자 수정 모드 · 요일 선택 후 병합할 수 있습니다. 수정 완료 후 저장해 주세요.";
+  }else if(admin){
+    permission.textContent =
+      "관리자 조회 모드 · 일반 회원과 동일한 화면입니다.";
+  }else{
+    permission.textContent =
+      "조회 전용 · 관리자만 시간표를 수정할 수 있습니다.";
   }
-
+}
 const editBtn = document.getElementById("fixedBossEditBtn");
 const addBtn = document.getElementById("fixedBossAddRowBtn");
 const saveBtn = document.getElementById("fixedBossSaveBtn");
