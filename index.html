@@ -6252,6 +6252,76 @@ $("signupBtn").addEventListener("click",async()=>{
 });
 
 
+// 계정 복구 완료
+$("recoveryCompleteBtn").addEventListener("click",async()=>{
+  const token = $("recoveryToken").value.trim();
+  const newEmail = $("recoveryNewEmail").value.trim();
+  const newPassword = $("recoveryNewPassword").value;
+
+  if(!token){
+    $("recoveryMessage").textContent = "관리자에게 받은 인증번호를 입력해 주세요.";
+    $("recoveryToken").focus();
+    return;
+  }
+
+  if(newPassword.length < 8){
+    $("recoveryMessage").textContent = "새 비밀번호는 8자 이상 입력해 주세요.";
+    $("recoveryNewPassword").focus();
+    return;
+  }
+
+  const btn = $("recoveryCompleteBtn");
+  btn.disabled = true;
+  $("recoveryMessage").textContent = "계정 복구를 처리하고 있습니다...";
+
+  try{
+    const {data, error} = await db.functions.invoke(
+      "complete-account-recovery",
+      {
+        body:{
+          token,
+          new_email:newEmail,
+          new_password:newPassword
+        }
+      }
+    );
+
+    if(error) throw error;
+
+    if(!data || !data.success){
+      throw new Error(data?.error || "계정 복구에 실패했습니다.");
+    }
+
+    $("recoveryMessage").textContent = data.message;
+
+    $("recoveryToken").value = "";
+    $("recoveryNewEmail").value = "";
+    $("recoveryNewPassword").value = "";
+
+    setTimeout(()=>{
+      $("recoveryCompleteBox").style.display = "none";
+      $("auth").style.display = "block";
+      message("복구가 완료되었습니다. 새 계정 정보로 로그인해 주세요.");
+    },1500);
+
+  }catch(error){
+    console.error("계정 복구 실패:",error);
+    $("recoveryMessage").textContent = "복구 실패: " + error.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+
+// 계정 복구 화면 닫기
+$("recoveryCancelBtn").addEventListener("click",()=>{
+  $("recoveryCompleteBox").style.display = "none";
+  $("auth").style.display = "block";
+  $("recoveryMessage").textContent = "";
+});
+
+  
+
 $("saveNickBtn").addEventListener("click",changeNickname);
 
 // 닉네임 변경 창 열기 / 닫기
