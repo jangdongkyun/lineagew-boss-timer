@@ -2511,13 +2511,14 @@ async function registerCut(boss, cutAt){
   const inputTime = new Date().toISOString();
 
   const {error} = await db.from("cut_records").insert({
-    boss_id: boss.id,
-    cut_at: cutAt,
-    created_by: user.id,
-    created_by_nickname: profile.nickname || "혈맹원",
-    updated_at: inputTime,
-    updated_by: user.id
-  });
+  boss_id: boss.id,
+  server_id: currentServerId,
+  cut_at: cutAt,
+  created_by: user.id,
+  created_by_nickname: profile.nickname || "혈맹원",
+  updated_at: inputTime,
+  updated_by: user.id
+});
 
   if(error) throw error;
 
