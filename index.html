@@ -2537,6 +2537,7 @@ const { error: cancelError } = await db
   .from("cut_records")
   .update({ pending_delete_at: null })
   .eq("boss_id", boss.id)
+  .eq("server_id", currentServerId)
   .not("pending_delete_at", "is", null);
 
 if(cancelError) throw cancelError;
