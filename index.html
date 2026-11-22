@@ -3071,12 +3071,14 @@ async function loadCuts(){
 
 async function loadPresence(){
   const {data,error} = await db.from("presence")
-    .select("user_id,last_seen");
+    .select("user_id,last_seen,server_id")
+    .eq("server_id",currentServerId);
 
   if(error){
     console.warn("presence 조회:",error.message);
     return;
   }
+
   presenceRows = data || [];
 }
 
