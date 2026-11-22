@@ -6079,12 +6079,13 @@ $("loginBtn").addEventListener("click",async()=>{
   await enterApp(data.user);
 });
 
-// 비밀번호 재설정
-$("forgotPasswordBtn").addEventListener("click",async()=>{
+
+// 비밀번호 찾기: 관리자에게 복구 요청
+$("forgotPasswordBtn").addEventListener("click", async()=>{
   const email = $("email").value.trim();
 
   if(!email){
-    message("먼저 가입한 이메일 주소를 입력해 주세요.");
+    message("가입할 때 사용한 이메일 주소를 입력해 주세요.");
     $("email").focus();
     return;
   }
@@ -6093,22 +6094,74 @@ $("forgotPasswordBtn").addEventListener("click",async()=>{
   btn.disabled = true;
 
   try{
-    const {error} = await db.auth.resetPasswordForEmail(email,{
-      redirectTo: window.location.origin + window.location.pathname
-    });
+    const {data, error} = await db.functions.invoke(
+      "submit-account-recovery",
+      {
+        body:{
+          request_type:"password_reset",
+          email
+        }
+      }
+    );
 
-    if(error){
-      message("재설정 메일 발송 실패: " + error.message);
-      return;
+    if(error) throw error;
+
+    if(!data || !data.success){
+      throw new Error(data?.error || "요청 접수에 실패했습니다.");
     }
 
-    message("비밀번호 재설정 링크를 이메일로 보냈어요. 받은편지함과 스팸함을 확인해 주세요.");
+    message("비밀번호 찾기 요청이 접수되었습니다. 관리자 확인 후 안내됩니다.");
+
   }catch(error){
-    message("오류가 발생했어요: " + error.message);
+    console.error("비밀번호 찾기 요청 실패:", error);
+    message("요청 실패: " + error.message);
   }finally{
     btn.disabled = false;
   }
 });
+
+
+// 아이디 찾기: 닉네임으로 관리자에게 복구 요청
+$("forgotAccountBtn").addEventListener("click", async()=>{
+  const nickname = prompt("가입할 때 사용한 닉네임을 입력해 주세요.");
+
+  if(nickname === null) return;
+
+  if(!nickname.trim()){
+    message("닉네임을 입력해 주세요.");
+    return;
+  }
+
+  const btn = $("forgotAccountBtn");
+  btn.disabled = true;
+
+  try{
+    const {data, error} = await db.functions.invoke(
+      "submit-account-recovery",
+      {
+        body:{
+          request_type:"email_recovery",
+          nickname:nickname.trim()
+        }
+      }
+    );
+
+    if(error) throw error;
+
+    if(!data || !data.success){
+      throw new Error(data?.error || "요청 접수에 실패했습니다.");
+    }
+
+    message("아이디 찾기 요청이 접수되었습니다. 관리자 확인 후 안내됩니다.");
+
+  }catch(error){
+    console.error("아이디 찾기 요청 실패:", error);
+    message("요청 실패: " + error.message);
+  }finally{
+    btn.disabled = false;
+  }
+});
+
 
 
 // 회원가입
