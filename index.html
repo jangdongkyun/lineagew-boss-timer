@@ -3070,8 +3070,7 @@ async function loadCuts(){
 
 async function loadPresence(){
   const {data,error} = await db.from("presence")
-    .select("user_id,last_seen,server_id")
-    .eq("server_id",currentServerId);
+    .select("user_id,last_seen,server_id");
 
   if(error){
     console.warn("presence 조회:",error.message);
@@ -3081,6 +3080,7 @@ async function loadPresence(){
   presenceRows = data || [];
 }
 
+  
 async function loadMembers(){
   const {data,error} = await db.from("profiles")
     .select("id,nickname,role,created_at,account_status,last_server_id")
