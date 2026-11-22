@@ -6357,6 +6357,12 @@ async function openParticipationHistory(){
 }
 
 
+// 고정보스 시간표 데이터
+let fixedBossRows = [];
+let fixedBossEditMode = false;
+let fixedBossIsLoading = false;
+let fixedBossSelectedCells = new Map();
+
 function fixedBossUpdateHighlight(){
   const tbody = document.getElementById("fixedBossTbody");
   if(!tbody) return;
