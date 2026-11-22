@@ -40,6 +40,26 @@ button{
   font-weight:700;
 }
 button:hover{filter:brightness(1.18)}
+
+
+.server-btn{
+  min-width:65px;
+  padding:9px 13px;
+  border:1px solid #536078;
+  border-radius:9px;
+  background:#1d2634;
+  color:#edf2fa;
+  font-weight:800;
+}
+
+.server-btn.active{
+  background:#a77b32;
+  border-color:#e6bd68;
+  color:#fff;
+  box-shadow:0 0 10px rgba(230,189,104,.3);
+}
+    
+  
 button:disabled{opacity:.5;cursor:not-allowed}
 input{
   width:100%;
@@ -625,12 +645,19 @@ body {
 <body>
 <div class="wrap">
 
+
 <header>
   <div>
     <div class="logo">LINEAGE W · BOSS COMMAND</div>
     <div class="sub">혈맹 필드 보스 타이머</div>
   </div>
 
+  <div id="serverSelector" style="display:none;gap:6px;align-items:center;flex-wrap:wrap">
+    <span class="muted">서버</span>
+    <button type="button" class="server-btn active" data-server="1">1번</button>
+    <button type="button" class="server-btn" data-server="2">2번</button>
+    <button type="button" class="server-btn" data-server="3">3번</button>
+  </div>
 </header>
 
 <div id="auth" class="panel authbox">
