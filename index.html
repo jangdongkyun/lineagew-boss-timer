@@ -2522,16 +2522,7 @@ async function registerCut(boss, cutAt){
 
   if(error) throw error;
 
-  // 해당 보스의 컷 기록을 다시 불러옵니다.
-  await loadCuts();
 
-  // 최근 기록 2개만 남기고 오래된 기록 정리
-  const bossCuts = cuts
-    .filter(c => String(c.boss_id) === String(boss.id))
-    .sort((a,b) =>
-      new Date(b.updated_at || b.cut_at) -
-      new Date(a.updated_at || a.cut_at)
-    );
 
 // 새 컷 입력이 발생하면 해당 보스의 기존 삭제 대기를 취소
 const { error: cancelError } = await db
