@@ -3170,18 +3170,25 @@ async function updatePresence(){
 
     if(data){
       const result = await db.from("presence")
-        .update({last_seen:now})
+        .update({
+          last_seen:now,
+          server_id:currentServerId
+        })
         .eq("user_id",user.id);
+
       if(result.error) throw result.error;
     }else{
       const result = await db.from("presence").insert({
         user_id:user.id,
-        last_seen:now
+        last_seen:now,
+        server_id:currentServerId
       });
+
       if(result.error) throw result.error;
     }
 
     lastPresenceUpdate = Date.now();
+
   }catch(e){
     console.warn("접속 상태 갱신:",e.message);
   }
