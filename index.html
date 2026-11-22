@@ -690,6 +690,54 @@ body {
   <div class="muted">이미 가입한 계정은 로그인, 처음 이용하는 경우 회원가입을 선택하세요.</div>
 </div>
 
+
+
+<div id="recoveryCompleteBox" class="panel authbox" style="display:none">
+  <h2>계정 복구</h2>
+
+  <div class="field">
+    <label>관리자에게 받은 일회용 인증번호</label>
+    <input
+      id="recoveryToken"
+      type="text"
+      placeholder="인증번호 입력"
+      autocomplete="off"
+    >
+  </div>
+
+  <div class="field">
+    <label>새 이메일 주소 (아이디 찾기인 경우)</label>
+    <input
+      id="recoveryNewEmail"
+      type="email"
+      placeholder="새 이메일 주소"
+      autocomplete="email"
+    >
+  </div>
+
+  <div class="field">
+    <label>새 비밀번호</label>
+    <input
+      id="recoveryNewPassword"
+      type="password"
+      placeholder="새 비밀번호 8자 이상"
+      autocomplete="new-password"
+    >
+  </div>
+
+  <button class="primary" id="recoveryCompleteBtn" type="button">
+    계정 복구 완료
+  </button>
+
+  <button class="ghost" id="recoveryCancelBtn" type="button">
+    로그인 화면으로 돌아가기
+  </button>
+
+  <div id="recoveryMessage"></div>
+</div>
+  
+
+  
 <div id="app">
     <div class="panel">
 <div class="row" style="justify-content:space-between;align-items:center">
