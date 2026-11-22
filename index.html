@@ -3087,6 +3087,45 @@ async function loadMembers(){
   members = data || [];
 }
 
+// 서버 선택 버튼 클릭 처리
+document.getElementById("serverSelector")
+  .addEventListener("click", async (e) => {
+    const btn = e.target.closest(".server-btn");
+    if(!btn || !user) return;
+
+    const nextServerId = Number(btn.dataset.server);
+
+    if(![1,2,3].includes(nextServerId)) return;
+    if(nextServerId === currentServerId) return;
+
+    const previousServerId = currentServerId;
+
+    try{
+      const {error} = await db.from("profiles")
+        .update({last_server_id:nextServerId})
+        .eq("id",user.id);
+
+      if(error) throw error;
+
+      currentServerId = nextServerId;
+      profile.last_server_id = nextServerId;
+
+      document.querySelectorAll(".server-btn").forEach(button=>{
+        button.classList.toggle(
+          "active",
+          Number(button.dataset.server) === currentServerId
+        );
+      });
+
+      await loadCuts();
+      renderAll();
+
+    }catch(error){
+      currentServerId = previousServerId;
+      alert("서버 변경 실패: " + error.message);
+    }
+  });
+  
 async function loadAll(){
   await loadProfile();
   await Promise.all([loadBosses(),loadCuts(),loadPresence(),loadMembers()]);
