@@ -4324,7 +4324,10 @@ function renderOnline(){
       .filter(p=>now-new Date(p.last_seen).getTime() < 120000)
       .map(p=>String(p.user_id))
   );
-  const visibleMembers = members.filter(m=>(m.account_status || "active")==="active");
+  const visibleMembers = members.filter(m =>
+  (m.account_status || "active") === "active" &&
+  Number(m.last_server_id || 1) === Number(currentServerId)
+);
   const online = visibleMembers.filter(m=>activeIds.has(String(m.id)))
     .sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
   const offline = visibleMembers.filter(m=>!activeIds.has(String(m.id)))
