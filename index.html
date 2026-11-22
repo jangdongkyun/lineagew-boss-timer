@@ -40,6 +40,26 @@ button{
   font-weight:700;
 }
 button:hover{filter:brightness(1.18)}
+
+
+.server-btn{
+  min-width:65px;
+  padding:9px 13px;
+  border:1px solid #536078;
+  border-radius:9px;
+  background:#1d2634;
+  color:#edf2fa;
+  font-weight:800;
+}
+
+.server-btn.active{
+  background:#a77b32;
+  border-color:#e6bd68;
+  color:#fff;
+  box-shadow:0 0 10px rgba(230,189,104,.3);
+}
+
+    
 button:disabled{opacity:.5;cursor:not-allowed}
 input{
   width:100%;
@@ -625,13 +645,21 @@ body {
 <body>
 <div class="wrap">
 
+
 <header>
   <div>
     <div class="logo">LINEAGE W · BOSS COMMAND</div>
     <div class="sub">혈맹 필드 보스 타이머</div>
   </div>
 
+  <div id="serverSelector" style="display:none;gap:6px;align-items:center;flex-wrap:wrap">
+    <span class="muted">서버</span>
+    <button type="button" class="server-btn active" data-server="1">1번</button>
+    <button type="button" class="server-btn" data-server="2">2번</button>
+    <button type="button" class="server-btn" data-server="3">3번</button>
+  </div>
 </header>
+
 
 <div id="auth" class="panel authbox">
   <h2>혈맹원 로그인</h2>
@@ -1104,6 +1132,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let user = null;
 let profile = null;
+let currentServerId = 1;
 let adminToolsExpanded = false;
 let bosses = [];
 let cuts = [];
@@ -2482,14 +2511,17 @@ async function registerCut(boss, cutAt){
 
   const inputTime = new Date().toISOString();
 
-  const {error} = await db.from("cut_records").insert({
+
+const {error} = await db.from("cut_records").insert({
     boss_id: boss.id,
+    server_id: currentServerId,
     cut_at: cutAt,
     created_by: user.id,
     created_by_nickname: profile.nickname || "혈맹원",
     updated_at: inputTime,
     updated_by: user.id
   });
+
 
   if(error) throw error;
 
@@ -2509,6 +2541,7 @@ const { error: cancelError } = await db
   .from("cut_records")
   .update({ pending_delete_at: null })
   .eq("boss_id", boss.id)
+  .eq("server_id", currentServerId)
   .not("pending_delete_at", "is", null);
 
 if(cancelError) throw cancelError;
@@ -2538,7 +2571,8 @@ if(oldIds.length > 0){
   const {error: pendingError} = await db
     .from("cut_records")
     .update({ pending_delete_at: deleteAt })
-    .in("id", oldIds);
+    .in("id", oldIds)
+    .eq("server_id", currentServerId);
 
   if(pendingError) throw pendingError;
 }
@@ -2992,9 +3026,11 @@ async function loadProfile(){
 
   profile = data;
   if(!profile) throw new Error("회원 프로필을 찾을 수 없습니다.");
+
+  currentServerId = Number(profile.last_server_id) || 1;
 }
 
-
+  
 async function loadBosses(){
   // 삭제 처리된 보스는 제외하고 불러옵니다.
   const {data,error} = await db.from("bosses")
@@ -3017,13 +3053,18 @@ async function loadBosses(){
       : 1;
 }
 
+
 async function loadCuts(){
   const {data,error} = await db.from("cut_records")
-    .select("*").order("cut_at",{ascending:false}).limit(150);
+    .select("*")
+    .eq("server_id", currentServerId)
+    .order("cut_at",{ascending:false})
+    .limit(150);
 
   if(error) throw error;
   cuts = data || [];
 }
+
 
 async function loadPresence(){
   const {data,error} = await db.from("presence")
