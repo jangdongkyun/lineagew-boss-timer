@@ -2847,8 +2847,15 @@ button.textContent =
       if(error) throw error;
     }
 
-    await loadCuts();
-    renderAll();
+    await updatePresence();
+
+    await Promise.all([
+     loadCuts(),
+     loadPresence(),
+     loadMembers()
+]);
+
+renderAll();
 
     alert(
       `${boss.name} 복구 완료!\n\n` +
