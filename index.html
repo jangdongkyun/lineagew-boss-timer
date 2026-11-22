@@ -3531,13 +3531,19 @@ async function loadAll(){
     );
   });
 
+
 await Promise.all([
   loadBosses(),
   loadCuts(),
   loadPresence(),
-  loadMembers(),
-  loadRecoveryRequests()
+  loadMembers()
 ]);
+
+// 관리자에게만 계정 복구 요청 목록 표시
+if(profile && profile.role === "admin"){
+  await loadRecoveryRequests();
+}
+
 
   // 실시간 데이터 구독 시작
   setupRealtime();
