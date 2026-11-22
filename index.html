@@ -3211,6 +3211,7 @@ async function loadMembers(){
 
 
 // 계정 복구 요청 목록 불러오기
+
 async function loadRecoveryRequests(){
   const container = document.getElementById("adminRecoveryList");
   if(!container) return;
@@ -3228,37 +3229,221 @@ async function loadRecoveryRequests(){
     return;
   }
 
+  container.replaceChildren();
+
+  const heading = document.createElement("h3");
+  heading.textContent = "계정 복구 요청";
+  container.appendChild(heading);
+
   if(!data || data.length === 0){
-    container.textContent = "접수된 계정 복구 요청이 없습니다.";
+    const empty = document.createElement("div");
+    empty.textContent = "접수된 계정 복구 요청이 없습니다.";
+    container.appendChild(empty);
     return;
   }
 
-  container.innerHTML = `
-    <h3>계정 복구 요청</h3>
-    ${data.map(request => `
-      <div style="
-        padding:12px;
-        margin:8px 0;
-        border:1px solid #806b3e;
-        border-radius:8px;
-      ">
-        <div>
-          <strong>
-            ${request.request_type === "password_reset"
-              ? "비밀번호 찾기"
-              : "아이디 찾기"}
-          </strong>
-        </div>
-        <div>이메일: ${request.requested_email || "-"}</div>
-        <div>닉네임: ${request.requested_nickname || "-"}</div>
-        <div>상태: ${request.status}</div>
-        <div class="muted">
-          접수: ${new Date(request.created_at).toLocaleString("ko-KR")}
-        </div>
-      </div>
-    `).join("")}
-  `;
+  data.forEach(request=>{
+    const card = document.createElement("div");
+
+    card.style.cssText = `
+      padding:14px;
+      margin:10px 0;
+      border:1px solid #806b3e;
+      border-radius:9px;
+      background:rgba(255,255,255,.03);
+    `;
+
+    const title = document.createElement("strong");
+    title.textContent =
+      request.request_type === "password_reset"
+        ? "비밀번호 찾기"
+        : "아이디 찾기";
+
+    card.appendChild(title);
+
+    const details = [
+      "이메일: " + (request.requested_email || "-"),
+      "닉네임: " + (request.requested_nickname || "-"),
+      "상태: " + request.status,
+      "접수: " + new Date(request.created_at).toLocaleString("ko-KR")
+    ];
+
+    details.forEach(value=>{
+      const line = document.createElement("div");
+      line.textContent = value;
+      line.style.marginTop = "5px";
+      card.appendChild(line);
+    });
+
+    if(request.status === "pending_admin"){
+      const memberLabel = document.createElement("div");
+      memberLabel.textContent = "본인 확인된 기존 회원 선택";
+      memberLabel.style.marginTop = "12px";
+      card.appendChild(memberLabel);
+
+      const memberSelect = document.createElement("select");
+      memberSelect.style.cssText = `
+        width:100%;
+        padding:10px;
+        margin-top:6px;
+        border-radius:7px;
+      `;
+
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "기존 회원 선택";
+      memberSelect.appendChild(defaultOption);
+
+      (members || []).forEach(member=>{
+        const option = document.createElement("option");
+        option.value = member.id;
+        option.textContent =
+          (member.nickname || "닉네임 없음") +
+          " (" + member.id + ")";
+        memberSelect.appendChild(option);
+      });
+
+      card.appendChild(memberSelect);
+
+      const noteInput = document.createElement("input");
+      noteInput.type = "text";
+      noteInput.placeholder = "관리자 확인 메모 (선택)";
+      noteInput.maxLength = 300;
+      noteInput.style.cssText = `
+        width:100%;
+        box-sizing:border-box;
+        padding:10px;
+        margin-top:8px;
+        border-radius:7px;
+      `;
+      card.appendChild(noteInput);
+
+      const buttonArea = document.createElement("div");
+      buttonArea.style.cssText = `
+        display:flex;
+        gap:8px;
+        margin-top:10px;
+      `;
+
+      const approveButton = document.createElement("button");
+      approveButton.type = "button";
+      approveButton.textContent = "승인";
+      approveButton.style.flex = "1";
+
+      const rejectButton = document.createElement("button");
+      rejectButton.type = "button";
+      rejectButton.textContent = "거절";
+      rejectButton.className = "ghost";
+      rejectButton.style.flex = "1";
+
+      approveButton.addEventListener("click", async ()=>{
+        const matchedUserId = memberSelect.value;
+
+        if(!matchedUserId){
+          alert("본인 확인이 완료된 기존 회원을 선택해 주세요.");
+          return;
+        }
+
+        if(!confirm(
+          "선택한 회원의 계정 복구 요청을 승인할까요?\n\n" +
+          "승인 후 일회용 인증번호가 발급됩니다."
+        )){
+          return;
+        }
+
+        approveButton.disabled = true;
+        rejectButton.disabled = true;
+
+        try{
+          const {data: result, error: invokeError} =
+            await db.functions.invoke(
+              "admin-review-account-recovery",
+              {
+                body:{
+                  request_id: request.id,
+                  action: "approve",
+                  matched_user_id: matchedUserId,
+                  admin_note: noteInput.value.trim()
+                }
+              }
+            );
+
+          if(invokeError) throw invokeError;
+
+          if(!result || !result.success){
+            throw new Error(
+              result?.error || "승인 처리에 실패했습니다."
+            );
+          }
+
+          alert(
+            "복구 요청이 승인되었습니다.\n\n" +
+            "일회용 인증번호:\n" +
+            result.recovery_token +
+            "\n\n유효시간: 15분\n" +
+            "회원에게 안전한 별도 경로로 전달해 주세요."
+          );
+
+          await loadRecoveryRequests();
+
+        }catch(error){
+          console.error("복구 승인 실패:", error);
+          alert("승인 실패: " + error.message);
+          approveButton.disabled = false;
+          rejectButton.disabled = false;
+        }
+      });
+
+      rejectButton.addEventListener("click", async ()=>{
+        if(!confirm("이 복구 요청을 거절할까요?")){
+          return;
+        }
+
+        approveButton.disabled = true;
+        rejectButton.disabled = true;
+
+        try{
+          const {data: result, error: invokeError} =
+            await db.functions.invoke(
+              "admin-review-account-recovery",
+              {
+                body:{
+                  request_id: request.id,
+                  action: "reject",
+                  admin_note: noteInput.value.trim()
+                }
+              }
+            );
+
+          if(invokeError) throw invokeError;
+
+          if(!result || !result.success){
+            throw new Error(
+              result?.error || "거절 처리에 실패했습니다."
+            );
+          }
+
+          alert("복구 요청을 거절했습니다.");
+
+          await loadRecoveryRequests();
+
+        }catch(error){
+          console.error("복구 거절 실패:", error);
+          alert("거절 실패: " + error.message);
+          approveButton.disabled = false;
+          rejectButton.disabled = false;
+        }
+      });
+
+      buttonArea.appendChild(approveButton);
+      buttonArea.appendChild(rejectButton);
+      card.appendChild(buttonArea);
+    }
+
+    container.appendChild(card);
+  });
 }
+
 
   
 // 서버 선택 버튼 클릭 처리
