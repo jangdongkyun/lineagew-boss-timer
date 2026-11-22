@@ -1114,6 +1114,13 @@ style="
       가입일과 계정 상태를 확인하고, 회원을 영구 추방하거나 추방 해제·탈퇴 처리할 수 있습니다.
     </div>
     <div id="adminMemberList">회원 정보를 불러오는 중...</div>
+
+
+    <div id="adminRecoveryList" style="margin-top:20px">
+  계정 복구 요청을 불러오는 중...
+</div>
+
+    
   </div>
 
   </div><!-- /adminTools -->
@@ -3202,6 +3209,58 @@ async function loadMembers(){
   members = data || [];
 }
 
+
+// 계정 복구 요청 목록 불러오기
+async function loadRecoveryRequests(){
+  const container = document.getElementById("adminRecoveryList");
+  if(!container) return;
+
+  container.textContent = "계정 복구 요청을 불러오는 중...";
+
+  const {data, error} = await db
+    .from("account_recovery_requests")
+    .select("*")
+    .order("created_at", {ascending:false});
+
+  if(error){
+    console.error("계정 복구 요청 조회 실패:", error);
+    container.textContent = "계정 복구 요청을 불러오지 못했습니다.";
+    return;
+  }
+
+  if(!data || data.length === 0){
+    container.textContent = "접수된 계정 복구 요청이 없습니다.";
+    return;
+  }
+
+  container.innerHTML = `
+    <h3>계정 복구 요청</h3>
+    ${data.map(request => `
+      <div style="
+        padding:12px;
+        margin:8px 0;
+        border:1px solid #806b3e;
+        border-radius:8px;
+      ">
+        <div>
+          <strong>
+            ${request.request_type === "password_reset"
+              ? "비밀번호 찾기"
+              : "아이디 찾기"}
+          </strong>
+        </div>
+        <div>이메일: ${request.requested_email || "-"}</div>
+        <div>닉네임: ${request.requested_nickname || "-"}</div>
+        <div>상태: ${request.status}</div>
+        <div class="muted">
+          접수: ${new Date(request.created_at).toLocaleString("ko-KR")}
+        </div>
+      </div>
+    `).join("")}
+  `;
+}
+
+  
 // 서버 선택 버튼 클릭 처리
 document.getElementById("serverSelector")
   .addEventListener("click", async (e) => {
