@@ -3128,10 +3128,30 @@ document.getElementById("serverSelector")
   
 async function loadAll(){
   await loadProfile();
-  await Promise.all([loadBosses(),loadCuts(),loadPresence(),loadMembers()]);
+
+  // 로그인한 회원에게 서버 선택 버튼 표시
+  const serverSelector = document.getElementById("serverSelector");
+  if(serverSelector){
+    serverSelector.style.display = "flex";
+  }
+
+  // 마지막으로 선택한 서버 버튼 활성화
+  document.querySelectorAll(".server-btn").forEach(button=>{
+    button.classList.toggle(
+      "active",
+      Number(button.dataset.server) === currentServerId
+    );
+  });
+
+  await Promise.all([
+    loadBosses(),
+    loadCuts(),
+    loadPresence(),
+    loadMembers()
+  ]);
+
   renderAll();
 }
-
 async function updatePresence(){
   if(!user) return;
 
