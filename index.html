@@ -3134,6 +3134,27 @@ document.getElementById("serverSelector")
 
     }catch(error){
       currentServerId = previousServerId;
+
+      if(profile){
+        profile.last_server_id = previousServerId;
+      }
+
+      document.querySelectorAll(".server-btn").forEach(button=>{
+        button.classList.toggle(
+          "active",
+          Number(button.dataset.server) === previousServerId
+        );
+      });
+
+      await Promise.all([
+        loadCuts(),
+        loadPresence(),
+        loadMembers()
+      ]);
+
+      setupRealtime();
+      renderAll();
+
       alert("서버 변경 실패: " + error.message);
     }
   });
