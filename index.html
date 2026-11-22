@@ -1104,6 +1104,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let user = null;
 let profile = null;
+let currentServerId = 1;
 let adminToolsExpanded = false;
 let bosses = [];
 let cuts = [];
@@ -2538,7 +2539,8 @@ if(oldIds.length > 0){
   const {error: pendingError} = await db
     .from("cut_records")
     .update({ pending_delete_at: deleteAt })
-    .in("id", oldIds);
+    .in("id", oldIds)
+    .eq("server_id", currentServerId);
 
   if(pendingError) throw pendingError;
 }
@@ -3017,13 +3019,18 @@ async function loadBosses(){
       : 1;
 }
 
+
 async function loadCuts(){
   const {data,error} = await db.from("cut_records")
-    .select("*").order("cut_at",{ascending:false}).limit(150);
+    .select("*")
+    .eq("server_id", currentServerId)
+    .order("cut_at",{ascending:false})
+    .limit(150);
 
   if(error) throw error;
   cuts = data || [];
 }
+
 
 async function loadPresence(){
   const {data,error} = await db.from("presence")
