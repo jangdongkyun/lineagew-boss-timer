@@ -2331,15 +2331,15 @@ function latestCut(bossId){
   return cuts
     .filter(c =>
       String(c.boss_id) === String(bossId) &&
+      Number(c.server_id) === Number(currentServerId) &&
       new Date(c.cut_at).getTime() > resetAt &&
       !c.pending_delete_at
     )
-.sort((a,b)=>
-  new Date(b.cut_at) -
-  new Date(a.cut_at)
-)[0] || null;
+    .sort((a,b)=>
+      new Date(b.cut_at) -
+      new Date(a.cut_at)
+    )[0] || null;
 }
-
 
 /* 최근 컷 또는 최초 출현 시각을 기준으로 다음 주기를 계산 */
 function nextAt(boss){
