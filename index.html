@@ -3081,9 +3081,11 @@ async function loadPresence(){
 
 async function loadMembers(){
   const {data,error} = await db.from("profiles")
-    .select("id,nickname,role,created_at,account_status")
+    .select("id,nickname,role,created_at,account_status,last_server_id")
     .order("created_at",{ascending:true});
+
   if(error) throw error;
+
   members = data || [];
 }
 
