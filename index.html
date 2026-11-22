@@ -3273,7 +3273,14 @@ async function loadRecoveryRequests(){
 
   const {data, error} = await db
     .from("account_recovery_requests")
-    .select("*")
+    .select(`
+      id,
+      request_type,
+      requested_email,
+      requested_nickname,
+      status,
+      created_at
+    `)
     .order("created_at", {ascending:false});
 
   if(error){
