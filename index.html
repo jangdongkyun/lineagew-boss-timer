@@ -2547,10 +2547,11 @@ await loadCuts();
 
 // 삭제 대기가 아닌 기록 중 최근 3개만 유지
 const activeBossCuts = cuts
-  .filter(c =>
-    String(c.boss_id) === String(boss.id) &&
-    !c.pending_delete_at
-  )
+.filter(c =>
+  String(c.boss_id) === String(boss.id) &&
+  Number(c.server_id) === Number(currentServerId) &&
+  !c.pending_delete_at
+)
   .sort((a,b) =>
     new Date(b.updated_at || b.cut_at) -
     new Date(a.updated_at || a.cut_at)
