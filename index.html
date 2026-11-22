@@ -2825,10 +2825,11 @@ button.textContent =
 
   try {
     if(olderIds.length > 0){
-      const {error} = await db
-        .from("cut_records")
-        .update({ pending_delete_at: null })
-        .in("id", olderIds);
+    const {error} = await db
+    .from("cut_records")
+    .update({ pending_delete_at: null })
+    .in("id", olderIds)
+    .eq("server_id", currentServerId);
 
       if(error) throw error;
     }
