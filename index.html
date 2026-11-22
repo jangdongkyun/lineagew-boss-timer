@@ -6282,6 +6282,12 @@ $("recoveryCompleteBtn").addEventListener("click",async()=>{
     return;
   }
 
+  if(newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)){
+    $("recoveryMessage").textContent = "새 이메일 주소를 올바르게 입력해 주세요.";
+    $("recoveryNewEmail").focus();
+    return;
+  }
+  
   const btn = $("recoveryCompleteBtn");
   btn.disabled = true;
   $("recoveryMessage").textContent = "계정 복구를 처리하고 있습니다...";
