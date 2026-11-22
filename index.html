@@ -3162,8 +3162,12 @@ async function loadAll(){
     loadMembers()
   ]);
 
+  // 실시간 데이터 구독 시작
+  setupRealtime();
+
   renderAll();
 }
+  
 async function updatePresence(){
   if(!user) return;
 
