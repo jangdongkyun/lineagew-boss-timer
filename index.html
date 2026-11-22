@@ -3346,12 +3346,13 @@ async function loadAll(){
     );
   });
 
-  await Promise.all([
-    loadBosses(),
-    loadCuts(),
-    loadPresence(),
-    loadMembers()
-  ]);
+await Promise.all([
+  loadBosses(),
+  loadCuts(),
+  loadPresence(),
+  loadMembers(),
+  loadRecoveryRequests()
+]);
 
   // 실시간 데이터 구독 시작
   setupRealtime();
