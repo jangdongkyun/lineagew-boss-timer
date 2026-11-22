@@ -6256,6 +6256,13 @@ $("signupBtn").addEventListener("click",async()=>{
   }
 });
 
+// 관리자 승인 후 계정 복구 화면 열기
+$("recoveryOpenBtn").addEventListener("click",()=>{
+  $("auth").style.display = "none";
+  $("recoveryCompleteBox").style.display = "block";
+  $("recoveryMessage").textContent = "";
+});
+  
 
 // 계정 복구 완료
 $("recoveryCompleteBtn").addEventListener("click",async()=>{
