@@ -2847,16 +2847,8 @@ button.textContent =
       if(error) throw error;
     }
 
-    await updatePresence();
-
-    await Promise.all([
-     loadCuts(),
-     loadPresence(),
-     loadMembers()
-]);
-
+   await loadCuts();
 renderAll();
-
     alert(
       `${boss.name} 복구 완료!\n\n` +
       `선택한 기록: ${new Date(selected.cut_at).toLocaleString("ko-KR")}\n\n` +
@@ -3129,7 +3121,14 @@ document.getElementById("serverSelector")
         );
       });
 
-      await loadCuts();
+      await updatePresence();
+
+      await Promise.all([
+        loadCuts(),
+        loadPresence(),
+        loadMembers()
+      ]);
+
       renderAll();
 
     }catch(error){
@@ -4336,17 +4335,21 @@ function renderHistory(){
 
 function renderOnline(){
   const now = Date.now();
+
   const activeIds = new Set(
     presenceRows
       .filter(p=>now-new Date(p.last_seen).getTime() < 120000)
       .map(p=>String(p.user_id))
   );
+
+  // 1·2·3번 서버 전체 회원 표시
   const visibleMembers = members.filter(m =>
-  (m.account_status || "active") === "active" &&
-  Number(m.last_server_id || 1) === Number(currentServerId)
-);
+    (m.account_status || "active") === "active"
+  );
+
   const online = visibleMembers.filter(m=>activeIds.has(String(m.id)))
     .sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
+
   const offline = visibleMembers.filter(m=>!activeIds.has(String(m.id)))
     .sort((a,b)=>(a.nickname || "").localeCompare(b.nickname || "","ko"));
 
@@ -4354,13 +4357,23 @@ function renderOnline(){
   $("onlineCountTop").textContent = online.length;
   $("offlineCount").textContent = offline.length;
   $("offlineCountStat").textContent = offline.length;
+
   $("onlineList").classList.toggle("is-open", onlineExpanded);
   $("onlineToggle").setAttribute("aria-expanded", String(onlineExpanded));
   $("offlineList").classList.toggle("is-open", offlineExpanded);
   $("offlineToggle").setAttribute("aria-expanded", String(offlineExpanded));
+
+  // 온라인: 2번은 (2), 3번은 (3) 표시
   $("onlineList").innerHTML = online.length
-    ? online.map(m=>`<span class="online-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
+    ? online.map(m=>{
+        const serverId = Number(m.last_server_id || 1);
+        const serverLabel = serverId === 1 ? "" : ` (${serverId})`;
+
+        return `<span class="online-chip">${escapeHtml(m.nickname || "혈맹원")}${serverLabel}</span>`;
+      }).join("")
     : '<span class="online-empty">현재 온라인 혈맹원이 없습니다.</span>';
+
+  // 오프라인: 서버 번호 없이 표시
   $("offlineList").innerHTML = offline.length
     ? offline.map(m=>`<span class="offline-chip">${escapeHtml(m.nickname || "혈맹원")}</span>`).join("")
     : '<span class="online-empty">오프라인 회원이 없습니다.</span>';
@@ -4645,9 +4658,10 @@ function setupRealtime(){
 
   const channel = db.channel("boss-command-live")
     .on("postgres_changes",{
-      event:"*",schema:"public",table:"bosses"
+      event:"*",schema:"public",table:"cut_records",
+      filter:`server_id=eq.${currentServerId}`
     },async()=>{
-      await loadBosses();
+      await loadCuts();
       renderAll();
     })
     .on("postgres_changes",{
