@@ -3273,14 +3273,15 @@ async function loadRecoveryRequests(){
 
   const {data, error} = await db
     .from("account_recovery_requests")
-    .select(`
-      id,
-      request_type,
-      requested_email,
-      requested_nickname,
-      status,
-      created_at
-    `)
+.select(`
+  id,
+  request_type,
+  requested_email,
+  requested_nickname,
+  new_email,
+  status,
+  created_at
+`)
     .order("created_at", {ascending:false});
 
   if(error){
@@ -3321,12 +3322,13 @@ async function loadRecoveryRequests(){
 
     card.appendChild(title);
 
-    const details = [
-      "이메일: " + (request.requested_email || "-"),
-      "닉네임: " + (request.requested_nickname || "-"),
-      "상태: " + request.status,
-      "접수: " + new Date(request.created_at).toLocaleString("ko-KR")
-    ];
+const details = [
+  "기존 이메일: " + (request.requested_email || "-"),
+  "닉네임: " + (request.requested_nickname || "-"),
+  "변경 신청 이메일: " + (request.new_email || "-"),
+  "상태: " + request.status,
+  "접수: " + new Date(request.created_at).toLocaleString("ko-KR")
+];
 
     details.forEach(value=>{
       const line = document.createElement("div");
