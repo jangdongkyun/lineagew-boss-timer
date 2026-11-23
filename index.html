@@ -7734,10 +7734,7 @@ function fixedBossUpdateHighlight(){
 
   if(!tr) return;
 
-  // 해당 보스 행 강조
-  tr.classList.add("fixed-boss-active");
-
-  // 해당 요일에 해당하는 칸 강조
+  // 해당 요일 칸만 강조
   const cells = tr.querySelectorAll("[data-fixed-boss-days]");
 
   cells.forEach(td => {
@@ -8355,9 +8352,27 @@ if(merged){
   bossNames.forEach((name,index)=>{
     const bossLine = document.createElement("div");
     bossLine.className = "fixed-boss-marquee";
-    bossLine.style.textAlign = "center";
-    bossLine.style.marginBottom = "4px";
-    bossLine.style.fontSize = "12px";
+bossLine.style.textAlign = "center";
+bossLine.style.marginBottom = "4px";
+bossLine.style.fontSize = "12px";
+bossLine.style.transition = "all 0.4s ease";
+bossLine.style.display = "block";
+bossLine.style.width = "100%";
+
+if(
+  td.classList.contains("fixed-boss-blink") ||
+  td.classList.contains("fixed-boss-next")
+){
+  bossLine.style.fontSize = "15px";
+    bossLine.style.overflow = "hidden";
+  bossLine.style.justifyContent = "center";
+  bossLine.style.alignItems = "center";
+  bossLine.style.padding = "3px 0";
+  bossLine.style.boxSizing = "border-box";
+  bossLine.style.fontWeight = "900";
+  bossLine.style.color = "#ffe08a";
+  bossLine.style.textShadow = "0 0 8px rgba(255,210,80,0.7)";
+}
 
     const bossText = document.createElement("span");
     bossText.textContent = name;
