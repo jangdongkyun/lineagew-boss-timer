@@ -8541,6 +8541,19 @@ if(merged){
   });
 
 
+      } // 일반 화면 표시 부분 종료
+
+      tr.appendChild(td);
+    } // 월요일~일요일 반복문 종료
+
+    tbody.appendChild(tr);
+  }); // 보스 시간표 전체 반복문 종료
+} // fixedBossRender 함수 종료
+
+
+        
+        
+
 function fixedBossEnsureBlankRow(){
   if(!fixedBossRows.length){
     fixedBossRows.push(fixedBossEmptyRow());
