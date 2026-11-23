@@ -1692,8 +1692,17 @@ window.addEventListener("popstate",()=>{
 
   if(!id) return;
 
+  // 관리자 설정창 닫기
+  if(id === "adminTools"){
+    closeAdminTools(true);
+    return;
+  }
+
   const box = $(id);
-  if(box) box.style.display = "none";
+
+  if(box){
+    box.style.display = "none";
+  }
 });
   
   
@@ -2023,14 +2032,19 @@ $("adminPushEnabled").addEventListener("change",()=>{
 // 관리자 설정 팝업 열기 / 닫기
 // =========================================
 
-function closeAdminTools(){
+function closeAdminTools(fromBack = false){
+
+  if(!fromBack && popupBackStack.includes("adminTools")){
+    closeBackPopup("adminTools");
+    return;
+  }
+
   adminToolsExpanded = false;
 
   $("adminTools").classList.remove("is-open");
 
   $("adminSettingsBtn").textContent = "⚙ 관리자 설정";
 }
-
 // 관리자 설정 열기
 $("adminSettingsBtn").addEventListener("click",()=>{
   console.log("관리자 버튼 클릭", {
@@ -2054,9 +2068,13 @@ $("adminSettingsBtn").addEventListener("click",()=>{
     return;
   }
 
-  adminToolsExpanded = true;
-  adminTools.classList.add("is-open");
-  adminTools.scrollTop = 0;
+ if(!adminToolsExpanded){
+  openBackPopup("adminTools");
+}
+
+adminToolsExpanded = true;
+adminTools.classList.add("is-open");
+adminTools.scrollTop = 0;
 });
 // 닫기 버튼
 $("adminToolsCloseBtn").addEventListener("click",()=>{
@@ -5757,12 +5775,14 @@ async function changeNickname(){
 $("nickToggle").addEventListener("click",()=>{
   const box = $("nickBox");
 
-  if(box.style.display === "none"){
+  if(getComputedStyle(box).display === "none"){
     $("newNick").value = profile?.nickname || "";
     $("newClass").value = profile?.character_class || "";
+
+    openBackPopup("nickBox");
     box.style.display = "block";
   }else{
-    box.style.display = "none";
+    closeBackPopup("nickBox");
   }
 });
 
@@ -5790,12 +5810,13 @@ $("saveNickBtn").addEventListener("click",async()=>{
 });
 
 
-// 혈맹원 조회 화면 열기
+ // 혈맹원 조회 화면 열기
 $("clanMembersBtn").addEventListener("click",async()=>{
   const box = $("clanMembersBox");
 
   try{
-    box.style.display = "block";
+    openBackPopup("clanMembersBox");
+    box.style.display = "flex";
     $("clanMembersList").textContent = "혈맹원 목록을 불러오는 중...";
 
     await loadMembers();
@@ -5810,10 +5831,9 @@ $("clanMembersBtn").addEventListener("click",async()=>{
 
 // 혈맹원 조회 화면 닫기
 $("closeClanMembersBtn").addEventListener("click",()=>{
-  $("clanMembersBox").style.display = "none";
+  closeBackPopup("clanMembersBox");
 });
 
-  
 function setupRealtime(){
   realtimeChannels.forEach(c=>db.removeChannel(c));
   realtimeChannels = [];
