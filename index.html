@@ -1656,6 +1656,47 @@ let alerted = new Set();
 let lastPresenceUpdate = 0;
 
 const $ = id => document.getElementById(id);
+
+
+// 휴대폰 뒤로 가기: 열려 있는 팝업부터 닫기
+const popupBackStack = [];
+
+function openBackPopup(id){
+  const box = $(id);
+  if(!box) return;
+
+  if(popupBackStack.includes(id)) return;
+
+  popupBackStack.push(id);
+
+  history.pushState(
+    { popupBack: true, popupId: id },
+    "",
+    location.href
+  );
+}
+
+function closeBackPopup(id){
+  const lastId = popupBackStack[popupBackStack.length - 1];
+
+  if(lastId === id){
+    history.back();
+  }else{
+    const box = $(id);
+    if(box) box.style.display = "none";
+  }
+}
+
+window.addEventListener("popstate",()=>{
+  const id = popupBackStack.pop();
+
+  if(!id) return;
+
+  const box = $(id);
+  if(box) box.style.display = "none";
+});
+  
+  
   // 관리자 팝업을 body 최상위로 이동
 (function(){
   const adminTools = document.getElementById("adminTools");
