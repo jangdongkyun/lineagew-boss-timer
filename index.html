@@ -1528,6 +1528,11 @@ style="
       <button type="button" class="ghost" id="fixedBossZoomReset">
         화면 맞춤
       </button>
+      
+      <button type="button" class="ghost" id="fixedBossViewToggle">
+       전체보기
+      </button>
+
       <button type="button" class="primary" id="fixedBossEditBtn">
         시간표 수정
       </button>
@@ -7672,9 +7677,14 @@ let fixedBossEditMode = false;
 let fixedBossIsLoading = false;
 let fixedBossSelectedCells = new Map();
 
+// 고정보스 시간표 보기 모드
+// false = 오늘 요일만 보기 / true = 월~일 전체 보기
+let fixedBossShowAllDays = false;
 
-
-
+// 요일 변경 감지용
+let fixedBossLastRenderedDay = new Date().getDay();
+  
+  
 function fixedBossUpdateHighlight(){
   const tbody = document.getElementById("fixedBossTbody");
   if(!tbody) return;
@@ -8190,6 +8200,7 @@ function fixedBossRender(){
   const permission = document.getElementById("fixedBossPermission");
   const admin = isAdmin();
   const today = (new Date().getDay() + 6) % 7;
+  const showAllDays = fixedBossShowAllDays || fixedBossEditMode;
 
   if(!tbody) return;
 
@@ -8231,6 +8242,18 @@ if(cancelBtn){
 }
   tbody.innerHTML = "";
 
+// 요일 제목도 현재 보기 모드에 맞춰 표시
+const headerCells = document.querySelectorAll(
+  "#fixedBossZoomContent thead th"
+);
+
+headerCells.forEach((th,index)=>{
+  if(index === 0) return; // 시간 열은 항상 표시
+
+  th.style.display =
+    showAllDays || index - 1 === today ? "" : "none";
+});
+  
   fixedBossRows.forEach((row,rowIndex) => {
     if(!Array.isArray(row.merges)) row.merges = [];
     if(!Array.isArray(row.days)) row.days = ["","","","","","",""];
@@ -8368,13 +8391,20 @@ if(cancelBtn){
         day >= m.start && day <= m.end
       );
 
-      if(merged && day !== merged.start){
-        continue;
-      }
+      // 기본 보기에서는 오늘 요일만 표시
+if(!showAllDays && day !== today){
+  continue;
+}
 
-      const span = merged
-        ? merged.end - merged.start + 1
-        : 1;
+// 전체 보기에서는 병합된 칸의 시작 요일만 표시
+if(showAllDays && merged && day !== merged.start){
+  continue;
+}
+
+// 오늘 요일만 보기에서는 병합된 칸도 한 칸으로 표시
+const span = merged && showAllDays
+  ? merged.end - merged.start + 1
+  : 1;
 
       const td = document.createElement("td");
       td.colSpan = span;
@@ -8484,8 +8514,8 @@ if(merged){
   // 병합된 칸은 요일별 표시 영역을 만들어 보스 이름이 이동할 수 있게 함
   let nameContainer = td;
 
-  if(merged){
-    const dayGrid = document.createElement("div");
+  if(merged && showAllDays){
+  const dayGrid = document.createElement("div");
     dayGrid.className = "fixed-boss-merged-grid";
     dayGrid.style.cssText =
       `display:grid;grid-template-columns:repeat(${span},minmax(0,1fr));width:100%;`;
@@ -8733,7 +8763,25 @@ requestAnimationFrame(()=>{
 
   });
 }
-// 시간표 닫기
+
+// 전체보기 / 해당요일보기 전환
+const fixedBossViewToggle =
+  document.getElementById("fixedBossViewToggle");
+
+if(fixedBossViewToggle){
+  fixedBossViewToggle.addEventListener("click",()=>{
+    fixedBossShowAllDays = !fixedBossShowAllDays;
+
+    fixedBossViewToggle.textContent =
+      fixedBossShowAllDays ? "해당요일보기" : "전체보기";
+
+    fixedBossRender();
+    fixedBossUpdateHighlight();
+  });
+}  
+  
+  
+  // 시간표 닫기
 if(fixedBossCloseBtn && fixedBossModal){
   fixedBossCloseBtn.addEventListener("click",()=>{
   closeBackPopup("fixedBossModal");
@@ -8797,7 +8845,23 @@ if(fixedBossSaveBtn){
 }
 
 // 현재 시각에 맞춰 스케줄 강조를 매초 갱신
-setInterval(fixedBossUpdateHighlight, 1000);
+// 매초 강조 효과 갱신 및 요일 변경 감지
+setInterval(()=>{
+  const currentDay = new Date().getDay();
+
+  // 날짜가 바뀌었는지 확인
+  if(currentDay !== fixedBossLastRenderedDay){
+    fixedBossLastRenderedDay = currentDay;
+
+    // 전체보기나 관리자 수정 중이 아니면 오늘 요일로 화면 갱신
+    if(!fixedBossShowAllDays && !fixedBossEditMode){
+      fixedBossRender();
+    }
+  }
+
+  fixedBossUpdateHighlight();
+},1000);
+
 fixedBossUpdateHighlight();
 </script>
 
