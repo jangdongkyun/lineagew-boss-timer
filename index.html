@@ -6591,7 +6591,17 @@ if(box.style.display === "none"){
   }
 });
 
+// 회원가입 취소 및 로그인 화면 복귀
+$("signupCancelBtn").addEventListener("click",()=>{
+  $("signupNickBox").style.display = "none";
+  $("signupBtn").textContent = "회원가입";
+  $("signupCancelBtn").style.display = "none";
 
+  $("signupNick").value = "";
+  message("");
+});
+
+  
 // 복구 유형에 따라 입력란 표시
 $("recoveryType").addEventListener("change",()=>{
   const type = $("recoveryType").value;
