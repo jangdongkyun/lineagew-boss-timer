@@ -928,11 +928,22 @@ body {
       <button class="danger" id="logoutBtn">로그아웃</button>
     </div>
     <div id="nickBox" style="display:none;margin-top:12px">
-      <div class="row">
-        <input id="newNick" class="grow" placeholder="새 닉네임">
-        <button class="primary" id="saveNickBtn">저장</button>
-      </div>
-    </div>
+  <div style="margin-bottom:10px">
+    <label for="newNick">새 닉네임</label>
+    <input id="newNick" class="grow" placeholder="새 닉네임">
+  </div>
+
+  <div style="margin-bottom:10px">
+    <label for="newClass">클래스 선택 (선택 사항)</label>
+    <select id="newClass" class="grow">
+      <option value="">클래스 선택 안 함</option>
+    </select>
+  </div>
+
+  <div class="row">
+    <button class="primary" id="saveNickBtn">저장</button>
+  </div>
+</div>
   </div>
 
 
