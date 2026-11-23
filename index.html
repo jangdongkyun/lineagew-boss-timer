@@ -6555,11 +6555,12 @@ $("forgotAccountCancelBtn").addEventListener("click",()=>{
 $("signupBtn").addEventListener("click",async()=>{
   const box = $("signupNickBox");
 
-  if(box.style.display === "none"){
-    box.style.display = "block";
-    $("signupBtn").textContent = "회원가입 진행";
-    return;
-  }
+if(box.style.display === "none"){
+  box.style.display = "block";
+  $("signupBtn").textContent = "회원가입 진행";
+  $("signupCancelBtn").style.display = "block";
+  return;
+}
 
   const email = $("email").value.trim();
   const password = $("password").value;
