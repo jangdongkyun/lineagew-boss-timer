@@ -4475,13 +4475,17 @@ $("personalVoiceEnabled").addEventListener("change",()=>{
     $("personalVoiceEnabled").checked ? "block" : "none";
 });
 
-  $("closePersonalAlertBtn").addEventListener("click",()=>{
-    modal.style.display = "none";
-  });
+  // 닫기 버튼으로 닫기
+$("closePersonalAlertBtn").addEventListener("click",()=>{
+  closeBackPopup("personalAlertModal");
+});
 
-  modal.addEventListener("click",e=>{
-    if(e.target === modal) modal.style.display = "none";
-  });
+// 바깥 영역을 눌러 닫기
+modal.addEventListener("click",e=>{
+  if(e.target === modal){
+    closeBackPopup("personalAlertModal");
+  }
+});
 }
 
 
@@ -4639,9 +4643,12 @@ body {
   $("personalVoiceOptions").style.display =
     s.voice_enabled ? "block" : "none";
 
-  $("personalAlertModal").style.display = "block";
+ // 휴대폰 뒤로 가기 기록 추가
+openBackPopup("personalAlertModal");
 
-  loadPersonalVoiceList();
+$("personalAlertModal").style.display = "block";
+
+loadPersonalVoiceList();
 }
 
 
