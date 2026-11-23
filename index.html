@@ -6566,13 +6566,20 @@ $("signupBtn").addEventListener("click",async()=>{
   }
 });
 
+
 // 관리자 승인 후 계정 복구 화면 열기
 $("recoveryOpenBtn").addEventListener("click",()=>{
   $("auth").style.display = "none";
   $("recoveryCompleteBox").style.display = "block";
+
   $("recoveryMessage").textContent = "";
+  $("recoveryToken").value = "";
+  $("recoveryNewEmail").value = "";
+  $("recoveryNewPassword").value = "";
+
+  $("recoveryEmailField").style.display = "none";
+  $("recoveryPasswordField").style.display = "none";
 });
-  
 
 // 계정 복구 완료
 $("recoveryCompleteBtn").addEventListener("click",async()=>{
@@ -6581,35 +6588,44 @@ $("recoveryCompleteBtn").addEventListener("click",async()=>{
   const newPassword = $("recoveryNewPassword").value;
 
   if(!token){
-    $("recoveryMessage").textContent = "관리자에게 받은 인증번호를 입력해 주세요.";
+    $("recoveryMessage").textContent = "관리자에게 받은 복구 토큰을 입력해 주세요.";
     $("recoveryToken").focus();
     return;
   }
 
-  if(newPassword.length < 8){
-    $("recoveryMessage").textContent = "새 비밀번호는 8자 이상 입력해 주세요.";
-    $("recoveryNewPassword").focus();
+  const isEmailRecovery = !!newEmail;
+  const isPasswordRecovery = !!newPassword;
+
+  if(isEmailRecovery === isPasswordRecovery){
+    $("recoveryMessage").textContent =
+      "새 이메일 또는 새 비밀번호 중 해당하는 항목 하나만 입력해 주세요.";
     return;
   }
 
-  if(newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)){
+  if(isEmailRecovery && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)){
     $("recoveryMessage").textContent = "새 이메일 주소를 올바르게 입력해 주세요.";
     $("recoveryNewEmail").focus();
     return;
   }
-  
+
+  if(isPasswordRecovery && (newPassword.length < 8 || newPassword.length > 72)){
+    $("recoveryMessage").textContent = "새 비밀번호는 8~72자로 입력해 주세요.";
+    $("recoveryNewPassword").focus();
+    return;
+  }
+
   const btn = $("recoveryCompleteBtn");
   btn.disabled = true;
   $("recoveryMessage").textContent = "계정 복구를 처리하고 있습니다...";
 
   try{
-    const {data, error} = await db.functions.invoke(
+    const {data,error} = await db.functions.invoke(
       "complete-account-recovery",
       {
         body:{
           token,
-          new_email:newEmail,
-          new_password:newPassword
+          new_email: isEmailRecovery ? newEmail : null,
+          new_password: isPasswordRecovery ? newPassword : null
         }
       }
     );
@@ -6629,7 +6645,9 @@ $("recoveryCompleteBtn").addEventListener("click",async()=>{
     setTimeout(()=>{
       $("recoveryCompleteBox").style.display = "none";
       $("auth").style.display = "block";
-      message("복구가 완료되었습니다. 새 계정 정보로 로그인해 주세요.");
+      $("recoveryEmailField").style.display = "none";
+      $("recoveryPasswordField").style.display = "none";
+      message("복구가 완료되었습니다. 변경된 계정 정보로 로그인해 주세요.");
     },1500);
 
   }catch(error){
@@ -6640,29 +6658,20 @@ $("recoveryCompleteBtn").addEventListener("click",async()=>{
   }
 });
 
-
 // 계정 복구 화면 닫기
 $("recoveryCancelBtn").addEventListener("click",()=>{
   $("recoveryCompleteBox").style.display = "none";
   $("auth").style.display = "block";
+
   $("recoveryMessage").textContent = "";
+  $("recoveryToken").value = "";
+  $("recoveryNewEmail").value = "";
+  $("recoveryNewPassword").value = "";
+
+  $("recoveryEmailField").style.display = "none";
+  $("recoveryPasswordField").style.display = "none";
 });
 
-  
-
-$("saveNickBtn").addEventListener("click",changeNickname);
-
-// 닉네임 변경 창 열기 / 닫기
-$("nickToggle").addEventListener("click",()=>{
-  const box = $("nickBox");
-  const isHidden = box.style.display === "none";
-
-  box.style.display = isHidden ? "block" : "none";
-
-  if(isHidden){
-    $("newNick").focus();
-  }
-});
 
 // 로그아웃
 $("logoutBtn").addEventListener("click",async()=>{
