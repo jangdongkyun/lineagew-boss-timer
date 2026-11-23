@@ -3379,6 +3379,65 @@ async function loadMembers(){
   members = data || [];
 }
 
+
+// 직업별 마크 이미지 경로
+const classMarkPaths = {
+  "군주": "assets/classes/군주.png",
+  "기사": "assets/classes/기사.png",
+  "마법사": "assets/classes/마법사.png",
+  "요정": "assets/classes/요정.png",
+  "다크엘프": "assets/classes/다크엘프.png",
+  "수라": "assets/classes/수라.png",
+  "전사": "assets/classes/전사.png",
+  "총사": "assets/classes/총사.png",
+  "마격사": "assets/classes/마격사.png",
+  "성기사": "assets/classes/성기사.png",
+  "나찰": "assets/classes/나찰.png",
+  "귀검사": "assets/classes/귀검사.png",
+  "혈법사": "assets/classes/혈법사.png",
+  "무희": "assets/classes/무희.png"
+};
+
+// 혈맹원 전체 목록 표시
+function renderClanMembers(){
+  const list = $("clanMembersList");
+
+  if(!members || members.length === 0){
+    list.textContent = "가입된 혈맹원이 없습니다.";
+    return;
+  }
+
+  list.innerHTML = members.map(member=>{
+    const characterClass = member.character_class || "";
+    const markPath = classMarkPaths[characterClass];
+
+    return `
+      <div class="row" style="
+        padding:9px 10px;
+        border-bottom:1px solid #303b4c;
+        align-items:center;
+        gap:10px;
+      ">
+        ${
+          markPath
+            ? `<img src="${markPath}" alt="${escapeHtml(characterClass)}"
+                style="width:28px;height:28px;object-fit:contain;">`
+            : ""
+        }
+        <div style="min-width:0">
+          ${
+            characterClass
+              ? `<b>${escapeHtml(characterClass)}</b> `
+              : ""
+          }
+          <span>${escapeHtml(member.nickname || "혈맹원")}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+  
 // 계정 복구 요청 목록 불러오기
 
 async function loadRecoveryRequests(){
@@ -5302,11 +5361,22 @@ renderRespawnBulkManager();
 
 
 // 전체 화면 갱신
+
 function renderAll(){
   if(profile){
-    $("welcome").textContent =
-  (profile.character_class ? profile.character_class + " " : "") +
-  (profile.nickname || "혈맹원");
+    const characterClass = profile.character_class || "";
+    const markPath = classMarkPaths[characterClass];
+
+    $("welcome").innerHTML =
+      (markPath
+        ? `<img src="${markPath}" alt=""
+            style="width:26px;height:26px;object-fit:contain;vertical-align:middle;margin-right:6px;">`
+        : "") +
+      (characterClass
+        ? `<span>${escapeHtml(characterClass)}</span> `
+        : "") +
+      `<span>${escapeHtml(profile.nickname || "혈맹원")}</span>`;
+
     $("roleText").textContent =
       profile.role === "admin" ? "관리자" : "회원";
   }
