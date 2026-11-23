@@ -7685,6 +7685,7 @@ let fixedBossShowAllDays = false;
 let fixedBossLastRenderedDay = new Date().getDay();
   
   
+
 function fixedBossUpdateHighlight(){
   const tbody = document.getElementById("fixedBossTbody");
   if(!tbody) return;
@@ -7715,9 +7716,10 @@ function fixedBossUpdateHighlight(){
     el.style.backgroundColor = "";
     el.style.transform = "";
     el.style.zIndex = "";
+    el.style.borderRadius = "";
+    el.style.position = "";
   });
 
- 
   const events = [];
 
   fixedBossRows.forEach((row,index)=>{
@@ -7820,60 +7822,34 @@ function fixedBossUpdateHighlight(){
     const className =
       blink ? "fixed-boss-blink" : "fixed-boss-next";
 
-    // 병합된 칸: 해당 요일의 내부 영역으로 보스 이름 이동
-    const targetSlot = td.querySelector(
-      `[data-fixed-boss-day-slot="${target.day}"]`
-    );
+    // 해당 요일 칸 강조
+    td.classList.add(className);
 
-   // 병합된 칸과 일반 칸 모두 해당 칸 전체 강조
-td.classList.add(className);
+    td.style.backgroundColor =
+      blink
+        ? "rgba(255,174,48,.30)"
+        : "rgba(255,215,100,.20)";
 
-td.style.backgroundColor =
-  blink
-    ? "rgba(255,174,48,.30)"
-    : "rgba(255,215,100,.20)";
+    td.style.border = "2px solid #ffd36a";
+    td.style.borderRadius = "8px";
 
-td.style.border = "2px solid #ffd36a";
-td.style.borderRadius = "8px";
+    td.style.boxShadow =
+      "0 0 8px rgba(255,190,65,.75), inset 0 0 8px rgba(255,210,100,.25)";
 
-td.style.boxShadow =
-  "0 0 8px rgba(255,190,65,.75), inset 0 0 8px rgba(255,210,100,.25)";
+    td.style.position = "relative";
+    td.style.zIndex = "2";
 
-td.style.position = "relative";
-td.style.zIndex = "2";
-
-td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
-  line.style.fontSize = "15px";
-  line.style.fontWeight = "900";
-  line.style.color = "#ffe08a";
-  line.style.textShadow = "0 0 8px rgba(255,210,80,.9)";
-  line.style.padding = "3px 0";
-});
-      // 병합되지 않은 일반 요일 칸
-      td.classList.add(className);
-
-      td.style.backgroundColor =
-        blink
-          ? "rgba(255,174,48,.30)"
-          : "rgba(255,215,100,.20)";
-
-      td.style.border = "2px solid #ffd36a";
-      td.style.borderRadius = "8px";
-
-      td.style.boxShadow =
-        "0 0 8px rgba(255,190,65,.75)";
-
-      td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
-        line.style.fontSize = "15px";
-        line.style.fontWeight = "900";
-        line.style.color = "#ffe08a";
-        line.style.textShadow =
-          "0 0 8px rgba(255,210,80,.9)";
-      });
-    }
+    // 보스 이름 확대
+    td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
+      line.style.fontSize = "19px";
+      line.style.fontWeight = "900";
+      line.style.color = "#ffe08a";
+      line.style.textShadow = "0 0 8px rgba(255,210,80,.9)";
+      line.style.padding = "3px 0";
+    });
   });
 
-  // 출현 시간 칸도 함께 강조
+  // 출현 시간 칸 강조
   const timeCell = tr.querySelector("[data-fixed-boss-time]");
 
   if(timeCell){
@@ -7884,8 +7860,12 @@ td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
     timeCell.style.border = "2px solid #ffd36a";
     timeCell.style.boxShadow =
       "0 0 8px rgba(255,190,65,.65)";
+
+    timeCell.style.fontSize = "17px";
+    timeCell.style.fontWeight = "900";
   }
 }
+
 
 
   
