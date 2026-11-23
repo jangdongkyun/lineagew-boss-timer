@@ -736,6 +736,37 @@ body {
 </div>
 
 
+<div id="forgotPasswordBox" class="panel authbox" style="display:none">
+  <h2>비밀번호 찾기</h2>
+
+  <div class="muted">
+    가입할 때 사용한 이메일 주소를 입력해 주세요.
+    관리자 확인 및 승인 후 새 비밀번호를 설정할 수 있습니다.
+  </div>
+
+  <div class="field">
+    <label>가입 당시 이메일 주소</label>
+    <input
+      id="forgotPasswordEmail"
+      type="email"
+      placeholder="가입할 때 사용한 이메일"
+      autocomplete="email"
+    >
+  </div>
+
+  <button class="primary" id="forgotPasswordSubmitBtn" type="button">
+    비밀번호 찾기 요청
+  </button>
+
+  <button class="ghost" id="forgotPasswordCancelBtn" type="button">
+    로그인 화면으로 돌아가기
+  </button>
+
+  <div id="forgotPasswordMessage"></div>
+</div>
+
+
+  
 <div id="recoveryCompleteBox" class="panel authbox" style="display:none">
   <h2>계정 복구</h2>
 
@@ -6352,46 +6383,14 @@ $("loginBtn").addEventListener("click",async()=>{
 });
 
 
-// 비밀번호 찾기: 관리자에게 복구 요청
-$("forgotPasswordBtn").addEventListener("click", async()=>{
-  const email = $("email").value.trim();
+// 비밀번호 찾기 버튼: 별도 신청 화면 열기
+$("forgotPasswordBtn").addEventListener("click",()=>{
+  $("auth").style.display = "none";
+  $("forgotPasswordBox").style.display = "block";
 
-  if(!email){
-    message("가입할 때 사용한 이메일 주소를 입력해 주세요.");
-    $("email").focus();
-    return;
-  }
-
-  const btn = $("forgotPasswordBtn");
-  btn.disabled = true;
-
-  try{
-    const {data, error} = await db.functions.invoke(
-      "submit-account-recovery",
-      {
-        body:{
-          request_type:"password_reset",
-          email
-        }
-      }
-    );
-
-    if(error) throw error;
-
-    if(!data || !data.success){
-      throw new Error(data?.error || "요청 접수에 실패했습니다.");
-    }
-
-    message("비밀번호 찾기 요청이 접수되었습니다. 관리자 확인 후 안내됩니다.");
-
-  }catch(error){
-    console.error("비밀번호 찾기 요청 실패:", error);
-    message("요청 실패: " + error.message);
-  }finally{
-    btn.disabled = false;
-  }
+  $("forgotPasswordEmail").value = "";
+  $("forgotPasswordMessage").textContent = "";
 });
-
 
 
 // 아이디 찾기 버튼: 별도 신청 화면 열기
