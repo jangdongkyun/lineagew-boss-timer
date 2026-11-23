@@ -774,65 +774,6 @@ body {
 </div>
 
 
-// 비밀번호 찾기 신청 전송
-$("forgotPasswordSubmitBtn").addEventListener("click",async()=>{
-  const email = $("forgotPasswordEmail").value.trim();
-
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    $("forgotPasswordMessage").textContent = "가입 당시 이메일 주소를 올바르게 입력해 주세요.";
-    $("forgotPasswordEmail").focus();
-    return;
-  }
-
-  const btn = $("forgotPasswordSubmitBtn");
-  btn.disabled = true;
-  $("forgotPasswordMessage").textContent = "신청을 전송하고 있습니다...";
-
-  try{
-    const {data,error} = await db.functions.invoke(
-      "submit-account-recovery",
-      {
-        body:{
-          request_type:"password_reset",
-          email
-        }
-      }
-    );
-
-    if(error) throw error;
-
-    if(!data || !data.success){
-      throw new Error(data?.error || "신청 접수에 실패했습니다.");
-    }
-
-    $("forgotPasswordMessage").textContent =
-      "비밀번호 찾기 신청이 접수되었습니다. 관리자 확인 후 승인 결과를 안내받으세요.";
-
-    $("forgotPasswordEmail").value = "";
-
-  }catch(error){
-    console.error("비밀번호 찾기 신청 실패:",error);
-    $("forgotPasswordMessage").textContent = "신청 실패: " + error.message;
-  }finally{
-    btn.disabled = false;
-  }
-});
-
-
-// 비밀번호 찾기 신청 취소
-$("forgotPasswordCancelBtn").addEventListener("click",()=>{
-  $("forgotPasswordBox").style.display = "none";
-  $("forgotAccountBox").style.display = "none";
-  $("recoveryCompleteBox").style.display = "none";
-
-  $("auth").style.display = "block";
-
-  $("forgotPasswordMessage").textContent = "";
-  $("forgotPasswordEmail").value = "";
-
-  $("forgotAccountMessage").textContent = "";
-  $("recoveryMessage").textContent = "";
-});
 
 <div id="recoveryCompleteBox" class="panel authbox" style="display:none">
   <h2>계정 복구</h2>
@@ -6600,6 +6541,67 @@ $("signupCancelBtn").addEventListener("click",()=>{
   $("signupNick").value = "";
   message("");
 });
+
+
+// 비밀번호 찾기 신청 전송
+$("forgotPasswordSubmitBtn").addEventListener("click",async()=>{
+  const email = $("forgotPasswordEmail").value.trim();
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    $("forgotPasswordMessage").textContent = "가입 당시 이메일 주소를 올바르게 입력해 주세요.";
+    $("forgotPasswordEmail").focus();
+    return;
+  }
+
+  const btn = $("forgotPasswordSubmitBtn");
+  btn.disabled = true;
+  $("forgotPasswordMessage").textContent = "신청을 전송하고 있습니다...";
+
+  try{
+    const {data,error} = await db.functions.invoke(
+      "submit-account-recovery",
+      {
+        body:{
+          request_type:"password_reset",
+          email
+        }
+      }
+    );
+
+    if(error) throw error;
+
+    if(!data || !data.success){
+      throw new Error(data?.error || "신청 접수에 실패했습니다.");
+    }
+
+    $("forgotPasswordMessage").textContent =
+      "비밀번호 찾기 신청이 접수되었습니다. 관리자 확인 후 승인 결과를 안내받으세요.";
+
+    $("forgotPasswordEmail").value = "";
+
+  }catch(error){
+    console.error("비밀번호 찾기 신청 실패:",error);
+    $("forgotPasswordMessage").textContent = "신청 실패: " + error.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+// 비밀번호 찾기 신청 취소
+$("forgotPasswordCancelBtn").addEventListener("click",()=>{
+  $("forgotPasswordBox").style.display = "none";
+  $("forgotAccountBox").style.display = "none";
+  $("recoveryCompleteBox").style.display = "none";
+
+  $("auth").style.display = "block";
+
+  $("forgotPasswordMessage").textContent = "";
+  $("forgotPasswordEmail").value = "";
+
+  $("forgotAccountMessage").textContent = "";
+  $("recoveryMessage").textContent = "";
+});
+  
 
   
 // 복구 유형에 따라 입력란 표시
