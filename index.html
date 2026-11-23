@@ -5413,6 +5413,7 @@ async function resetAllBossTimes(){
     if(btn) btn.disabled = false;
   }
 }
+  
 async function changeNickname(){
   const nickname = $("newNick").value.trim();
   const characterClass = $("newClass").value;
@@ -5433,6 +5434,31 @@ async function changeNickname(){
   renderAll();
   // 변경 완료 팝업은 표시하지 않습니다.
 }
+
+// 닉네임 및 클래스 설정 화면 열기
+$("nickToggle").addEventListener("click",()=>{
+  const box = $("nickBox");
+
+  if(box.style.display === "none"){
+    $("newNick").value = profile?.nickname || "";
+    $("newClass").value = profile?.character_class || "";
+    box.style.display = "block";
+  }else{
+    box.style.display = "none";
+  }
+});
+
+// 닉네임 및 클래스 저장 버튼
+$("saveNickBtn").addEventListener("click",async()=>{
+  try{
+    await changeNickname();
+    $("newClass").value = profile?.character_class || "";
+  }catch(error){
+    console.error("닉네임 및 클래스 저장 오류:",error);
+    alert("저장 실패: " + error.message);
+  }
+});
+  
 function setupRealtime(){
   realtimeChannels.forEach(c=>db.removeChannel(c));
   realtimeChannels = [];
