@@ -7674,13 +7674,12 @@ let fixedBossSelectedCells = new Map();
 
 
 
+
 function fixedBossUpdateHighlight(){
   const tbody = document.getElementById("fixedBossTbody");
   if(!tbody) return;
 
   const now = new Date();
-
-  // 월요일=0, 일요일=6
   const today = (now.getDay() + 6) % 7;
 
   const nowSeconds =
@@ -7691,26 +7690,42 @@ function fixedBossUpdateHighlight(){
   const WEEK_SECONDS = 7 * 24 * 60 * 60;
   const BLINK_SECONDS = 20 * 60;
 
-  // 기존 강조 제거
+  // 기존 강조 효과 초기화
   tbody.querySelectorAll(
     ".fixed-boss-active, .fixed-boss-blink, .fixed-boss-next"
-  ).forEach(el => {
+  ).forEach(el=>{
     el.classList.remove(
       "fixed-boss-active",
       "fixed-boss-blink",
       "fixed-boss-next"
     );
+
+    el.style.boxShadow = "";
+    el.style.border = "";
+    el.style.backgroundColor = "";
+    el.style.transform = "";
+    el.style.zIndex = "";
+  });
+
+  // 병합된 칸의 보스 이름을 기본 요일 칸으로 되돌림
+  tbody.querySelectorAll(".fixed-boss-merged-grid").forEach(grid=>{
+    const firstSlot = grid.firstElementChild;
+    if(!firstSlot) return;
+
+    grid.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
+      firstSlot.appendChild(line);
+    });
   });
 
   const events = [];
 
-  // 요일별 시간표 읽기
-  fixedBossRows.forEach((row, index) => {
+  fixedBossRows.forEach((row,index)=>{
     for(let day = 0; day < 7; day++){
       if(!String(row.days?.[day] || "").trim()) continue;
 
-      const time = String(row.time || "").trim();
-      const match = time.match(/^(\d{1,2}):?(\d{2})$/);
+      const match = String(row.time || "")
+        .trim()
+        .match(/^(\d{1,2}):?(\d{2})$/);
 
       if(!match) continue;
 
@@ -7721,7 +7736,6 @@ function fixedBossUpdateHighlight(){
 
       let seconds;
 
-      // 00시 보스는 해당 요일의 23:59:59에 시작한 것으로 취급
       if(hour === 0 && minute === 0){
         seconds = 23 * 3600 + 59 * 60 + 59;
       }else{
@@ -7729,10 +7743,9 @@ function fixedBossUpdateHighlight(){
       }
 
       events.push({
-        rowIndex: index,
-        day: day,
-        seconds: seconds,
-        weekSeconds: day * 86400 + seconds
+        rowIndex:index,
+        day:day,
+        weekSeconds:day * 86400 + seconds
       });
     }
   });
@@ -7744,9 +7757,8 @@ function fixedBossUpdateHighlight(){
 
   const candidates = [];
 
-  // 지난 주, 이번 주, 다음 주의 시간대를 비교
-  [-1, 0, 1].forEach(weekOffset => {
-    events.forEach(event => {
+  [-1,0,1].forEach(weekOffset=>{
+    events.forEach(event=>{
       candidates.push({
         ...event,
         absoluteSeconds:
@@ -7755,21 +7767,18 @@ function fixedBossUpdateHighlight(){
     });
   });
 
-  candidates.sort((a,b) =>
+  candidates.sort((a,b)=>
     a.absoluteSeconds - b.absoluteSeconds
   );
 
-  // 현재 시각 이전의 가장 최근 시간대
-  const previous = [...candidates].reverse().find(event =>
+  const previous = [...candidates].reverse().find(event=>
     event.absoluteSeconds <= currentWeekSeconds
   );
 
-  // 현재 시각 이후의 다음 시간대
-  const next = candidates.find(event =>
+  const next = candidates.find(event=>
     event.absoluteSeconds > currentWeekSeconds
   );
 
-  // 최근 시간대가 20분 이내면 진행중
   let target = null;
   let blink = false;
 
@@ -7783,10 +7792,8 @@ function fixedBossUpdateHighlight(){
     }
   }
 
-  // 진행중인 시간대가 없으면 다음 시간대를 표시
   if(!target && next){
     target = next;
-    blink = false;
   }
 
   if(!target) return;
@@ -7797,31 +7804,95 @@ function fixedBossUpdateHighlight(){
 
   if(!tr) return;
 
-  // 해당 요일 칸만 강조
   const cells = tr.querySelectorAll("[data-fixed-boss-days]");
 
-  cells.forEach(td => {
+  cells.forEach(td=>{
     const range = td.dataset.fixedBossDays
       .split("-")
       .map(Number);
 
     if(
-      target.day >= range[0] &&
-      target.day <= range[1]
-    ){
-      td.classList.add(
-        blink ? "fixed-boss-blink" : "fixed-boss-next"
-      );
+      target.day < range[0] ||
+      target.day > range[1]
+    ) return;
+
+    const className =
+      blink ? "fixed-boss-blink" : "fixed-boss-next";
+
+    // 병합된 칸: 해당 요일의 내부 영역으로 보스 이름 이동
+    const targetSlot = td.querySelector(
+      `[data-fixed-boss-day-slot="${target.day}"]`
+    );
+
+    if(targetSlot){
+      td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
+        targetSlot.appendChild(line);
+      });
+
+      targetSlot.classList.add(className);
+
+      targetSlot.style.backgroundColor =
+        blink
+          ? "rgba(255,174,48,.30)"
+          : "rgba(255,215,100,.20)";
+
+      targetSlot.style.border =
+        "2px solid #ffd36a";
+
+      targetSlot.style.borderRadius = "8px";
+
+      targetSlot.style.boxShadow =
+        "0 0 8px rgba(255,190,65,.75), inset 0 0 8px rgba(255,210,100,.25)";
+
+      targetSlot.style.transform = "scale(1.04)";
+      targetSlot.style.zIndex = "2";
+      targetSlot.style.position = "relative";
+
+      targetSlot.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
+        line.style.fontSize = "15px";
+        line.style.fontWeight = "900";
+        line.style.color = "#ffe08a";
+        line.style.textShadow =
+          "0 0 8px rgba(255,210,80,.9)";
+        line.style.padding = "3px 0";
+      });
+
+    }else{
+      // 병합되지 않은 일반 요일 칸
+      td.classList.add(className);
+
+      td.style.backgroundColor =
+        blink
+          ? "rgba(255,174,48,.30)"
+          : "rgba(255,215,100,.20)";
+
+      td.style.border = "2px solid #ffd36a";
+      td.style.borderRadius = "8px";
+
+      td.style.boxShadow =
+        "0 0 8px rgba(255,190,65,.75)";
+
+      td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
+        line.style.fontSize = "15px";
+        line.style.fontWeight = "900";
+        line.style.color = "#ffe08a";
+        line.style.textShadow =
+          "0 0 8px rgba(255,210,80,.9)";
+      });
     }
   });
 
-  // 시간 셀 강조
+  // 출현 시간 칸도 함께 강조
   const timeCell = tr.querySelector("[data-fixed-boss-time]");
 
   if(timeCell){
     timeCell.classList.add(
       blink ? "fixed-boss-blink" : "fixed-boss-next"
     );
+
+    timeCell.style.border = "2px solid #ffd36a";
+    timeCell.style.boxShadow =
+      "0 0 8px rgba(255,190,65,.65)";
   }
 }
 
@@ -8404,45 +8475,53 @@ if(merged){
 }else{
 
 
+ 
   const bossNames = String(row.days[day] || "")
     .split(/\r?\n/)
     .map(name => name.trim())
     .filter(Boolean);
 
+  // 병합된 칸은 요일별 표시 영역을 만들어 보스 이름이 이동할 수 있게 함
+  let nameContainer = td;
 
+  if(merged){
+    const dayGrid = document.createElement("div");
+    dayGrid.className = "fixed-boss-merged-grid";
+    dayGrid.style.cssText =
+      `display:grid;grid-template-columns:repeat(${span},minmax(0,1fr));width:100%;`;
 
+    for(let d = day; d < day + span; d++){
+      const daySlot = document.createElement("div");
+      daySlot.className = "fixed-boss-day-slot";
+      daySlot.dataset.fixedBossDaySlot = d;
+      daySlot.style.cssText =
+        "min-width:0;min-height:38px;display:flex;" +
+        "align-items:center;justify-content:center;" +
+        "padding:3px;box-sizing:border-box;" +
+        "border-right:1px solid rgba(190,170,125,.18);";
 
-  bossNames.forEach((name,index)=>{
+      dayGrid.appendChild(daySlot);
+    }
+
+    td.appendChild(dayGrid);
+
+    // 처음에는 병합 영역의 첫 번째 요일 칸에 이름 표시
+    nameContainer = dayGrid.firstElementChild;
+  }
+
+  bossNames.forEach(name=>{
     const bossLine = document.createElement("div");
     bossLine.className = "fixed-boss-marquee";
-bossLine.style.textAlign = "center";
-bossLine.style.marginBottom = "4px";
-bossLine.style.fontSize = "12px";
-bossLine.style.transition = "all 0.4s ease";
-bossLine.style.display = "block";
-bossLine.style.width = "100%";
-
-if(
-  td.classList.contains("fixed-boss-blink") ||
-  td.classList.contains("fixed-boss-next")
-){
-  bossLine.style.fontSize = "15px";
-    bossLine.style.overflow = "hidden";
-  bossLine.style.justifyContent = "center";
-  bossLine.style.alignItems = "center";
-  bossLine.style.padding = "3px 0";
-  bossLine.style.boxSizing = "border-box";
-  bossLine.style.fontWeight = "900";
-  bossLine.style.color = "#ffe08a";
-  bossLine.style.textShadow = "0 0 8px rgba(255,210,80,0.7)";
-}
+    bossLine.style.cssText =
+      "text-align:center;margin-bottom:4px;font-size:12px;" +
+      "transition:all 0.4s ease;display:block;width:100%;" +
+      "min-width:0;";
 
     const bossText = document.createElement("span");
     bossText.textContent = name;
 
     bossLine.appendChild(bossText);
-
-    td.appendChild(bossLine);
+    nameContainer.appendChild(bossLine);
 
     requestAnimationFrame(()=>{
       const distance = bossText.scrollWidth - bossLine.clientWidth;
@@ -8460,14 +8539,7 @@ if(
       }
     });
   });
-}
 
-      tr.appendChild(td);
-    }
-
-    tbody.appendChild(tr);
-  });
-}
 
 function fixedBossEnsureBlankRow(){
   if(!fixedBossRows.length){
@@ -8621,9 +8693,11 @@ requestAnimationFrame(()=>{
 
     // 현재 강조된 요일 칸 찾기
     const target = viewport.querySelector(
-      "[data-fixed-boss-days].fixed-boss-blink, " +
-      "[data-fixed-boss-days].fixed-boss-next"
-    );
+  "[data-fixed-boss-days].fixed-boss-blink, " +
+  "[data-fixed-boss-days].fixed-boss-next, " +
+  "[data-fixed-boss-day-slot].fixed-boss-blink, " +
+  "[data-fixed-boss-day-slot].fixed-boss-next"
+);
 
     if(!target) return;
 
