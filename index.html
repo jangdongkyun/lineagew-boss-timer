@@ -835,6 +835,18 @@ $("forgotPasswordCancelBtn").addEventListener("click",()=>{
     >
   </div>
 
+
+  <div class="field">
+    <label>복구 유형 선택</label>
+    <select id="recoveryType">
+      <option value="">복구 유형을 선택해 주세요</option>
+      <option value="email_recovery">아이디(이메일) 변경</option>
+      <option value="password_reset">비밀번호 변경</option>
+    </select>
+  </div>
+
+
+  
   <div class="field" id="recoveryEmailField" style="display:none">
     <label>변경할 새 이메일 주소</label>
     <input
@@ -3564,13 +3576,13 @@ const details = [
             );
           }
 
-          alert(
-            "복구 요청이 승인되었습니다.\n\n" +
-            "일회용 인증번호:\n" +
-            result.recovery_token +
-            "\n\n유효시간: 15분\n" +
-            "회원에게 안전한 별도 경로로 전달해 주세요."
-          );
+alert(
+  "복구 요청이 승인되었습니다.\n\n" +
+  "일회용 복구 토큰:\n" +
+  result.recovery_token +
+  "\n\n유효시간: 15분\n" +
+  "이 토큰을 해당 회원에게 안전한 별도 경로로 전달해 주세요."
+);
 
           await loadRecoveryRequests();
 
@@ -6567,15 +6579,34 @@ $("signupBtn").addEventListener("click",async()=>{
 });
 
 
+// 복구 유형에 따라 입력란 표시
+$("recoveryType").addEventListener("change",()=>{
+  const type = $("recoveryType").value;
+
+  $("recoveryEmailField").style.display =
+    type === "email_recovery" ? "block" : "none";
+
+  $("recoveryPasswordField").style.display =
+    type === "password_reset" ? "block" : "none";
+
+  $("recoveryNewEmail").value = "";
+  $("recoveryNewPassword").value = "";
+  $("recoveryMessage").textContent = "";
+});
+
+  
+
 // 관리자 승인 후 계정 복구 화면 열기
 $("recoveryOpenBtn").addEventListener("click",()=>{
   $("auth").style.display = "none";
   $("recoveryCompleteBox").style.display = "block";
 
   $("recoveryMessage").textContent = "";
+  $("recoveryType").value = "";
   $("recoveryToken").value = "";
   $("recoveryNewEmail").value = "";
   $("recoveryNewPassword").value = "";
+  $("recoveryType").value = "";
 
   $("recoveryEmailField").style.display = "none";
   $("recoveryPasswordField").style.display = "none";
@@ -6593,12 +6624,27 @@ $("recoveryCompleteBtn").addEventListener("click",async()=>{
     return;
   }
 
-  const isEmailRecovery = !!newEmail;
-  const isPasswordRecovery = !!newPassword;
 
-  if(isEmailRecovery === isPasswordRecovery){
-    $("recoveryMessage").textContent =
-      "새 이메일 또는 새 비밀번호 중 해당하는 항목 하나만 입력해 주세요.";
+  const recoveryType = $("recoveryType").value;
+
+  if(!recoveryType){
+    $("recoveryMessage").textContent = "복구 유형을 먼저 선택해 주세요.";
+    $("recoveryType").focus();
+    return;
+  }
+
+  const isEmailRecovery = recoveryType === "email_recovery";
+  const isPasswordRecovery = recoveryType === "password_reset";
+
+  if(isEmailRecovery && !newEmail){
+    $("recoveryMessage").textContent = "변경할 새 이메일 주소를 입력해 주세요.";
+    $("recoveryNewEmail").focus();
+    return;
+  }
+
+  if(isPasswordRecovery && !newPassword){
+    $("recoveryMessage").textContent = "새 비밀번호를 입력해 주세요.";
+    $("recoveryNewPassword").focus();
     return;
   }
 
@@ -6613,6 +6659,7 @@ $("recoveryCompleteBtn").addEventListener("click",async()=>{
     $("recoveryNewPassword").focus();
     return;
   }
+
 
   const btn = $("recoveryCompleteBtn");
   btn.disabled = true;
@@ -6641,6 +6688,7 @@ $("recoveryCompleteBtn").addEventListener("click",async()=>{
     $("recoveryToken").value = "";
     $("recoveryNewEmail").value = "";
     $("recoveryNewPassword").value = "";
+    $("recoveryType").value = "";
 
     setTimeout(()=>{
       $("recoveryCompleteBox").style.display = "none";
