@@ -5418,21 +5418,35 @@ async function changeNickname(){
   const nickname = $("newNick").value.trim();
   const characterClass = $("newClass").value;
 
-  if(!nickname) return alert("닉네임을 입력하세요.");
-  if(nickname.length > 20) return alert("닉네임은 20자 이내로 입력하세요.");
+  if(!nickname){
+    alert("닉네임을 입력하세요.");
+    return false;
+  }
 
-  const {error} = await db.from("profiles")
+  if(nickname.length > 20){
+    alert("닉네임은 20자 이내로 입력하세요.");
+    return false;
+  }
+
+  const {data,error} = await db.from("profiles")
     .update({
       nickname: nickname,
       character_class: characterClass || null
     })
-    .eq("id", user.id);
+    .eq("id",user.id)
+    .select("id")
+    .maybeSingle();
 
-  if(error) return alert("닉네임 변경 실패: " + error.message);
+  if(error) throw error;
+
+  if(!data){
+    throw new Error("프로필이 수정되지 않았습니다. 저장 권한을 확인해 주세요.");
+  }
 
   await loadProfile();
   renderAll();
-  // 변경 완료 팝업은 표시하지 않습니다.
+
+  return true;
 }
 
 // 닉네임 및 클래스 설정 화면 열기
@@ -5450,12 +5464,24 @@ $("nickToggle").addEventListener("click",()=>{
 
 // 닉네임 및 클래스 저장 버튼
 $("saveNickBtn").addEventListener("click",async()=>{
+  const btn = $("saveNickBtn");
+
   try{
-    await changeNickname();
-    $("newClass").value = profile?.character_class || "";
+    btn.disabled = true;
+
+    const saved = await changeNickname();
+
+    if(!saved) return;
+
+    $("nickBox").style.display = "none";
+
+    alert("닉네임과 클래스 설정이 저장되었습니다.");
+
   }catch(error){
     console.error("닉네임 및 클래스 저장 오류:",error);
     alert("저장 실패: " + error.message);
+  }finally{
+    btn.disabled = false;
   }
 });
   
