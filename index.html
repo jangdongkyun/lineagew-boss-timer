@@ -639,6 +639,97 @@ body {
   }
 }
 
+/* =================================
+   고정보스 시간표 - 현재 칸 강조
+================================= */
+
+/* 시간표 셀 중앙 정렬 */
+#fixedBossTbody td {
+    text-align: center !important;
+    vertical-align: middle !important;
+    position: relative;
+    transition:
+        transform 0.35s ease,
+        background-color 0.35s ease,
+        box-shadow 0.35s ease;
+}
+
+/* 현재 시간대 요일 칸만 확대 */
+#fixedBossTbody td.fixed-boss-active,
+#fixedBossTbody td.fixed-boss-blink,
+#fixedBossTbody td.fixed-boss-next {
+    position: relative;
+    z-index: 10;
+}
+
+/* 현재 반짝이는 칸 확대 */
+#fixedBossTbody td.fixed-boss-blink {
+    transform: scale(1.3);
+    transform-origin: center center;
+    font-size: 1.15em;
+    font-weight: 800;
+    background-color: rgba(218, 165, 32, 0.22) !important;
+    border: 2px solid #d6ad45 !important;
+    box-shadow: 0 0 12px rgba(218, 165, 32, 0.35);
+}
+
+/* 현재 강조 칸의 숫자와 글씨 강조 */
+#fixedBossTbody td.fixed-boss-blink * {
+    font-weight: 800;
+}
+
+
+
+/* 고정보스 시간표 확대 시 잘림 방지 */
+#fixedBossViewport {
+    overflow: auto !important;
+    position: relative;
+    isolation: isolate;
+    padding: 12px !important;
+    box-sizing: border-box;
+}
+
+/* 시간표 내부 확대 공간 확보 */
+#fixedBossZoomContent {
+    overflow: visible !important;
+    transform-origin: top left;
+}
+
+/* 표 셀 확대 시 주변 셀을 밀어내지 않도록 설정 */
+#fixedBossTbody td.fixed-boss-blink {
+    position: relative;
+    z-index: 20;
+    transform: scale(1.3);
+    transform-origin: center center;
+}
+
+/* 시간표 셀 크기와 정렬 유지 */
+#fixedBossTbody td {
+    box-sizing: border-box;
+    vertical-align: middle !important;
+}
+
+/* 모바일 화면 */
+@media (max-width: 600px) {
+    #fixedBossViewport {
+        padding: 16px !important;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #fixedBossTbody td.fixed-boss-blink {
+        transform: scale(1.2);
+        font-size: 1.05em;
+    }
+}
+
+/* PC 화면 */
+@media (min-width: 601px) {
+    #fixedBossTbody td.fixed-boss-blink {
+        transform: scale(1.3);
+    }
+}
+
     
 </style>
 </head>
@@ -7511,108 +7602,163 @@ let fixedBossEditMode = false;
 let fixedBossIsLoading = false;
 let fixedBossSelectedCells = new Map();
 
+
+
 function fixedBossUpdateHighlight(){
   const tbody = document.getElementById("fixedBossTbody");
   if(!tbody) return;
 
   const now = new Date();
+
+  // 월요일=0, 일요일=6
   const today = (now.getDay() + 6) % 7;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-  tbody.querySelectorAll(".fixed-boss-active").forEach(el =>
-    el.classList.remove("fixed-boss-active")
-  );
+  const nowSeconds =
+    now.getHours() * 3600 +
+    now.getMinutes() * 60 +
+    now.getSeconds();
 
-  tbody.querySelectorAll(".fixed-boss-blink, .fixed-boss-next").forEach(el => {
-    el.classList.remove("fixed-boss-blink", "fixed-boss-next");
+  const WEEK_SECONDS = 7 * 24 * 60 * 60;
+  const BLINK_SECONDS = 20 * 60;
+
+  // 기존 강조 제거
+  tbody.querySelectorAll(
+    ".fixed-boss-active, .fixed-boss-blink, .fixed-boss-next"
+  ).forEach(el => {
+    el.classList.remove(
+      "fixed-boss-active",
+      "fixed-boss-blink",
+      "fixed-boss-next"
+    );
   });
 
   const events = [];
 
-  fixedBossRows.forEach((row,index)=>{
-    const time = String(row.time || "").trim();
-    const match = time.match(/^(\d{1,2}):?(\d{2})$/);
+  // 요일별 시간표 읽기
+  fixedBossRows.forEach((row, index) => {
+    for(let day = 0; day < 7; day++){
+      if(!String(row.days?.[day] || "").trim()) continue;
 
-    if(!match) return;
-    if(!String(row.days?.[today] || "").trim()) return;
+      const time = String(row.time || "").trim();
+      const match = time.match(/^(\d{1,2}):?(\d{2})$/);
 
-    const hour = Number(match[1]);
-    const minute = Number(match[2]);
+      if(!match) continue;
 
-    if(hour > 23 || minute > 59) return;
+      const hour = Number(match[1]);
+      const minute = Number(match[2]);
 
-    events.push({
-      rowIndex:index,
-      minutes:hour * 60 + minute
-    });
+      if(hour > 23 || minute > 59) continue;
+
+      let seconds;
+
+      // 00시 보스는 해당 요일의 23:59:59에 시작한 것으로 취급
+      if(hour === 0 && minute === 0){
+        seconds = 23 * 3600 + 59 * 60 + 59;
+      }else{
+        seconds = hour * 3600 + minute * 60;
+      }
+
+      events.push({
+        rowIndex: index,
+        day: day,
+        seconds: seconds,
+        weekSeconds: day * 86400 + seconds
+      });
+    }
   });
-
-  events.sort((a,b)=>a.minutes-b.minutes);
 
   if(!events.length) return;
 
-  const previous = [...events].reverse().find(
-    event => event.minutes <= nowMinutes
+  const currentWeekSeconds =
+    today * 86400 + nowSeconds;
+
+  const candidates = [];
+
+  // 지난 주, 이번 주, 다음 주의 시간대를 비교
+  [-1, 0, 1].forEach(weekOffset => {
+    events.forEach(event => {
+      candidates.push({
+        ...event,
+        absoluteSeconds:
+          event.weekSeconds + weekOffset * WEEK_SECONDS
+      });
+    });
+  });
+
+  candidates.sort((a,b) =>
+    a.absoluteSeconds - b.absoluteSeconds
   );
 
-  const next = events.find(
-    event => event.minutes > nowMinutes
+  // 현재 시각 이전의 가장 최근 시간대
+  const previous = [...candidates].reverse().find(event =>
+    event.absoluteSeconds <= currentWeekSeconds
   );
 
-  let targetMinutes = null;
+  // 현재 시각 이후의 다음 시간대
+  const next = candidates.find(event =>
+    event.absoluteSeconds > currentWeekSeconds
+  );
+
+  // 최근 시간대가 20분 이내면 진행중
+  let target = null;
   let blink = false;
 
-  if(previous && next){
-    if(nowMinutes < next.minutes - 5){
-      targetMinutes = previous.minutes;
+  if(previous){
+    const elapsed =
+      currentWeekSeconds - previous.absoluteSeconds;
+
+    if(elapsed < BLINK_SECONDS){
+      target = previous;
       blink = true;
-    }else{
-      targetMinutes = next.minutes;
     }
-  }else if(previous){
-    targetMinutes = previous.minutes;
-    blink = true;
-  }else{
-    targetMinutes = next.minutes;
   }
 
-  if(targetMinutes === null) return;
+  // 진행중인 시간대가 없으면 다음 시간대를 표시
+  if(!target && next){
+    target = next;
+    blink = false;
+  }
 
-  // 같은 시간에 출현하는 모든 보스를 함께 강조
-  events
-    .filter(event => event.minutes === targetMinutes)
-    .forEach(event => {
-      const tr = tbody.querySelector(
-        `tr[data-fixed-boss-row="${event.rowIndex}"]`
+  if(!target) return;
+
+  const tr = tbody.querySelector(
+    `tr[data-fixed-boss-row="${target.rowIndex}"]`
+  );
+
+  if(!tr) return;
+
+  // 해당 보스 행 강조
+  tr.classList.add("fixed-boss-active");
+
+  // 해당 요일에 해당하는 칸 강조
+  const cells = tr.querySelectorAll("[data-fixed-boss-days]");
+
+  cells.forEach(td => {
+    const range = td.dataset.fixedBossDays
+      .split("-")
+      .map(Number);
+
+    if(
+      target.day >= range[0] &&
+      target.day <= range[1]
+    ){
+      td.classList.add(
+        blink ? "fixed-boss-blink" : "fixed-boss-next"
       );
+    }
+  });
 
-      if(!tr) return;
+  // 시간 셀 강조
+  const timeCell = tr.querySelector("[data-fixed-boss-time]");
 
-      tr.classList.add("fixed-boss-active");
-
-      const cells = tr.querySelectorAll("[data-fixed-boss-days]");
-
-      cells.forEach(td=>{
-        const range = td.dataset.fixedBossDays.split("-").map(Number);
-
-        if(today >= range[0] && today <= range[1]){
-          td.classList.add(blink
-            ? "fixed-boss-blink"
-            : "fixed-boss-next"
-          );
-        }
-      });
-
-      const timeCell = tr.querySelector("[data-fixed-boss-time]");
-
-      if(timeCell){
-        timeCell.classList.add(blink
-          ? "fixed-boss-blink"
-          : "fixed-boss-next"
-        );
-      }
-    });
+  if(timeCell){
+    timeCell.classList.add(
+      blink ? "fixed-boss-blink" : "fixed-boss-next"
+    );
+  }
 }
+
+
   
 // 고정보스 시간표 확대·축소 및 화면 이동
 let fixedBossZoom = 1;
@@ -8363,10 +8509,45 @@ if(fixedBossOpenBtn && fixedBossModal){
 
     await fixedBossLoad();
 
-    // 시간표가 화면에 표시된 뒤 너비 자동 맞춤
-    requestAnimationFrame(()=>{
-      fixedBossFitToScreen();
-    });
+    
+// 시간표가 화면에 표시된 뒤 너비 자동 맞춤 및 현재 칸 중앙 이동
+requestAnimationFrame(()=>{
+  fixedBossFitToScreen();
+
+  // 현재 시간대 강조 갱신
+  fixedBossUpdateHighlight();
+
+  // 확대 및 화면 배치가 끝난 뒤 중앙 스크롤
+  requestAnimationFrame(()=>{
+    const viewport = document.getElementById("fixedBossViewport");
+
+    if(!viewport) return;
+
+    // 현재 강조된 요일 칸 찾기
+    const target = viewport.querySelector(
+      "[data-fixed-boss-days].fixed-boss-blink, " +
+      "[data-fixed-boss-days].fixed-boss-next"
+    );
+
+    if(!target) return;
+
+    const viewportRect = viewport.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+
+    // 현재 칸을 화면 정중앙으로 이동
+    const moveX =
+      targetRect.left + targetRect.width / 2 -
+      (viewportRect.left + viewportRect.width / 2);
+
+    const moveY =
+      targetRect.top + targetRect.height / 2 -
+      (viewportRect.top + viewportRect.height / 2);
+
+    viewport.scrollLeft += moveX;
+    viewport.scrollTop += moveY;
+  });
+});
+
   });
 }
 // 시간표 닫기
