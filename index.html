@@ -6406,6 +6406,61 @@ $("forgotAccountBtn").addEventListener("click",()=>{
 
 
 
+// 아이디 찾기 신청 전송
+$("forgotAccountSubmitBtn").addEventListener("click",async()=>{
+  const nickname = $("forgotAccountNickname").value.trim();
+  const newEmail = $("forgotAccountNewEmail").value.trim();
+
+  if(!nickname){
+    $("forgotAccountMessage").textContent = "가입 당시 닉네임을 입력해 주세요.";
+    $("forgotAccountNickname").focus();
+    return;
+  }
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)){
+    $("forgotAccountMessage").textContent = "변경할 새 이메일 주소를 올바르게 입력해 주세요.";
+    $("forgotAccountNewEmail").focus();
+    return;
+  }
+
+  const btn = $("forgotAccountSubmitBtn");
+  btn.disabled = true;
+  $("forgotAccountMessage").textContent = "신청을 전송하고 있습니다...";
+
+  try{
+    const {data,error} = await db.functions.invoke(
+      "submit-account-recovery",
+      {
+        body:{
+          request_type:"email_recovery",
+          nickname,
+          new_email:newEmail
+        }
+      }
+    );
+
+    if(error) throw error;
+
+    if(!data || !data.success){
+      throw new Error(data?.error || "신청 접수에 실패했습니다.");
+    }
+
+    $("forgotAccountMessage").textContent =
+      "아이디 찾기 신청이 접수되었습니다. 관리자 확인 후 승인 결과를 안내받으세요.";
+
+    $("forgotAccountNickname").value = "";
+    $("forgotAccountNewEmail").value = "";
+
+  }catch(error){
+    console.error("아이디 찾기 신청 실패:",error);
+    $("forgotAccountMessage").textContent = "신청 실패: " + error.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+  
+
+
 
 // 회원가입
 $("signupBtn").addEventListener("click",async()=>{
