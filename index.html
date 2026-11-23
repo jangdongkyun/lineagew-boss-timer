@@ -8655,11 +8655,11 @@ if(fixedBossCloseBtn && fixedBossModal){
 
 // 팝업 바깥쪽 클릭 시 닫기
 if(fixedBossModal){
-  fixedBossModal.addEventListener("click",event=>{
-    if(event.target === fixedBossModal){
-      fixedBossModal.style.display = "none";
-    }
-  });
+ fixedBossModal.addEventListener("click",event=>{
+  if(event.target === fixedBossModal){
+    closeBackPopup("fixedBossModal");
+  }
+});
 }
 
 // 시간표 수정 모드 진입
