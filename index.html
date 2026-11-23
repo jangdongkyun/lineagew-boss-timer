@@ -814,13 +814,17 @@ $("forgotPasswordSubmitBtn").addEventListener("click",async()=>{
 // 비밀번호 찾기 신청 취소
 $("forgotPasswordCancelBtn").addEventListener("click",()=>{
   $("forgotPasswordBox").style.display = "none";
+  $("forgotAccountBox").style.display = "none";
+  $("recoveryCompleteBox").style.display = "none";
+
   $("auth").style.display = "block";
 
   $("forgotPasswordMessage").textContent = "";
   $("forgotPasswordEmail").value = "";
+
+  $("forgotAccountMessage").textContent = "";
+  $("recoveryMessage").textContent = "";
 });
-  
-  
 
 <div id="recoveryCompleteBox" class="panel authbox" style="display:none">
   <h2>계정 복구</h2>
