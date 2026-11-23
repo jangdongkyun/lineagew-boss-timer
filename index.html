@@ -8600,9 +8600,10 @@ const fixedBossCancelBtn = document.getElementById("fixedBossCancelBtn");
 // 시간표 열기
 if(fixedBossOpenBtn && fixedBossModal){
   fixedBossOpenBtn.addEventListener("click",async()=>{
-    fixedBossModal.style.display = "flex";
+    openBackPopup("fixedBossModal");
+fixedBossModal.style.display = "flex";
 
-    await fixedBossLoad();
+await fixedBossLoad();
 
     
 // 시간표가 화면에 표시된 뒤 너비 자동 맞춤 및 현재 칸 중앙 이동
@@ -8648,8 +8649,8 @@ requestAnimationFrame(()=>{
 // 시간표 닫기
 if(fixedBossCloseBtn && fixedBossModal){
   fixedBossCloseBtn.addEventListener("click",()=>{
-    fixedBossModal.style.display = "none";
-  });
+  closeBackPopup("fixedBossModal");
+});
 }
 
 // 팝업 바깥쪽 클릭 시 닫기
