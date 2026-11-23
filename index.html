@@ -5815,6 +5815,14 @@ $("saveNickBtn").addEventListener("click",async()=>{
   }
 });
 
+// 닉네임 및 클래스 설정 취소 버튼
+const cancelNickBtn = $("cancelNickBtn");
+
+if(cancelNickBtn){
+  cancelNickBtn.addEventListener("click",()=>{
+    closeBackPopup("nickBox");
+  });
+}  
 
  // 혈맹원 조회 화면 열기
 $("clanMembersBtn").addEventListener("click",async()=>{
