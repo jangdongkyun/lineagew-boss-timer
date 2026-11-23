@@ -6460,6 +6460,16 @@ $("forgotAccountSubmitBtn").addEventListener("click",async()=>{
 });
   
 
+// 아이디 찾기 신청 취소
+$("forgotAccountCancelBtn").addEventListener("click",()=>{
+  $("forgotAccountBox").style.display = "none";
+  $("auth").style.display = "block";
+
+  $("forgotAccountMessage").textContent = "";
+  $("forgotAccountNickname").value = "";
+  $("forgotAccountNewEmail").value = "";
+});
+
 
 
 // 회원가입
