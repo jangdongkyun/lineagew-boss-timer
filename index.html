@@ -8077,8 +8077,12 @@ if(permission){
 const editBtn = document.getElementById("fixedBossEditBtn");
 const addBtn = document.getElementById("fixedBossAddRowBtn");
 const saveBtn = document.getElementById("fixedBossSaveBtn");
+const cancelBtn = document.getElementById("fixedBossCancelBtn");
 
-if(editBtn) editBtn.style.display = admin ? "" : "none";
+if(editBtn){
+  editBtn.style.display =
+    admin && !fixedBossEditMode ? "" : "none";
+}
 
 if(addBtn){
   addBtn.style.display =
@@ -8087,6 +8091,11 @@ if(addBtn){
 
 if(saveBtn){
   saveBtn.style.display =
+    admin && fixedBossEditMode ? "" : "none";
+}
+
+if(cancelBtn){
+  cancelBtn.style.display =
     admin && fixedBossEditMode ? "" : "none";
 }
   tbody.innerHTML = "";
