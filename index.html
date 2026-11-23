@@ -696,6 +696,45 @@ body {
 </div>
 
 
+<div id="forgotAccountBox" class="panel authbox" style="display:none">
+  <h2>아이디 찾기</h2>
+
+  <div class="muted">
+    가입 당시 닉네임과 변경할 새 이메일 주소를 입력해 주세요.
+    관리자 확인 후 기존 계정의 이메일을 변경합니다.
+  </div>
+
+  <div class="field">
+    <label>가입 당시 닉네임</label>
+    <input
+      id="forgotAccountNickname"
+      type="text"
+      placeholder="가입할 때 사용한 닉네임"
+      autocomplete="off"
+    >
+  </div>
+
+  <div class="field">
+    <label>변경할 새 이메일 주소</label>
+    <input
+      id="forgotAccountNewEmail"
+      type="email"
+      placeholder="새 이메일 주소"
+      autocomplete="email"
+    >
+  </div>
+
+  <button class="primary" id="forgotAccountSubmitBtn" type="button">
+    아이디 찾기 요청
+  </button>
+
+  <button class="ghost" id="forgotAccountCancelBtn" type="button">
+    로그인 화면으로 돌아가기
+  </button>
+
+  <div id="forgotAccountMessage"></div>
+</div>
+
 
 <div id="recoveryCompleteBox" class="panel authbox" style="display:none">
   <h2>계정 복구</h2>
