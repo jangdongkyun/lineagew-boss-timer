@@ -4920,7 +4920,11 @@ async function renderParticipationHistory(){
   const selectedMonth = monthInput.value;
   if(!selectedMonth) return;
 
-  const serverId = Number(currentServerId);
+  
+  const serverSelect = $("participationServerSelect");
+  const serverId = Number(serverSelect?.value || currentServerId);
+  if(![1,2,3].includes(serverId)) return;
+
   const [year,month] = selectedMonth.split("-").map(Number);
 
   if(!year || !month || month < 1 || month > 12) return;
@@ -4947,7 +4951,7 @@ async function renderParticipationHistory(){
       .order("total_cuts",{ascending:false});
 
     if(error) throw error;
-    if(Number(currentServerId)!==serverId) return;
+    if(Number($("participationServerSelect")?.value || currentServerId)!==serverId) return;
 
     const rows = data || [];
     const totalCuts = rows.reduce(
@@ -5023,7 +5027,7 @@ async function renderParticipationHistory(){
               .order("cut_at",{ascending:false});
 
             if(logError) throw logError;
-            if(Number(currentServerId)!==serverId) return;
+            if(Number($("participationServerSelect")?.value || currentServerId)!==serverId) return;
 
             const bossMap = new Map(
               bosses.map(b=>[String(b.id),b.name])
