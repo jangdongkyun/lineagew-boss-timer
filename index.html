@@ -5415,19 +5415,24 @@ async function resetAllBossTimes(){
 }
 async function changeNickname(){
   const nickname = $("newNick").value.trim();
+  const characterClass = $("newClass").value;
+
   if(!nickname) return alert("닉네임을 입력하세요.");
-  if(nickname.length>20) return alert("닉네임은 20자 이내로 입력하세요.");
+  if(nickname.length > 20) return alert("닉네임은 20자 이내로 입력하세요.");
 
   const {error} = await db.from("profiles")
-    .update({nickname}).eq("id",user.id);
+    .update({
+      nickname: nickname,
+      character_class: characterClass || null
+    })
+    .eq("id", user.id);
 
-  if(error) return alert("닉네임 변경 실패: "+error.message);
+  if(error) return alert("닉네임 변경 실패: " + error.message);
 
   await loadProfile();
   renderAll();
   // 변경 완료 팝업은 표시하지 않습니다.
 }
-
 function setupRealtime(){
   realtimeChannels.forEach(c=>db.removeChannel(c));
   realtimeChannels = [];
