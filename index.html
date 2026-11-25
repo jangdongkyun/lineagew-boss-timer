@@ -3169,6 +3169,16 @@ function formatDate(date){
   });
 }
 
+// 보스 카드의 출현 예정 시각은 월을 생략하고 일·시·분·초만 표시합니다.
+function formatBossExpectedDate(date){
+  if(!date) return "-";
+  return new Date(date).toLocaleString("ko-KR",{
+    day:"2-digit",
+    hour:"2-digit",minute:"2-digit",second:"2-digit",
+    hour12:false
+  });
+}
+
 function formatDuration(ms){
   if(ms <= 0) return "출현";
   const sec = Math.floor(ms/1000);
@@ -4577,20 +4587,20 @@ if(overdue && elapsed <= 300000){
   card.classList.add("card-spawn");
   timer.classList.add("red");
       timer.textContent = "출현";
-      label.textContent = `출현 예정 시각: ${formatDate(at)}`;
+      label.textContent = `출현 예정 시각: ${formatBossExpectedDate(at)}`;
 }else if(ms > 0 && ms <= 600000){
   card.classList.add("card-imminent");
   timer.classList.add("orange");
       timer.textContent = formatDuration(ms);
-      label.textContent = `출현 10분 이내 · 예정 시각: ${formatDate(at)}`;
+      label.textContent = `출현 10분 이내 · 예정 시각: ${formatBossExpectedDate(at)}`;
 }else if(ms > 0 && ms <= 3600000){
   card.classList.add("card-soon");
   timer.classList.add("yellow");
       timer.textContent = formatDuration(ms);
-      label.textContent = `출현 1시간 이내 · 예정 시각: ${formatDate(at)}`;
+      label.textContent = `출현 1시간 이내 · 예정 시각: ${formatBossExpectedDate(at)}`;
     }else{
       timer.textContent = overdue ? "다음 주기 계산 중" : formatDuration(ms);
-      label.textContent = "출현 예정 시각: "+formatDate(at);
+      label.textContent = "출현 예정 시각: "+formatBossExpectedDate(at);
     }
 
     checkVoice(b,at,ms);
