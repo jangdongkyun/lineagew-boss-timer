@@ -8278,6 +8278,21 @@ headerCells.forEach((th,index)=>{
   th.style.display =
     showAllDays || index - 1 === today ? "" : "none";
 });
+
+// 현재 요일 보기에서만 시간 칸과 보스 이름 칸 너비 조정
+headerCells.forEach(th=>{
+  th.style.width = "";
+});
+
+if(!showAllDays){
+  if(headerCells[0]){
+    headerCells[0].style.width = "45%";
+  }
+
+  if(headerCells[today + 1]){
+    headerCells[today + 1].style.width = "55%";
+  }
+}
   
   fixedBossRows.forEach((row,rowIndex) => {
     if(!Array.isArray(row.merges)) row.merges = [];
