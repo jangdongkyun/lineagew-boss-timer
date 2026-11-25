@@ -9157,6 +9157,7 @@ async function weeklyLootLoad(){
   weeklyLootRender();
 }
 
+
 function weeklyLootRender(){
   const grid = $("weeklyLootGrid");
   if(!grid) return;
@@ -9171,15 +9172,12 @@ function weeklyLootRender(){
       : "읽기 전용 · 관리자만 시간표를 수정할 수 있습니다.";
   }
 
-  if($("weeklyLootEditBtn")){
+  if($("weeklyLootEditBtn"))
     $("weeklyLootEditBtn").style.display = admin && !weeklyLootEditMode ? "" : "none";
-  }
-  if($("weeklyLootSaveBtn")){
+  if($("weeklyLootSaveBtn"))
     $("weeklyLootSaveBtn").style.display = admin && weeklyLootEditMode ? "" : "none";
-  }
-  if($("weeklyLootCancelBtn")){
+  if($("weeklyLootCancelBtn"))
     $("weeklyLootCancelBtn").style.display = admin && weeklyLootEditMode ? "" : "none";
-  }
 
   const dayHtml = weeklyLootDays.map(day=>{
     const rows = weeklyLootRows
@@ -9188,64 +9186,51 @@ function weeklyLootRender(){
 
     const items = rows.length ? rows.map(r=>{
       if(weeklyLootEditMode && admin){
-        return `
-          <div class="weekly-loot-item">
-            <div class="weekly-loot-edit">
-              <input
-                aria-label="${day.name} 보스 이름"
-                data-weekly-name="${weeklyLootEscape(r.id)}"
-                value="${weeklyLootEscape(r.boss_name)}"
-                placeholder="보스 이름">
-              <input
-                aria-label="${day.name} 출현 시각"
-                data-weekly-time="${weeklyLootEscape(r.id)}"
-                type="time"
-                value="${weeklyLootEscape(r.spawn_time)}">
-              <div class="weekly-loot-item-actions">
-                <button
-                  type="button"
-                  class="danger"
-                  data-weekly-delete="${weeklyLootEscape(r.id)}">삭제</button>
-              </div>
+        return `<div class="weekly-loot-item">
+          <div class="weekly-loot-edit">
+            <input aria-label="${day.name} 보스 이름"
+              data-weekly-name="${weeklyLootEscape(r.id)}"
+              value="${weeklyLootEscape(r.boss_name)}" placeholder="보스 이름">
+            <input aria-label="${day.name} 출현 시각"
+              data-weekly-time="${weeklyLootEscape(r.id)}"
+              type="time" value="${weeklyLootEscape(r.spawn_time)}">
+            <div class="weekly-loot-item-actions">
+              <button type="button" class="danger"
+                data-weekly-delete="${weeklyLootEscape(r.id)}">삭제</button>
             </div>
-          </div>`;
+          </div>
+        </div>`;
       }
 
-      return `
-        <div class="weekly-loot-item guild-loot-highlight">
-          <span class="weekly-loot-name">${weeklyLootEscape(r.boss_name)}</span>
-          <span class="weekly-loot-time">${weeklyLootEscape(r.spawn_time || "--:--")}</span>
-        </div>`;
-    }).join("") : `
-      <div class="weekly-loot-empty">등록된 룻권 보스가 없습니다.</div>`;
+      return `<div class="weekly-loot-item guild-loot-highlight">
+        <span class="weekly-loot-name">${weeklyLootEscape(r.boss_name)}</span>
+        <span class="weekly-loot-time">${weeklyLootEscape(r.spawn_time || "--:--")}</span>
+      </div>`;
+    }).join("") : `<div class="weekly-loot-empty">등록된 룻권 보스가 없습니다.</div>`;
 
-    return `
-      <section class="weekly-day-card" data-weekly-day="${day.id}">
-        <div class="weekly-day-title">${day.name}</div>
-        ${items}
-        ${weeklyLootEditMode && admin
-          ? `<button type="button" class="ghost" style="width:100%;margin-top:8px" data-weekly-add="${day.id}">＋ 항목 추가</button>`
-          : ""}
-      </section>`;
+    return `<section class="weekly-day-card" data-weekly-day="${day.id}">
+      <div class="weekly-day-title">${day.name}</div>
+      ${items}
+      ${weeklyLootEditMode && admin
+        ? `<button type="button" class="ghost" style="width:100%;margin-top:8px"
+            data-weekly-add="${day.id}">＋ 항목 추가</button>`
+        : ""}
+    </section>`;
   }).join("");
 
-  const settingsHtml = `
-    <section class="weekly-loot-settings-card">
-      <div>
-        <b>🔔 알리미 설정</b>
-      </div>
-      <div class="row" style="gap:7px;flex-wrap:wrap">
-        <button type="button" class="primary" id="weeklyOpenVoiceSettingsBtn">
-          음성 알림 설정
-        </button>
-        ${admin
-          ? `<button type="button" class="ghost" id="weeklyOpenPushSettingsBtn">관리자 푸시 설정</button>`
-          : ""}
-      </div>
-    </section>`;
+  const settingsHtml = `<section class="weekly-loot-settings-card">
+    <div><b>🔔 알리미 설정</b></div>
+    <div class="row" style="gap:7px;flex-wrap:wrap">
+      <button type="button" class="primary" id="weeklyOpenVoiceSettingsBtn">음성 알림 설정</button>
+      ${admin
+        ? `<button type="button" class="ghost" id="weeklyOpenPushSettingsBtn">관리자 푸시 설정</button>`
+        : ""}
+    </div>
+  </section>`;
 
   grid.innerHTML = dayHtml + settingsHtml;
 }
+
 
 function weeklyLootCollectInputs(){
   document.querySelectorAll("[data-weekly-name]").forEach(el=>{
