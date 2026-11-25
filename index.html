@@ -1434,11 +1434,13 @@ style="
   <hr style="border-color:#806b3e;margin:14px 0">
   <h3>주간 룻권 보스 푸시 알림</h3>
   <label><input type="checkbox" id="adminWeeklyPushEnabled"> 주간 룻권 보스 푸시 알림 사용</label>
-  <p style="color:#e8c879;font-weight:bold;margin:10px 0 6px">주간 룻권 알림 시점</p>
-  <label><input type="checkbox" id="adminWeeklyPush10m"> 예정 시각 10분 전</label><br>
-  <label><input type="checkbox" id="adminWeeklyPush5m"> 예정 시각 5분 전</label><br>
-  <label><input type="checkbox" id="adminWeeklyPush1m"> 예정 시각 1분 전</label>
-  <div id="adminWeeklyPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px"></div>
+  <div id="adminWeeklyPushDetails">
+    <p style="color:#e8c879;font-weight:bold;margin:10px 0 6px">주간 룻권 알림 시점</p>
+    <label><input type="checkbox" id="adminWeeklyPush10m"> 예정 시각 10분 전</label><br>
+    <label><input type="checkbox" id="adminWeeklyPush5m"> 예정 시각 5분 전</label><br>
+    <label><input type="checkbox" id="adminWeeklyPush1m"> 예정 시각 1분 전</label>
+    <div id="adminWeeklyPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px"></div>
+  </div>
   <div class="muted" style="margin-top:8px">필드보스 푸시와 주간 룻권 푸시는 별도 설정입니다.</div>
 
   <button class="primary" id="saveAdminPushSettingsBtn" type="button">
@@ -2254,7 +2256,7 @@ async function loadAdminPushSettings(){
     : '<div class="muted">등록된 주간 룻권 보스가 없습니다.</div>';
 
   $("adminPushOptions").style.display = data.push_enabled ? "block" : "none";
-  $("adminWeeklyPushBossOptions").style.display = pushBossSettings.__weekly_enabled ? "grid" : "none";
+  $("adminWeeklyPushDetails").style.display = pushBossSettings.__weekly_enabled === true ? "block" : "none";
   $("adminWeeklyPushEnabled").checked = pushBossSettings.__weekly_enabled === true;
 }
 
@@ -2360,8 +2362,8 @@ $("adminPushEnabled").addEventListener("change",()=>{
     $("adminPushEnabled").checked ? "block" : "none";
 });
 $("adminWeeklyPushEnabled")?.addEventListener("change",()=>{
-  $("adminWeeklyPushBossOptions").style.display =
-    $("adminWeeklyPushEnabled").checked ? "grid" : "none";
+  $("adminWeeklyPushDetails").style.display =
+    $("adminWeeklyPushEnabled").checked ? "block" : "none";
 });
   
 // =========================================
