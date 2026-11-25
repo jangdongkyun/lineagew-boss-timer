@@ -5105,7 +5105,7 @@ function previewPersonalVoice(){
 async function savePersonalAlertSettings(){
   if(!user || !myAlertSettings) return;
 
-  const bossSettings = {};
+  const bossSettings = {...(myAlertSettings.boss_settings || {})};
 
   document.querySelectorAll("[data-personal-boss]").forEach(el=>{
     bossSettings[el.dataset.personalBoss] = el.checked;
@@ -5150,6 +5150,7 @@ async function savePersonalAlertSettings(){
 
   myAlertSettings = data;
   soundOn = !!myAlertSettings.voice_enabled;
+  closeBackPopup("personalAlertModal");
   $("personalAlertModal").style.display = "none";
   alert("개인 알림 설정이 저장되었습니다.");
 }
