@@ -4661,11 +4661,20 @@ function checkWeeklyLootVoice(nowMs=Date.now()){
   if(isAdmin()&&bs.__admin_weekly_voice_enabled===false) return;
   if(isVoiceQuietHours(settings)) return;
   const now=new Date(nowMs);
-  weeklyLootRows.filter(r=>Number(r.day_of_week)===now.getDay()).forEach(r=>{
+  const today=now.getDay();
+  const yesterday=(today+6)%7;
+  weeklyLootRows.filter(r=>{
+    const day=Number(r.day_of_week);
+    const isToday=day===today;
+    const isYesterdayMidnight=day===yesterday&&String(r.spawn_time||"").slice(0,5)==="24:00";
+    return isToday||isYesterdayMidnight;
+  }).forEach(r=>{
     if(bs["weekly:"+r.id]===false) return;
     const p=String(r.spawn_time||"").slice(0,5).split(":").map(Number);
     if(p.length!==2||!Number.isFinite(p[0])||!Number.isFinite(p[1])) return;
-    const at=new Date(now.getFullYear(),now.getMonth(),now.getDate(),p[0],p[1],0,0).getTime();
+    const previousDay=Number(r.day_of_week)===yesterday;
+    const baseDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()+(previousDay?-1:0));
+    const at=new Date(baseDate.getFullYear(),baseDate.getMonth(),baseDate.getDate(),p[0],p[1],0,0).getTime();
     const ms=at-nowMs;
     const points=[
       {ms:180000,text:"3분 전",enabled:settings.voice_3m},
