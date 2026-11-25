@@ -6699,49 +6699,58 @@ function kobotFindBossInText(text){
     return null;
   }
 
-  // 글자 유사도 계산
+  // 한국어 발음이 조금 달라도 보스 이름을 찾도록 글자와 초성을 함께 비교합니다.
   function similarity(a,b){
     if(!a || !b) return 0;
-    const previous = Array.from({length:b.length+1},(_,i)=>i);
-    for(let i=1;i<=a.length;i++){
-      let diagonal = previous[0];
-      previous[0] = i;
-      for(let j=1;j<=b.length;j++){
-        const old = previous[j];
-        previous[j] = Math.min(
-          previous[j]+1,
-          previous[j-1]+1,
-          diagonal+(a[i-1] === b[j-1] ? 0 : 1)
-        );
-        diagonal = old;
+    const aa=Array.from(a), bb=Array.from(b);
+    const previous=Array.from({length:bb.length+1},(_,i)=>i);
+    for(let i=1;i<=aa.length;i++){
+      let diagonal=previous[0];
+      previous[0]=i;
+      for(let j=1;j<=bb.length;j++){
+        const old=previous[j];
+        previous[j]=Math.min(previous[j]+1,previous[j-1]+1,diagonal+(aa[i-1]===bb[j-1]?0:1));
+        diagonal=old;
       }
     }
-    return 1-previous[b.length]/Math.max(a.length,b.length);
+    return 1-previous[bb.length]/Math.max(aa.length,bb.length);
+  }
+  function koreanInitials(value){
+    return Array.from(value).map(ch=>{
+      const code=ch.charCodeAt(0)-0xAC00;
+      if(code<0 || code>11171) return ch;
+      return "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"[Math.floor(code/588)];
+    }).join("");
   }
 
-  const scores = new Map();
+  const scores=new Map();
   (bosses || []).forEach(boss=>{
-    let bossScore = 0;
+    let bossScore=0;
     getBossNameVariants(boss).forEach(name=>{
-      const alias = normalizeBossName(name);
-      if(alias.length < 3) return;
-      for(let size=Math.max(2,alias.length-1);size<=alias.length+1;size++){
-        for(let i=0;i<=normalized.length-size;i++){
-          const part = normalized.slice(i,i+size);
-          const score = similarity(part,alias);
-          if(score > bossScore) bossScore = score;
+      const alias=normalizeBossName(name);
+      if(alias.length<2) return;
+      const compact=normalized.replace(/(보스|컷|기록|등록|입력|출현시간|예상시간|임박|지난|지났|잡았어|잡았|처치)/g,"");
+      const minSize=Math.max(2,alias.length-2);
+      const maxSize=Math.min(compact.length,alias.length+2);
+      for(let size=minSize;size<=maxSize;size++){
+        for(let i=0;i<=compact.length-size;i++){
+          const part=compact.slice(i,i+size);
+          const charScore=similarity(part,alias);
+          const initialScore=similarity(koreanInitials(part),koreanInitials(alias));
+          const score=charScore*0.78+initialScore*0.22;
+          if(score>bossScore) bossScore=score;
         }
       }
     });
-    if(bossScore > 0) scores.set(boss,bossScore);
+    if(bossScore>0) scores.set(boss,bossScore);
   });
 
-  const ranked = [...scores.entries()].sort((a,b)=>b[1]-a[1]);
+  const ranked=[...scores.entries()].sort((a,b)=>b[1]-a[1]);
   if(!ranked.length) return null;
-  const best = ranked[0];
-  const second = ranked[1];
-  if(best[1] < 0.65) return null;
-  if(second && best[1]-second[1] < 0.08) return null;
+  const best=ranked[0], second=ranked[1];
+  const threshold=best[0] && getBossNameVariants(best[0]).some(n=>normalizeBossName(n).length>=5) ? 0.60 : 0.70;
+  if(best[1]<threshold) return null;
+  if(second && best[1]-second[1]<0.10) return null;
   return best[0];
 }
 
@@ -7000,10 +7009,12 @@ function kobotRespond(message){
   // 보스 이름과 시각을 함께 말하면 '컷/기록'이라는 단어가 없어도 컷 등록
   const cutBoss = kobotFindBossInText(text);
   const cutAt = kobotParseCutTimeFromSpeech(text);
-  const cutContext = /(컷|기록|등록|입력|잡았|처치|시각은요|시각은|컷시간|잡은시간)/.test(text);
+  const cutContext = /(컷|기록|등록|입력|잡았|처치|시각은요|시각은|컷시간|잡은시간|컷시각)/.test(text);
+  // 보스 이름과 시간이 함께 들어오면 '임박/출현시간/예정시간/이미 지난 시간' 표현보다 컷 입력을 우선합니다.
+  const hasSpokenCutTime = !!cutAt && !!cutBoss;
   const cutIntent =
     /(컷|기록|등록|입력|잡았|잡았어|처치)/.test(text) ||
-    (!!cutBoss && !!cutAt) ||
+    hasSpokenCutTime ||
     (!!cutBoss && cutContext);
 
   if(cutIntent){
