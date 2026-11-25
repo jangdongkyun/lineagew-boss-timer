@@ -9355,7 +9355,7 @@ function weeklyLootRender(){
         </div>`;
       }
 
-      return `<div class="weekly-loot-item guild-loot-highlight">
+      return `<div class="weekly-loot-item ${day.id===new Date().getDay() ? "guild-loot-highlight" : ""}">
         <span class="weekly-loot-name">${weeklyLootEscape(r.boss_name)}</span>
         <span class="weekly-loot-time">${weeklyLootEscape(r.spawn_time || "--:--")}</span>
       </div>`;
