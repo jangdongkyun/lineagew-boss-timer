@@ -6496,6 +6496,10 @@ const finish = ()=>{
 
 
 function kobotHandleWakeWord(transcript){
+  if(kobotCommandTimer){
+    clearTimeout(kobotCommandTimer);
+    kobotCommandTimer = null;
+  }
   kobotMode = "command";
   kobotSetTranscript("호출어 감지: " + transcript);
   kobotSetStatus("호출을 확인했어요.","active");
@@ -6503,42 +6507,30 @@ function kobotHandleWakeWord(transcript){
   kobotAfterStop = ()=>{
     kobotAfterStop = null;
     kobotPauseRecognition = false;
-    kobotSpeak("네! 듣고 있어요~",()=>{
+    kobotSpeak("네, 듣고 있어요.",()=>{
       if(!kobotActive) return;
       kobotSetStatus("말씀을 듣고 있어요.","active");
-      kobotSetMessage("말씀을 해보세요. 현재 단계에서는 음성을 글자로 표시하고 응답을 확인합니다.");
+      kobotSetMessage("보스 이름과 컷을 말씀해 주세요.");
       kobotStartRecognition();
       kobotCommandTimer = setTimeout(()=>{
         if(!kobotActive || kobotMode !== "command") return;
-        kobotMode = "command";
-        kobotPauseRecognition = true;
-        if(kobotRecognition){
-          kobotAfterStop = ()=>{
-            kobotAfterStop = null;
-            kobotPauseRecognition = false;
-            kobotSpeak("말씀을 듣지 못했어요. 다시 부르려면 코봇이라고 말씀해 주세요.",()=>{
-              if(kobotActive){
-                kobotSetMessage("질문을 말씀해 주세요. 계속 듣고 있어요.");
-                kobotStartRecognition();
-              }
-            });
-          };
-          try{kobotRecognition.stop();}catch(e){
-            kobotPauseRecognition = false;
-            kobotSpeak("말씀을 듣지 못했어요. 다시 코봇이라고 불러주세요.",()=>{
-              if(kobotActive) kobotStartRecognition();
-            });
-          }
-        }
-      },10000);
+        kobotMode = "wake";
+        kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
+        kobotSetMessage("다시 부르려면 “코봇!”이라고 말씀해 주세요.");
+      },15000);
     });
   };
   if(kobotRecognition){
     try{kobotRecognition.stop();}
     catch(error){
-      kobotPauseRecognition = false;
-      kobotAfterStop();
+      const callback = kobotAfterStop;
+      kobotAfterStop = null;
+      if(callback) callback();
     }
+  }else{
+    const callback = kobotAfterStop;
+    kobotAfterStop = null;
+    if(callback) callback();
   }
 }
 
@@ -6771,7 +6763,8 @@ function kobotParseSpokenNumber(value){
 }
 
 function kobotParseCutTimeFromSpeech(text){
-  const compact = kobotNormalizeText(text).replace(/\s/g,"");
+  let compact = kobotNormalizeText(text).replace(/\s/g,"");
+  compact = compact.replace(/^(시각|시간|컷시각|컷시간)/,"");
   if(["지금컷","현재컷","방금컷","바로컷"].some(v=>compact.includes(v))) return new Date();
   let hour = NaN, minute = NaN;
   const period = compact.includes("오후") ? "pm" : compact.includes("오전") ? "am" : "";
@@ -6812,6 +6805,45 @@ function kobotIsNegativeConfirmation(text){
 }
 
   
+function kobotSaveCutWithoutConfirmation(boss,cutAt){
+  const pending = {boss,cutAt};
+  kobotPendingCut = null;
+  kobotPendingCutBoss = null;
+  kobotPauseRecognition = true;
+  kobotAfterStop = ()=>{
+    kobotAfterStop = null;
+    kobotPauseRecognition = false;
+    kobotSpeak("네, 저장하겠습니다.",async()=>{
+      if(!kobotActive) return;
+      try{
+        await registerCut(pending.boss,pending.cutAt);
+        kobotMode = "wake";
+        kobotSetStatus("컷 기록을 저장했어요.","active");
+        kobotSetMessage("다시 부르려면 “코봇!”이라고 말씀해 주세요.");
+        kobotStartRecognition();
+      }catch(error){
+        console.error("코봇 컷 등록 오류:",error);
+        kobotMode = "wake";
+        kobotSpeak("컷 저장에 실패했어요. 로그인 상태와 데이터 연결을 확인해 주세요.",()=>{
+          if(kobotActive) kobotStartRecognition();
+        });
+      }
+    });
+  };
+  if(kobotRecognition){
+    try{kobotRecognition.stop();}
+    catch(error){
+      const callback = kobotAfterStop;
+      kobotAfterStop = null;
+      if(callback) callback();
+    }
+  }else{
+    const callback = kobotAfterStop;
+    kobotAfterStop = null;
+    if(callback) callback();
+  }
+}
+
 function kobotHandleCommand(transcript){
   if(kobotCommandTimer){
     clearTimeout(kobotCommandTimer);
@@ -6899,16 +6931,12 @@ function kobotRespond(message){
   if(kobotPendingCutBoss){
     const followUpCutAt = kobotParseCutTimeFromSpeech(text);
     if(followUpCutAt){
-      const boss = kobotPendingCutBoss;
-      kobotPendingCutBoss = null;
-      kobotPendingCut = {boss,cutAt:followUpCutAt};
-      const timeText = followUpCutAt.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",hour12:false});
-      kobotRespond(boss.name + ", 오늘 " + timeText + " 컷으로 등록할까요? 등록하려면 네, 취소하려면 아니요라고 말씀해 주세요.");
+      kobotSaveCutWithoutConfirmation(kobotPendingCutBoss,followUpCutAt);
       return;
     }
 
     // 컷 시각을 기다리는 동안 인식 실패한 발화를 다른 보스 조회로 넘기지 않습니다.
-    kobotRespond(kobotPendingCutBoss.name + " 컷 시각을 다시 말씀해 주세요. 예를 들어 두시 삼십분 또는 영이삼공이라고 말씀하시면 돼요.");
+    kobotRespond(kobotPendingCutBoss.name + " 컷 시각을 다시 말씀해 주세요. 예를 들어 시각 영영영영 또는 두시 삼십분이라고 말씀하시면 돼요.");
     return;
   }
 
@@ -6931,9 +6959,7 @@ function kobotRespond(message){
       kobotRespond(cutBoss.name + " 보스의 컷 시각을 말씀해 주세요. 두시 삼십분 또는 영이삼공처럼 말씀하셔도 돼요.");
       return;
     }
-    kobotPendingCut = {boss:cutBoss,cutAt:cutAt};
-    const timeText = cutAt.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",hour12:false});
-    kobotRespond(cutBoss.name + ", 오늘 " + timeText + " 컷으로 등록할까요? 등록하려면 네, 취소하려면 아니요라고 말씀해 주세요.");
+    kobotSaveCutWithoutConfirmation(cutBoss,cutAt);
     return;
   }
 
@@ -7144,6 +7170,13 @@ recognition.onresult = (event)=>{
 
     if(!result.isFinal) continue;
 
+    if(kobotMode === "wake"){
+      if(/코봇|코보|코봇아/.test(kobotNormalizeText(transcript))){
+        kobotHandleWakeWord(transcript);
+      }
+      return;
+    }
+
     kobotHandleCommand(transcript);
     return;
   }
@@ -7213,14 +7246,16 @@ function startKobot(){
 
   kobotClearTimers();
   kobotActive = true;
-  kobotMode = "command";
+  kobotMode = "wake";
+  kobotPendingCut = null;
+  kobotPendingCutBoss = null;
   kobotPauseRecognition = false;
   kobotAfterStop = null;
   kobotRecognition = kobotCreateRecognition();
 
   $("kobotStartBtn").disabled = true;
   $("kobotStopBtn").disabled = false;
-  kobotSetMessage("질문을 말씀해 주세요. 코봇이 계속 듣고 있어요.");
+  kobotSetMessage("“코봇!”이라고 부르면 대화를 시작합니다.");
   kobotSetStatus("마이크 연결 중...","active");
   kobotStartRecognition();
 }
