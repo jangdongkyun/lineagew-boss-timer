@@ -731,6 +731,48 @@ body {
 }
 
     
+
+
+/* 메인 화면 종료 확인 팝업 */
+#exitConfirmModal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:2147483647;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(0,0,0,.82);
+}
+#exitConfirmModal .exit-confirm-box{
+  width:min(100%,360px);
+  padding:22px;
+  border:1px solid #b58b43;
+  border-radius:14px;
+  background:linear-gradient(145deg,#202b3d,#111923);
+  box-shadow:0 12px 40px rgba(0,0,0,.65);
+  text-align:center;
+}
+#exitConfirmModal .exit-confirm-title{
+  margin:0 0 10px;
+  color:#f0d58d;
+  font-size:19px;
+  font-weight:900;
+}
+#exitConfirmModal .exit-confirm-message{
+  margin-bottom:18px;
+  color:#d5dce7;
+  font-size:13px;
+}
+#exitConfirmModal .exit-confirm-actions{
+  display:flex;
+  justify-content:center;
+  gap:9px;
+}
+#exitConfirmModal .exit-confirm-actions button{
+  min-width:105px;
+}
+
 </style>
 </head>
 <body>
@@ -1484,6 +1526,18 @@ style="
 </div>
 
 
+<!-- 메인 화면 종료 확인 팝업 -->
+<div id="exitConfirmModal" role="dialog" aria-modal="true" aria-labelledby="exitConfirmTitle">
+  <div class="exit-confirm-box">
+    <h2 class="exit-confirm-title" id="exitConfirmTitle">종료하시겠습니까?</h2>
+    <div class="exit-confirm-message">확인을 누르면 현재 보탐봇 화면에서 나갑니다.</div>
+    <div class="exit-confirm-actions">
+      <button type="button" class="danger" id="exitConfirmYesBtn">확인</button>
+      <button type="button" class="ghost" id="exitConfirmCancelBtn">취소</button>
+    </div>
+  </div>
+</div>
+
 <!-- 고정보스 시간표 팝업 -->
 <div id="fixedBossModal"
      style="
@@ -1666,11 +1720,12 @@ const $ = id => document.getElementById(id);
 
 
 
-// 뒤로 가기 처리: 팝업 우선 닫기 + 메인 화면 종료 확인
+// 뒤로 가기 / ESC 처리: 열린 팝업을 먼저 닫고 메인 화면 종료를 확인
 const popupBackStack = [];
 let mainExitConfirmed = false;
+let exitConfirmOpen = false;
 
-// 현재 페이지의 기본 기록을 정리하고 뒤로가기 방지 기록 등록
+// 앱 진입 시 현재 페이지를 기준 기록으로 두고 뒤로가기 방지 기록 추가
 history.replaceState(
   { ...(history.state || {}), __appBackBase: true },
   "",
@@ -1683,66 +1738,170 @@ history.pushState(
   location.href
 );
 
-// 팝업 열기
-function openBackPopup(id) {
-  const box = $(id);
-  if (!box) return;
+function openExitConfirm(){
+  if(mainExitConfirmed || exitConfirmOpen) return;
 
-  if (popupBackStack.includes(id)) return;
+  exitConfirmOpen = true;
+  const modal = $("exitConfirmModal");
+
+  if(modal){
+    modal.style.display = "flex";
+
+    // 확인창이 열린 동안에도 뒤로가기를 한 번 더 눌러 앱을 우회하지 못하게 보호
+    history.pushState(
+      { ...(history.state || {}), __exitConfirmOpen: true },
+      "",
+      location.href
+    );
+  }else{
+    // 비상 fallback: 확인 팝업이 누락된 경우에도 종료 확인은 유지
+    const shouldExit = window.confirm("종료하시겠습니까?");
+    exitConfirmOpen = false;
+
+    if(shouldExit){
+      mainExitConfirmed = true;
+      history.back();
+    }else{
+      history.pushState(
+        { ...(history.state || {}), __mainBackGuard: true },
+        "",
+        location.href
+      );
+    }
+  }
+}
+
+function closeExitConfirm(restoreGuard = true){
+  const modal = $("exitConfirmModal");
+  if(modal) modal.style.display = "none";
+
+  exitConfirmOpen = false;
+
+  // 종료 확인창이 열릴 때 이미 뒤로가기 방지 기록을 추가했으므로
+  // 취소할 때는 추가 기록을 만들지 않고 현재 메인 화면을 유지
+
+  // 종료 확인 중 잠시 멈춘 코봇은 취소 후 다시 대기
+  if(typeof kobotActive !== "undefined" && kobotActive && !document.hidden && !mainExitConfirmed){
+    kobotStartRecognition();
+  }
+}
+
+// 팝업 열기
+function openBackPopup(id){
+  const box = $(id);
+  if(!box || popupBackStack.includes(id)) return;
 
   popupBackStack.push(id);
 
   history.pushState(
-    { popupBack: true, popupId: id },
+    { ...(history.state || {}), popupBack: true, popupId: id },
     "",
     location.href
   );
 }
 
 // 팝업 닫기
-function closeBackPopup(id) {
+function closeBackPopup(id){
   const lastId = popupBackStack[popupBackStack.length - 1];
 
-  if (lastId === id) {
+  if(lastId === id){
     history.back();
-  } else {
+  }else{
     const box = $(id);
-    if (box) box.style.display = "none";
-    popupBackStack.splice(popupBackStack.indexOf(id), 1);
+    if(box) box.style.display = "none";
+
+    const index = popupBackStack.indexOf(id);
+    if(index >= 0) popupBackStack.splice(index, 1);
   }
 }
 
-// 뒤로 가기 감지
-window.addEventListener("popstate", () => {
-  const id = popupBackStack.pop();
+// 브라우저 뒤로가기 감지
+window.addEventListener("popstate",()=>{
+  const id = popupBackStack[popupBackStack.length - 1];
 
-  // 열린 팝업이 있으면 팝업부터 닫기
-  if (id) {
-    if (id === "adminTools") {
+  // 열린 팝업이 있으면 가장 마지막 팝업만 닫음
+  if(id){
+    popupBackStack.pop();
+
+    if(id === "adminTools"){
       closeAdminTools(true);
       return;
     }
 
     const box = $(id);
-    if (box) box.style.display = "none";
+    if(box) box.style.display = "none";
     return;
   }
 
-  // 종료 확인 후 실제 이동하는 경우
-  if (mainExitConfirmed) return;
+  if(mainExitConfirmed) return;
 
-  const shouldExit = window.confirm("종료하시겠습니까?");
-
-  if (shouldExit) {
-    mainExitConfirmed = true;
-    history.back();
-  } else {
-    // 취소하면 뒤로가기 방지 기록 다시 등록
+  // 종료 확인창이 이미 열린 상태에서 뒤로가기를 한 번 더 누르면
+  // 확인창을 유지하고 방지 기록만 다시 등록
+  if(exitConfirmOpen){
     history.pushState(
-      { ...(history.state || {}), __mainBackGuard: true },
+      { ...(history.state || {}), __exitConfirmOpen: true },
       "",
       location.href
     );
+    return;
+  }
+
+  const app = $("app");
+  if(!app || app.style.display === "none") return;
+
+  // 메인 화면에서 뒤로가기를 누르면 종료 확인창만 표시
+  openExitConfirm();
+});
+
+// ESC 키도 브라우저 뒤로가기와 동일한 순서로 처리
+document.addEventListener("keydown",event=>{
+  if(event.key !== "Escape" || event.defaultPrevented) return;
+
+  if(exitConfirmOpen){
+    event.preventDefault();
+    closeExitConfirm(true);
+    return;
+  }
+
+  // 수기 컷 팝업은 기존 화면 전환 구조상 별도 history 항목이 없으므로 먼저 닫음
+  const manualModal = $("manualCutModal");
+  if(manualModal && manualModal.style.display !== "none"){
+    event.preventDefault();
+    manualModal.style.display = "none";
+    return;
+  }
+
+  const lastPopupId = popupBackStack[popupBackStack.length - 1];
+
+  if(lastPopupId){
+    event.preventDefault();
+    closeBackPopup(lastPopupId);
+    return;
+  }
+
+  const app = $("app");
+  if(app && app.style.display !== "none" && !mainExitConfirmed){
+    event.preventDefault();
+    history.back();
+  }
+});
+
+// 종료 확인 버튼
+document.addEventListener("click",event=>{
+  if(event.target?.id === "exitConfirmCancelBtn"){
+    closeExitConfirm(true);
+  }
+
+  if(event.target?.id === "exitConfirmYesBtn"){
+    mainExitConfirmed = true;
+    closeExitConfirm(false);
+
+    // 확인창용 기록과 앱 기준 기록을 건너뛰어 이전 화면으로 이동
+    history.go(-2);
+  }
+
+  if(event.target?.id === "exitConfirmModal"){
+    closeExitConfirm(true);
   }
 });
 
@@ -2130,14 +2289,6 @@ $("adminTools").addEventListener("click",e=>{
     closeAdminTools();
   }
 });
-
-// ESC 키로 닫기
-document.addEventListener("keydown",e=>{
-  if(e.key === "Escape" && adminToolsExpanded){
-    closeAdminTools();
-  }
-});
-
 
 // 전체 보스 재출현 시간 배율 버튼
 document.querySelectorAll("[data-respawn-multiplier]").forEach(btn=>{
@@ -5971,7 +6122,7 @@ function kobotScheduleRestart(){
 }
 
 function kobotStartRecognition(){
-  if(!kobotActive || !user || document.hidden || !kobotRecognition) return;
+  if(!kobotActive || !user || document.hidden || exitConfirmOpen || !kobotRecognition) return;
   try{
     kobotRecognition.start();
   }catch(error){
@@ -7390,7 +7541,7 @@ $("kobotTextModeBtn").addEventListener("click",()=>{
 kobotUpdateReplyMode();
 
 document.addEventListener("visibilitychange",()=>{
-  if(!kobotActive) return;
+  if(!kobotActive || exitConfirmOpen) return;
   if(document.hidden){
     kobotClearTimers();
     if(kobotRecognition){
@@ -7931,32 +8082,41 @@ function fixedBossApplyZoom(){
   }
 }
 
-// 시간표를 화면 너비에 자동 맞춤
+// 시간표를 화면의 가로·세로 크기에 자동 맞춤
 function fixedBossFitToScreen(){
   const content = document.getElementById("fixedBossZoomContent");
   const viewport = document.getElementById("fixedBossViewport");
 
   if(!content || !viewport) return;
 
-  // 원래 크기로 잠시 측정
+  // 확대 전 원래 크기로 되돌려 실제 전체 크기 측정
   content.style.zoom = "1";
 
   const contentWidth = content.scrollWidth;
+  const contentHeight = content.scrollHeight;
   const viewportWidth = viewport.clientWidth;
+  const viewportHeight = viewport.clientHeight;
 
-  if(!contentWidth || !viewportWidth) return;
+  if(!contentWidth || !contentHeight || !viewportWidth || !viewportHeight){
+    fixedBossApplyZoom();
+    return;
+  }
 
-  // 화면보다 넓으면 자동 축소, 넓지 않으면 100%
-  fixedBossZoom = Math.min(
-    1,
-    Math.max(0.5, viewportWidth / contentWidth)
+  // 가로와 세로 중 더 많이 필요한 축을 기준으로 축소
+  const widthRatio = viewportWidth / contentWidth;
+  const heightRatio = viewportHeight / contentHeight;
+
+  // 글씨가 지나치게 작아지는 것을 막으면서 가능한 한 화면에 맞춤
+  fixedBossZoom = Math.max(
+    0.35,
+    Math.min(1, widthRatio, heightRatio)
   );
 
   fixedBossApplyZoom();
-}  
+}
 
 function fixedBossChangeZoom(amount){
-  fixedBossZoom = Math.max(0.5, Math.min(2.5, fixedBossZoom + amount));
+  fixedBossZoom = Math.max(0.35, Math.min(2.5, fixedBossZoom + amount));
   fixedBossApplyZoom();
 }
 
@@ -7978,12 +8138,11 @@ if(fixedBossZoomOut){
 }
 
 if(fixedBossZoomReset){
-  fixedBossZoomReset.addEventListener("click", () => {
-    fixedBossZoom = 1;
-    fixedBossApplyZoom();
+  fixedBossZoomReset.addEventListener("click",()=>{
+    fixedBossFitToScreen();
 
     if(fixedBossViewport){
-      fixedBossViewport.scrollTo(0, 0);
+      fixedBossViewport.scrollTo(0,0);
     }
   });
 }
@@ -8073,7 +8232,7 @@ if(fixedBossViewport){
       if(pinchStartDistance > 0){
         // 두 손가락 간격으로 확대·축소
         fixedBossZoom = Math.max(
-          0.5,
+          0.35,
           Math.min(
             2.5,
             pinchStartZoom * pinch.distance / pinchStartDistance
@@ -8212,18 +8371,16 @@ function fixedBossRender(){
   if(!tbody) return;
 
 
-  // 현재 요일 보기에서는 시간표 가로 길이를 약 1/3 줄임
+  // 오늘 요일 보기에서도 표 전체 폭을 사용해 보스 표시 칸을 넓게 확보
   const fixedBossZoomContent =
     document.getElementById("fixedBossZoomContent");
 
   if(fixedBossZoomContent){
     if(showAllDays){
-      // 전체보기 또는 수정 모드
       fixedBossZoomContent.style.width = "100%";
       fixedBossZoomContent.style.minWidth = "760px";
     }else{
-      // 현재 요일 보기
-      fixedBossZoomContent.style.width = "66.666%";
+      fixedBossZoomContent.style.width = "100%";
       fixedBossZoomContent.style.minWidth = "0";
     }
   }
@@ -8285,12 +8442,13 @@ headerCells.forEach(th=>{
 });
 
 if(!showAllDays){
+  // 기존 화면의 보스 칸(전체 폭의 약 36.7%)을 약 2배인 73.3%로 확대
   if(headerCells[0]){
-    headerCells[0].style.width = "45%";
+    headerCells[0].style.width = "26.67%";
   }
 
   if(headerCells[today + 1]){
-    headerCells[today + 1].style.width = "55%";
+    headerCells[today + 1].style.width = "73.33%";
   }
 }
   
@@ -8731,10 +8889,15 @@ const fixedBossCancelBtn = document.getElementById("fixedBossCancelBtn");
 // 시간표 열기
 if(fixedBossOpenBtn && fixedBossModal){
   fixedBossOpenBtn.addEventListener("click",async()=>{
-    openBackPopup("fixedBossModal");
-fixedBossModal.style.display = "flex";
+    fixedBossShowAllDays = false;
 
-await fixedBossLoad();
+    const viewToggle = document.getElementById("fixedBossViewToggle");
+    if(viewToggle) viewToggle.textContent = "전체보기";
+
+    openBackPopup("fixedBossModal");
+    fixedBossModal.style.display = "flex";
+
+    await fixedBossLoad();
 
     
 // 시간표가 화면에 표시된 뒤 너비 자동 맞춤 및 현재 칸 중앙 이동
@@ -8793,8 +8956,15 @@ if(fixedBossViewToggle){
 
     fixedBossRender();
     fixedBossUpdateHighlight();
+
+    requestAnimationFrame(()=>{
+      fixedBossFitToScreen();
+
+      const viewport = document.getElementById("fixedBossViewport");
+      if(viewport) viewport.scrollTo(0,0);
+    });
   });
-}  
+}
   
   
   // 시간표 닫기
