@@ -6845,6 +6845,12 @@ function kobotSaveCutWithoutConfirmation(boss,cutAt){
 }
 
 function kobotHandleCommand(transcript){
+  const offCommand = kobotNormalizeText(transcript).replace(/\\s/g,"");
+  if(/^(코봇)?(오프|꺼|꺼줘|종료|그만)$/.test(offCommand)){
+    stopKobot();
+    return;
+  }
+
   if(kobotCommandTimer){
     clearTimeout(kobotCommandTimer);
     kobotCommandTimer = null;
@@ -7171,6 +7177,11 @@ recognition.onresult = (event)=>{
     if(!result.isFinal) continue;
 
     if(kobotMode === "wake"){
+      const wakeText = kobotNormalizeText(transcript).replace(/\\s/g,"");
+      if(/^(코봇)?(오프|꺼|꺼줘|종료|그만)$/.test(wakeText)){
+        stopKobot();
+        return;
+      }
       if(/코봇|코보|코봇아/.test(kobotNormalizeText(transcript))){
         kobotHandleWakeWord(transcript);
       }
