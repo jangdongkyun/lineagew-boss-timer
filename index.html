@@ -9194,10 +9194,10 @@ function weeklyLootRender(){
     </section>`;
   }).join("") + `
     <section class="weekly-loot-settings-card">
-      <div><b>🔔 알리미 설정</b><div class="muted">음성 알림 및 관리자 푸시 알림</div></div>
+      <div><b>🔔 알리미 설정</b>${admin ? '<div class="muted">음성 알림 및 관리자 푸시 알림</div>' : ''}</div>
       <div class="row" style="gap:7px;flex-wrap:wrap">
         <button type="button" class="primary" id="weeklyOpenVoiceSettingsBtn">음성 알림 설정</button>
-        ${admin ? `<button type="button" class="ghost" id="weeklyOpenPushSettingsBtn">관리자 푸시 설정</button>` : ""}
+        <div class="muted">${admin ? "음성 알림 및 관리자 푸시 알림" : "개인 음성 알림 설정"}</div>
       </div>
     </section>`;
 }
