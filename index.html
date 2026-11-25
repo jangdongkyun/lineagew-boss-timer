@@ -9325,7 +9325,9 @@ function weeklyLootRender(){
               value="${weeklyLootEscape(r.boss_name)}" placeholder="보스 이름">
             <input aria-label="${day.name} 출현 시각"
               data-weekly-time="${weeklyLootEscape(r.id)}"
-              type="time" value="${weeklyLootEscape(r.spawn_time)}">
+              type="text" inputmode="numeric" maxlength="5"
+              placeholder="HH:MM (24:00 가능)"
+              value="${weeklyLootEscape(r.spawn_time)}">
             <div class="weekly-loot-item-actions">
               <button type="button" class="danger"
                 data-weekly-delete="${weeklyLootEscape(r.id)}">삭제</button>
@@ -9364,6 +9366,14 @@ function weeklyLootRender(){
 }
 
 
+function weeklyLootNormalizeTime(value){
+  let time=String(value||"").trim();
+  if(/^\d{4}$/.test(time)) time=time.slice(0,2)+":"+time.slice(2);
+  if(time==="24:00") return "24:00";
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return time;
+  return time;
+}
+
 function weeklyLootCollectInputs(){
   document.querySelectorAll("[data-weekly-name]").forEach(el=>{
     const row=weeklyLootRows.find(r=>String(r.id)===String(el.dataset.weeklyName));
@@ -9371,7 +9381,7 @@ function weeklyLootCollectInputs(){
   });
   document.querySelectorAll("[data-weekly-time]").forEach(el=>{
     const row=weeklyLootRows.find(r=>String(r.id)===String(el.dataset.weeklyTime));
-    if(row) row.spawn_time=el.value;
+    if(row) row.spawn_time=weeklyLootNormalizeTime(el.value);
   });
 }
 
@@ -9410,7 +9420,7 @@ $("weeklyLootCancelBtn").addEventListener("click",()=>{
 $("weeklyLootSaveBtn").addEventListener("click",async()=>{
   if(!isAdmin()) return alert("관리자만 저장할 수 있습니다.");
   weeklyLootCollectInputs();
-  const invalid=weeklyLootRows.find(r=>!r.boss_name || !/^\d{2}:\d{2}$/.test(r.spawn_time||""));
+  const invalid=weeklyLootRows.find(r=>!r.boss_name || !/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/.test(r.spawn_time||""));
   if(invalid) return alert("모든 항목에 보스 이름과 출현 시각을 입력해 주세요.");
   const btn=$("weeklyLootSaveBtn");btn.disabled=true;btn.textContent="저장 중...";
   try{
