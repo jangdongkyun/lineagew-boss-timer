@@ -6630,6 +6630,11 @@ function kobotFindBossInText(text){
     return candidates[0].boss;
   }
 
+  // 발화가 유효한 컷 시각이면, 숫자/시간 표현을 보스 이름으로 오인하지 않습니다.
+  if(typeof kobotParseCutTimeFromSpeech === "function" && kobotParseCutTimeFromSpeech(text)){
+    return null;
+  }
+
   // 글자 유사도 계산
   function similarity(a,b){
     if(!a || !b) return 0;
@@ -6901,6 +6906,10 @@ function kobotRespond(message){
       kobotRespond(boss.name + ", 오늘 " + timeText + " 컷으로 등록할까요? 등록하려면 네, 취소하려면 아니요라고 말씀해 주세요.");
       return;
     }
+
+    // 컷 시각을 기다리는 동안 인식 실패한 발화를 다른 보스 조회로 넘기지 않습니다.
+    kobotRespond(kobotPendingCutBoss.name + " 컷 시각을 다시 말씀해 주세요. 예를 들어 두시 삼십분 또는 영이삼공이라고 말씀하시면 돼요.");
+    return;
   }
 
   // 보스 이름과 시각을 함께 말하면 '컷/기록'이라는 단어가 없어도 컷 등록
