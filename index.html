@@ -2326,7 +2326,7 @@ async function saveAdminPushSettings(){
     };
 
     $("adminPushMessage").textContent =
-      "푸시 설정값이 저장되었습니다. 실제 푸시 발송은 서버 발송 기능 연결이 필요합니다.";
+      "푸시 설정값을 저장했습니다. 주간 룻권 푸시는 서버에서 설정된 시각에 발송됩니다. 기기 알림 권한과 푸시 등록 상태를 확인해 주세요.";
   }catch(e){
     console.error("관리자 푸시 설정 저장 실패:",e);
     $("adminPushMessage").textContent =
