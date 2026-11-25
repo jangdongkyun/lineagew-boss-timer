@@ -1434,6 +1434,10 @@ style="
   <hr style="border-color:#806b3e;margin:14px 0">
   <h3>주간 룻권 보스 푸시 알림</h3>
   <label><input type="checkbox" id="adminWeeklyPushEnabled"> 주간 룻권 보스 푸시 알림 사용</label>
+  <p style="color:#e8c879;font-weight:bold;margin:10px 0 6px">주간 룻권 알림 시점</p>
+  <label><input type="checkbox" id="adminWeeklyPush10m"> 예정 시각 10분 전</label><br>
+  <label><input type="checkbox" id="adminWeeklyPush5m"> 예정 시각 5분 전</label><br>
+  <label><input type="checkbox" id="adminWeeklyPush1m"> 예정 시각 1분 전</label>
   <div id="adminWeeklyPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px"></div>
   <div class="muted" style="margin-top:8px">필드보스 푸시와 주간 룻권 푸시는 별도 설정입니다.</div>
 
@@ -2120,6 +2124,9 @@ async function loadAdminPushSettings(){
   $("adminFieldVoiceEnabled").checked = voiceBossSettings.__admin_field_voice_enabled !== false;
   $("adminWeeklyVoiceEnabled").checked = voiceBossSettings.__admin_weekly_voice_enabled !== false;
   $("adminWeeklyPushEnabled").checked = pushBossSettings.__weekly_enabled === true;
+  $("adminWeeklyPush10m").checked = pushBossSettings.__weekly_10m !== false;
+  $("adminWeeklyPush5m").checked = pushBossSettings.__weekly_5m !== false;
+  $("adminWeeklyPush1m").checked = pushBossSettings.__weekly_1m !== false;
 
   $("adminPushBossOptions").innerHTML = `
     <style>
@@ -2284,6 +2291,9 @@ async function saveAdminPushSettings(){
     pushBossSettings[el.dataset.adminPushBoss] = el.checked;
   });
   pushBossSettings.__weekly_enabled = $("adminWeeklyPushEnabled").checked;
+  pushBossSettings.__weekly_10m = $("adminWeeklyPush10m").checked;
+  pushBossSettings.__weekly_5m = $("adminWeeklyPush5m").checked;
+  pushBossSettings.__weekly_1m = $("adminWeeklyPush1m").checked;
   document.querySelectorAll("[data-admin-weekly-push-boss]").forEach(el=>{
     pushBossSettings["weekly:" + el.dataset.adminWeeklyPushBoss] = el.checked;
   });
@@ -9256,14 +9266,16 @@ fixedBossUpdateHighlight();
 // 주간 룻권 시간표 (고정보스 시간표와 완전 분리)
 // Supabase table: weekly_loot_schedule
 // =========================================
+// 게임 주간 기준은 수요일 시작: 수→목→금→토→일→월→화
+// day_of_week 값은 JavaScript 기준(일=0, 월=1, ... 토=6)을 그대로 유지합니다.
 const weeklyLootDays = [
-  {id:1,name:"월요일"},{id:2,name:"화요일"},{id:3,name:"수요일"},
-  {id:4,name:"목요일"},{id:5,name:"금요일"},{id:6,name:"토요일"},{id:0,name:"일요일"}
+  {id:3,name:"수요일"},{id:4,name:"목요일"},{id:5,name:"금요일"},
+  {id:6,name:"토요일"},{id:0,name:"일요일"},{id:1,name:"월요일"},{id:2,name:"화요일"}
 ];
 let weeklyLootRows = [];
 let weeklyLootOriginalRows = [];
 let weeklyLootEditMode = false;
-let weeklyLootSelectedDay = 1;
+let weeklyLootSelectedDay = 3;
 
 function weeklyLootEscape(v){ return escapeHtml(v); }
 
