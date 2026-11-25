@@ -3303,16 +3303,31 @@ function parseCutTime(value){
   return result.toISOString();
 }
 
+// 보스 정식 이름과 등록된 모든 별명을 동일한 검색 대상으로 취급합니다.
+function getBossNameVariants(boss){
+  const rawAliases = Array.isArray(boss?.aliases)
+    ? boss.aliases
+    : String(boss?.aliases || "").split(/[,;\/、\n]+/);
+
+  return [boss?.name,...rawAliases]
+    .flatMap(value=>String(value || "").split(/[,;\/、\n]+/))
+    .map(value=>String(value).trim())
+    .filter(Boolean);
+}
+
+function normalizeBossName(value){
+  return String(value || "")
+    .toLocaleLowerCase()
+    .replace(/[\s.,!?~。，！？·_-]/g,"");
+}
+
 function findBossByName(name){
-  const target = String(name || "").trim().toLocaleLowerCase();
+  const target = normalizeBossName(name);
   if(!target) return null;
 
-  return bosses.find(b=>{
-    const names = [b.name,...(Array.isArray(b.aliases)?b.aliases:[])];
-    return names.some(n=>
-      String(n).trim().toLocaleLowerCase() === target
-    );
-  }) || null;
+  return (bosses || []).find(b=>
+    getBossNameVariants(b).some(n=>normalizeBossName(n) === target)
+  ) || null;
 }
 function renderManualBossList(){
   const input = $("manualBossName");
@@ -6624,13 +6639,8 @@ function kobotFindBossInText(text){
   const candidates = [];
 
   (bosses || []).forEach(boss => {
-    const aliases = Array.isArray(boss.aliases)
-      ? boss.aliases
-      : String(boss.aliases || "").split(",");
-
-    [boss.name, ...aliases].forEach(name => {
-      const alias = kobotNormalizeText(name)
-        .replace(/\s/g,"");
+    getBossNameVariants(boss).forEach(name => {
+      const alias = normalizeBossName(name);
 
       if(alias && normalized.includes(alias)){
         candidates.push({
@@ -6685,15 +6695,10 @@ function kobotFindBossInText(text){
   const scores = new Map();
 
   (bosses || []).forEach(boss=>{
-    const aliases = Array.isArray(boss.aliases)
-      ? boss.aliases
-      : String(boss.aliases || "").split(",");
-
     let bossScore = 0;
 
-    [boss.name,...aliases].forEach(name=>{
-      const alias = kobotNormalizeText(name)
-        .replace(/\s/g,"");
+    getBossNameVariants(boss).forEach(name=>{
+      const alias = normalizeBossName(name);
 
       if(alias.length < 3) return;
 
