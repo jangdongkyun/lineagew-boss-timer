@@ -6480,6 +6480,30 @@ try{
 }
 
 
+function kobotGetPreferredKoreanVoice(voices, selectedName=""){
+  const koreanVoices = (voices || []).filter(v =>
+    v.lang && v.lang.toLowerCase().startsWith("ko")
+  );
+  if(selectedName){
+    const selected = koreanVoices.find(v=>v.name===selectedName);
+    if(selected) return selected;
+  }
+
+  // 운영체제에서 제공하는 자연스러운 온라인/뉴럴 한국어 음성을 우선 선택
+  const score = voice=>{
+    const name = String(voice.name || "").toLowerCase();
+    let value = 0;
+    if(/natural|neural|online/.test(name)) value += 100;
+    if(/sunhi|sun-hi/.test(name)) value += 20;
+    if(/google/.test(name)) value += 15;
+    if(/compact|espeak|default/.test(name)) value -= 50;
+    if(voice.localService === false) value += 5;
+    return value;
+  };
+  return koreanVoices.sort((a,b)=>score(b)-score(a))[0] || null;
+}
+
+
 function kobotSpeak(message, after){
   kobotSetMessage(message);
   kobotAddReply(message);
@@ -6502,15 +6526,12 @@ function kobotSpeak(message, after){
 
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = "ko-KR";
-    utterance.rate = 1.15;
-    utterance.pitch = 1.04;
+    utterance.rate = 1.02;
+    utterance.pitch = 1.0;
 
     const voices = synth.getVoices();
     const selectedName = myAlertSettings?.voice_name || "";
-    let voice = voices.find(v=>v.name === selectedName);
-    if(!voice){
-      voice = voices.find(v=>v.lang && v.lang.toLowerCase().startsWith("ko"));
-    }
+    const voice = kobotGetPreferredKoreanVoice(voices,selectedName);
     if(voice) utterance.voice = voice;
 
     let finished = false;
