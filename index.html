@@ -6631,8 +6631,7 @@ function kobotDetectIntent(text){
 
 
 function kobotFindBossInText(text){
-  const normalized = kobotNormalizeText(text)
-    .replace(/\s/g,"");
+  const normalized = normalizeBossName(text);
 
   if(!normalized) return null;
 
