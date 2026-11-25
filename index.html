@@ -6643,32 +6643,58 @@ function kobotDetectIntent(text){
 
 function kobotFindBossInText(text){
   const normalized = normalizeBossName(text);
-
   if(!normalized) return null;
 
+  const cutContext = /(컷|기록|등록|입력|잡았|처치)/.test(normalized);
+  const digitWords = {"1":"일","2":"이","3":"삼","4":"사"};
   const candidates = [];
 
   (bosses || []).forEach(boss => {
-    getBossNameVariants(boss).forEach(name => {
-      const alias = normalizeBossName(name);
+    const variants = getBossNameVariants(boss);
+    const expanded = [];
 
-      if(alias && normalized.includes(alias)){
-        candidates.push({
-          boss,
-          length: alias.length
-        });
+    variants.forEach(name => {
+      const alias = normalizeBossName(name);
+      if(!alias) return;
+      expanded.push(alias);
+
+      // 드레이크1 / 드1 / 드레1 같은 숫자 별칭을 한글 숫자 발음으로 확장
+      const numbered = alias.match(/^(.*?)([1-4])$/);
+      if(numbered){
+        const stem = numbered[1];
+        const digit = numbered[2];
+        const spoken = digitWords[digit];
+        expanded.push(
+          stem + digit + "번",
+          stem + spoken,
+          stem + spoken + "번"
+        );
+      }
+    });
+
+    [...new Set(expanded)].forEach(alias => {
+      let matched = false;
+
+      // 숫자 또는 한글 숫자만으로 된 별칭은 단독 발화/컷 문맥에서만 사용
+      const isBareNumberWord = /^(일|이|삼|사|1|2|3|4)(번)?$/.test(alias);
+      if(isBareNumberWord){
+        matched = normalized === alias || normalized.includes(alias + "컷") ||
+          normalized.includes(alias + "기록") || normalized.includes(alias + "등록") ||
+          normalized.includes(alias + "입력") || (cutContext && normalized.includes(alias));
+      }else{
+        matched = normalized.includes(alias);
+      }
+
+      if(matched){
+        candidates.push({boss,length:alias.length});
       }
     });
   });
 
-  // 정확히 일치하는 이름 우선
-  candidates.sort((a,b) => b.length - a.length);
+  candidates.sort((a,b)=>b.length-a.length);
+  if(candidates.length) return candidates[0].boss;
 
-  if(candidates.length){
-    return candidates[0].boss;
-  }
-
-  // 발화가 유효한 컷 시각이면, 숫자/시간 표현을 보스 이름으로 오인하지 않습니다.
+  // 발화가 유효한 컷 시각이면 숫자/시간 표현을 보스 이름으로 오인하지 않습니다.
   if(typeof kobotParseCutTimeFromSpeech === "function" && kobotParseCutTimeFromSpeech(text)){
     return null;
   }
@@ -6676,80 +6702,48 @@ function kobotFindBossInText(text){
   // 글자 유사도 계산
   function similarity(a,b){
     if(!a || !b) return 0;
-
-    const previous = Array.from(
-      {length:b.length+1},
-      (_,i)=>i
-    );
-
+    const previous = Array.from({length:b.length+1},(_,i)=>i);
     for(let i=1;i<=a.length;i++){
       let diagonal = previous[0];
       previous[0] = i;
-
       for(let j=1;j<=b.length;j++){
         const old = previous[j];
-
         previous[j] = Math.min(
           previous[j]+1,
           previous[j-1]+1,
           diagonal+(a[i-1] === b[j-1] ? 0 : 1)
         );
-
         diagonal = old;
       }
     }
-
     return 1-previous[b.length]/Math.max(a.length,b.length);
   }
 
   const scores = new Map();
-
   (bosses || []).forEach(boss=>{
     let bossScore = 0;
-
     getBossNameVariants(boss).forEach(name=>{
       const alias = normalizeBossName(name);
-
       if(alias.length < 3) return;
-
-      for(
-        let size=Math.max(2,alias.length-1);
-        size<=alias.length+1;
-        size++
-      ){
+      for(let size=Math.max(2,alias.length-1);size<=alias.length+1;size++){
         for(let i=0;i<=normalized.length-size;i++){
           const part = normalized.slice(i,i+size);
           const score = similarity(part,alias);
-
-          if(score > bossScore){
-            bossScore = score;
-          }
+          if(score > bossScore) bossScore = score;
         }
       }
     });
-
-    if(bossScore > 0){
-      scores.set(boss,bossScore);
-    }
+    if(bossScore > 0) scores.set(boss,bossScore);
   });
 
-  const ranked = [...scores.entries()]
-    .sort((a,b)=>b[1]-a[1]);
-
+  const ranked = [...scores.entries()].sort((a,b)=>b[1]-a[1]);
   if(!ranked.length) return null;
-
   const best = ranked[0];
   const second = ranked[1];
-
   if(best[1] < 0.65) return null;
-
-  if(second && best[1]-second[1] < 0.08){
-    return null;
-  }
-
+  if(second && best[1]-second[1] < 0.08) return null;
   return best[0];
 }
-
 
 function kobotGetUpcomingBosses(){
   return (getSortedBosses() || [])
@@ -6984,6 +6978,14 @@ function kobotRespond(message){
 
   // 보스 이름을 먼저 말하고 다음 발화에서 컷 시각을 말하는 경우
   if(kobotPendingCutBoss){
+    // 보스 이름을 잘못 인식했거나 다시 입력하고 싶으면 취소로 대기 상태를 초기화합니다.
+    if(kobotIsNegativeConfirmation(text)){
+      const cancelledBossName = kobotPendingCutBoss.name;
+      kobotPendingCutBoss = null;
+      kobotRespond(cancelledBossName + " 컷 입력을 취소했어요. 다시 등록할 보스 이름을 말씀해 주세요.");
+      return;
+    }
+
     const followUpCutAt = kobotParseCutTimeFromSpeech(text);
     if(followUpCutAt){
       kobotSaveCutWithoutConfirmation(kobotPendingCutBoss,followUpCutAt);
