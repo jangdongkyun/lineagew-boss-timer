@@ -6837,7 +6837,8 @@ function kobotParseCutTimeFromSpeech(text){
   if(!Number.isFinite(hour)){
     match = compact.match(/([0-9영공일이삼사오육칠팔구]{4})/);
     if(match){
-      const digits = [...match[1]].map(ch=>digitMap[ch] ?? ch).join("");
+      const spokenDigitMap = {"영":"0","공":"0","일":"1","이":"2","삼":"3","사":"4","오":"5","육":"6","팔":"7","구":"9"};
+      const digits = [...match[1]].map(ch=>spokenDigitMap[ch] ?? ch).join("");
       hour=Number(digits.slice(0,2));minute=Number(digits.slice(2,4));
     }
   }
