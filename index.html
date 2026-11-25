@@ -6390,7 +6390,7 @@ function kobotScheduleRestart(){
   kobotRestartTimer = setTimeout(()=>{
     kobotRestartTimer = null;
     kobotStartRecognition();
-  },250);
+  },150);
 }
 
 function kobotStartRecognition(){
@@ -6502,7 +6502,7 @@ function kobotSpeak(message, after){
 
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = "ko-KR";
-    utterance.rate = 1.08;
+    utterance.rate = 1.15;
     utterance.pitch = 1.04;
 
     const voices = synth.getVoices();
