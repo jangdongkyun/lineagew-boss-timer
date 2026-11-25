@@ -6788,19 +6788,25 @@ let kobotPendingCutBoss = null;
 function kobotParseSpokenNumber(value){
   const raw = String(value || "").replace(/\s/g,"");
   if(!raw) return NaN;
+
   const digitMap = {"영":"0","공":"0","일":"1","이":"2","삼":"3","사":"4","오":"5","육":"6","륙":"6","칠":"7","팔":"8","구":"9"};
   if(/^\d+$/.test(raw)) return Number(raw);
+
+  // 숫자를 한 글자씩 읽은 경우: 이삼 -> 23, 영팔 -> 08
   if([...raw].every(ch=>Object.prototype.hasOwnProperty.call(digitMap,ch))){
     return Number([...raw].map(ch=>digitMap[ch]).join(""));
   }
+
   const nativeNumbers = {"한":1,"하나":1,"두":2,"둘":2,"세":3,"셋":3,"네":4,"넷":4,"다섯":5,"여섯":6,"일곱":7,"여덟":8,"아홉":9,"열":10,"열한":11,"열두":12};
   if(Object.prototype.hasOwnProperty.call(nativeNumbers,raw)) return nativeNumbers[raw];
+
+  // 사십삼, 삼십오, 오십팔 등 십 단위 결합 숫자
   if(raw.includes("십")){
     const parts = raw.split("십");
     if(parts.length !== 2) return NaN;
     const tens = parts[0] ? kobotParseSpokenNumber(parts[0]) : 1;
     const ones = parts[1] ? kobotParseSpokenNumber(parts[1]) : 0;
-    if(!Number.isFinite(tens) || !Number.isFinite(ones)) return NaN;
+    if(!Number.isFinite(tens) || !Number.isFinite(ones) || tens<1 || tens>9 || ones<0 || ones>9) return NaN;
     return tens * 10 + ones;
   }
   return NaN;
@@ -6814,6 +6820,7 @@ function kobotParseCutTimeFromSpeech(text){
     now.kobotUseManualForm = true;
     return now;
   }
+
   let hour = NaN, minute = NaN;
   const period = compact.includes("오후") ? "pm" : compact.includes("오전") ? "am" : "";
   let match = compact.match(/([0-9영공일이삼사오육륙칠팔구한두세네다섯여섯일곱여덟아홉열]+)시([0-9영공일이삼사오육칠팔구십]+)?분?/);
@@ -6821,18 +6828,34 @@ function kobotParseCutTimeFromSpeech(text){
     hour = kobotParseSpokenNumber(match[1]);
     minute = match[2] ? kobotParseSpokenNumber(match[2]) : 0;
   }
+
   if(!Number.isFinite(hour)){
     match = compact.match(/(\d{1,2}):(\d{2})/);
     if(match){hour=Number(match[1]);minute=Number(match[2]);}
   }
+
   if(!Number.isFinite(hour)){
     match = compact.match(/([0-9영공일이삼사오육칠팔구]{4})/);
     if(match){
-      const digitMap = {"영":"0","공":"0","일":"1","이":"2","삼":"3","사":"4","오":"5","육":"6","칠":"7","팔":"8","구":"9"};
-      const digits = [...match[1]].map(ch=>digitMap[ch] ?? ch).join("");
+      const spokenDigitMap = {"영":"0","공":"0","일":"1","이":"2","삼":"3","사":"4","오":"5","육":"6","팔":"7","구":"9"};
+      const digits = [...match[1]].map(ch=>spokenDigitMap[ch] ?? ch).join("");
       hour=Number(digits.slice(0,2));minute=Number(digits.slice(2,4));
     }
   }
+
+  // "사십삼분"처럼 분만 말한 경우에는 현재 시각의 시(hour)를 사용
+  // 컷 등록 대기 중에만 시간 입력으로 해석되며, 분 범위는 0~59로 제한
+  if(!Number.isFinite(hour)){
+    match = compact.match(/([0-9영공일이삼사오육륙칠팔구십]+)분/);
+    if(match){
+      const parsedMinute = kobotParseSpokenNumber(match[1]);
+      if(Number.isFinite(parsedMinute) && parsedMinute>=0 && parsedMinute<=59){
+        hour = new Date().getHours();
+        minute = parsedMinute;
+      }
+    }
+  }
+
   if(!Number.isFinite(hour)) return null;
   if(period==="pm" && hour>=1 && hour<=11) hour+=12;
   if(period==="am" && hour===12) hour=0;
