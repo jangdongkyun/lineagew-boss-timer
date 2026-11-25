@@ -7120,7 +7120,8 @@ recognition.onresult = (event)=>{
       const normalized = transcript.toLowerCase().replace(/[\s.,!?~。！？]/g,"");
       const spoken = String(kobotCurrentSpeechText || "").toLowerCase().replace(/[\s.,!?~。！？]/g,"");
       const enoughSpeech = result.isFinal ? normalized.length >= 1 : normalized.length >= 2;
-      const looksLikeKobotEcho = normalized.length >= 2 && spoken.includes(normalized);
+      const isConfirmationWord = /^(네|예|응|어|맞아|맞아요|아니|아니요|취소)$/.test(normalized);
+      const looksLikeKobotEcho = !isConfirmationWord && normalized.length >= 2 && spoken.includes(normalized);
       if(enoughSpeech && !looksLikeKobotEcho){
         kobotSpeechToken++;
         kobotSpeechCancelledByUser = true;
