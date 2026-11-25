@@ -1416,11 +1416,7 @@ style="
 
 
 <div id="adminPushOptions" style="margin-top:12px">
-  <hr style="border-color:#806b3e;margin:14px 0">
-  <h3>주간 룻권 보스 푸시 알림</h3>
-  <label><input type="checkbox" id="adminWeeklyPushEnabled"> 주간 룻권 보스 푸시 알림 사용</label>
-  <div id="adminWeeklyPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px"></div>
-  <p style="color:#e8c879;font-weight:bold">푸시 알림 시점</p>
+  <p style="color:#e8c879;font-weight:bold">필드보스 푸시 알림 시점</p>
   <label><input type="checkbox" id="adminPush3m"> 3분 전</label><br>
   <label><input type="checkbox" id="adminPush1m"> 1분 전</label><br>
   <label><input type="checkbox" id="adminPush30s"> 30초 전</label><br>
@@ -1435,6 +1431,11 @@ style="
   </div>
 </div>
 
+  <hr style="border-color:#806b3e;margin:14px 0">
+  <h3>주간 룻권 보스 푸시 알림</h3>
+  <label><input type="checkbox" id="adminWeeklyPushEnabled"> 주간 룻권 보스 푸시 알림 사용</label>
+  <div id="adminWeeklyPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px"></div>
+  <div class="muted" style="margin-top:8px">필드보스 푸시와 주간 룻권 푸시는 별도 설정입니다.</div>
 
   <button class="primary" id="saveAdminPushSettingsBtn" type="button">
     관리자 푸시 설정 저장
@@ -2247,6 +2248,7 @@ async function loadAdminPushSettings(){
 
   $("adminPushOptions").style.display = data.push_enabled ? "block" : "none";
   $("adminWeeklyPushBossOptions").style.display = pushBossSettings.__weekly_enabled ? "grid" : "none";
+  $("adminWeeklyPushEnabled").checked = pushBossSettings.__weekly_enabled === true;
 }
 
 
@@ -2287,6 +2289,7 @@ async function saveAdminPushSettings(){
   });
 
   const updated = {
+    ...(myAlertSettings || {}),
     user_id: user.id,
     push_enabled: $("adminPushEnabled").checked,
     push_alert_3m: $("adminPush3m").checked,
@@ -2313,7 +2316,7 @@ async function saveAdminPushSettings(){
     };
 
     $("adminPushMessage").textContent =
-      "관리자 푸시 설정이 저장되었습니다.";
+      "푸시 설정값이 저장되었습니다. 실제 푸시 발송은 서버 발송 기능 연결이 필요합니다.";
   }catch(e){
     console.error("관리자 푸시 설정 저장 실패:",e);
     $("adminPushMessage").textContent =
