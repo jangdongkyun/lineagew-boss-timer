@@ -1399,7 +1399,14 @@ style="
     </button>
   </div>
 
-  <div class="panel" id="adminPushSettings">
+  <div class="panel" id="adminVoiceSettings">
+  <h3>🔊 관리자 전용 음성 알림 설정</h3>
+  <label><input type="checkbox" id="adminFieldVoiceEnabled"> 일반 필드보스 음성 알림 사용</label><br>
+  <label><input type="checkbox" id="adminWeeklyVoiceEnabled"> 주간 룻권 보스 음성 알림 사용</label>
+  <button class="primary" id="saveAdminVoiceSettingsBtn" type="button" style="width:100%;margin-top:12px">관리자 음성 설정 저장</button>
+  <div id="adminVoiceMessage" class="muted"></div>
+</div>
+<div class="panel" id="adminPushSettings">
   <h3>📲 관리자 푸시 알림 설정</h3>
 
   <label>
@@ -1409,7 +1416,7 @@ style="
 
 
 <div id="adminPushOptions" style="margin-top:12px">
-  <p style="color:#e8c879;font-weight:bold">푸시 알림 시점</p>
+  <p style="color:#e8c879;font-weight:bold">필드보스 푸시 알림 시점</p>
   <label><input type="checkbox" id="adminPush3m"> 3분 전</label><br>
   <label><input type="checkbox" id="adminPush1m"> 1분 전</label><br>
   <label><input type="checkbox" id="adminPush30s"> 30초 전</label><br>
@@ -1424,6 +1431,15 @@ style="
   </div>
 </div>
 
+  <hr style="border-color:#806b3e;margin:14px 0">
+  <h3>주간 룻권 보스 푸시 알림</h3>
+  <label><input type="checkbox" id="adminWeeklyPushEnabled"> 주간 룻권 보스 푸시 알림 사용</label>
+  <p style="color:#e8c879;font-weight:bold;margin:10px 0 6px">주간 룻권 알림 시점</p>
+  <label><input type="checkbox" id="adminWeeklyPush10m"> 예정 시각 10분 전</label><br>
+  <label><input type="checkbox" id="adminWeeklyPush5m"> 예정 시각 5분 전</label><br>
+  <label><input type="checkbox" id="adminWeeklyPush1m"> 예정 시각 1분 전</label>
+  <div id="adminWeeklyPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px"></div>
+  <div class="muted" style="margin-top:8px">필드보스 푸시와 주간 룻권 푸시는 별도 설정입니다.</div>
 
   <button class="primary" id="saveAdminPushSettingsBtn" type="button">
     관리자 푸시 설정 저장
@@ -2070,7 +2086,11 @@ async function loadAdminPushSettings(){
     "adminPush10s",
     "adminPushSpawn",
     "adminPushBossOptions",
-    "adminPushOptions"
+    "adminPushOptions",
+    "adminWeeklyPushEnabled",
+    "adminWeeklyPushBossOptions",
+    "adminFieldVoiceEnabled",
+    "adminWeeklyVoiceEnabled"
   ];
 
   if(requiredIds.some(id => !$(id))){
@@ -2100,6 +2120,13 @@ async function loadAdminPushSettings(){
 
 
   const pushBossSettings = data.push_boss_settings || {};
+  const voiceBossSettings = data.boss_settings || {};
+  $("adminFieldVoiceEnabled").checked = voiceBossSettings.__admin_field_voice_enabled !== false;
+  $("adminWeeklyVoiceEnabled").checked = voiceBossSettings.__admin_weekly_voice_enabled !== false;
+  $("adminWeeklyPushEnabled").checked = pushBossSettings.__weekly_enabled === true;
+  $("adminWeeklyPush10m").checked = pushBossSettings.__weekly_10m !== false;
+  $("adminWeeklyPush5m").checked = pushBossSettings.__weekly_5m !== false;
+  $("adminWeeklyPush1m").checked = pushBossSettings.__weekly_1m !== false;
 
   $("adminPushBossOptions").innerHTML = `
     <style>
@@ -2216,9 +2243,37 @@ async function loadAdminPushSettings(){
   `;
 
 
-  $("adminPushOptions").style.display =
-    data.push_enabled ? "block" : "none";
+  $("adminWeeklyPushBossOptions").innerHTML = weeklyLootRows.length
+    ? weeklyLootRows.map(r => {
+        const key = "weekly:" + r.id;
+        return '<label style="display:flex;align-items:center;gap:7px;padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px">' +
+          '<input type="checkbox" data-admin-weekly-push-boss="' + escapeHtml(r.id) + '" ' +
+          (pushBossSettings[key] !== false ? 'checked' : '') + '>' +
+          '<span>' + escapeHtml(r.boss_name) + ' · ' + escapeHtml(r.spawn_time || '') + '</span></label>';
+      }).join("")
+    : '<div class="muted">등록된 주간 룻권 보스가 없습니다.</div>';
+
+  $("adminPushOptions").style.display = data.push_enabled ? "block" : "none";
+  $("adminWeeklyPushBossOptions").style.display = pushBossSettings.__weekly_enabled ? "grid" : "none";
+  $("adminWeeklyPushEnabled").checked = pushBossSettings.__weekly_enabled === true;
 }
+
+
+async function saveAdminVoiceSettings(){
+  if(!isAdmin()||!user) return alert("관리자만 설정할 수 있습니다.");
+  const btn=$("saveAdminVoiceSettingsBtn");btn.disabled=true;
+  try{
+    const updated={...(myAlertSettings||{}),user_id:user.id,
+      boss_settings:{...(myAlertSettings?.boss_settings||{})},updated_at:new Date().toISOString()};
+    updated.boss_settings.__admin_field_voice_enabled=$("adminFieldVoiceEnabled").checked;
+    updated.boss_settings.__admin_weekly_voice_enabled=$("adminWeeklyVoiceEnabled").checked;
+    const {data,error}=await db.from("user_alert_settings").upsert(updated,{onConflict:"user_id"}).select().single();
+    if(error) throw error;
+    myAlertSettings=data;$("adminVoiceMessage").textContent="관리자 음성 알림 설정을 저장했습니다.";
+  }catch(e){console.error("관리자 음성 설정 저장 실패:",e);$("adminVoiceMessage").textContent="저장 실패: "+e.message;}
+  finally{btn.disabled=false;}
+}
+$("saveAdminVoiceSettingsBtn")?.addEventListener("click",saveAdminVoiceSettings);
 
 async function saveAdminPushSettings(){
   if(!isAdmin() || !user){
@@ -2235,8 +2290,16 @@ async function saveAdminPushSettings(){
   document.querySelectorAll("[data-admin-push-boss]").forEach(el=>{
     pushBossSettings[el.dataset.adminPushBoss] = el.checked;
   });
+  pushBossSettings.__weekly_enabled = $("adminWeeklyPushEnabled").checked;
+  pushBossSettings.__weekly_10m = $("adminWeeklyPush10m").checked;
+  pushBossSettings.__weekly_5m = $("adminWeeklyPush5m").checked;
+  pushBossSettings.__weekly_1m = $("adminWeeklyPush1m").checked;
+  document.querySelectorAll("[data-admin-weekly-push-boss]").forEach(el=>{
+    pushBossSettings["weekly:" + el.dataset.adminWeeklyPushBoss] = el.checked;
+  });
 
   const updated = {
+    ...(myAlertSettings || {}),
     user_id: user.id,
     push_enabled: $("adminPushEnabled").checked,
     push_alert_3m: $("adminPush3m").checked,
@@ -2263,7 +2326,7 @@ async function saveAdminPushSettings(){
     };
 
     $("adminPushMessage").textContent =
-      "관리자 푸시 설정이 저장되었습니다.";
+      "푸시 설정값을 저장했습니다. 주간 룻권 푸시는 서버에서 설정된 시각에 발송됩니다. 기기 알림 권한과 푸시 등록 상태를 확인해 주세요.";
   }catch(e){
     console.error("관리자 푸시 설정 저장 실패:",e);
     $("adminPushMessage").textContent =
@@ -2295,6 +2358,10 @@ if(saveAdminPushBtn){
 $("adminPushEnabled").addEventListener("change",()=>{
   $("adminPushOptions").style.display =
     $("adminPushEnabled").checked ? "block" : "none";
+});
+$("adminWeeklyPushEnabled")?.addEventListener("change",()=>{
+  $("adminWeeklyPushBossOptions").style.display =
+    $("adminWeeklyPushEnabled").checked ? "grid" : "none";
 });
   
 // =========================================
@@ -4485,6 +4552,8 @@ if(overdue && elapsed <= 300000){
     checkVoice(b,at,ms);
   });
 
+  checkWeeklyLootVoice(now);
+
     const bossList = $("bossList");
   const activeCard = document.activeElement?.closest("[data-boss-card]");
 
@@ -4540,6 +4609,8 @@ function checkVoice(boss, at, ms) {
 
   // 선택한 보스만 알림
   const bossSettings = settings.boss_settings || {};
+  if (bossSettings.__field_voice_enabled === false) return;
+  if (isAdmin() && bossSettings.__admin_field_voice_enabled === false) return;
   if (bossSettings[boss.id] === false) return;
 
   // 음성 방해금지 시간 확인
@@ -4579,6 +4650,41 @@ function checkVoice(boss, at, ms) {
 
 
 
+
+
+function checkWeeklyLootVoice(nowMs=Date.now()){
+  if(!user||!soundOn||!("speechSynthesis" in window)) return;
+  const settings=myAlertSettings;
+  if(!settings||!settings.voice_enabled) return;
+  const bs=settings.boss_settings||{};
+  if(bs.__weekly_voice_enabled===false) return;
+  if(isAdmin()&&bs.__admin_weekly_voice_enabled===false) return;
+  if(isVoiceQuietHours(settings)) return;
+  const now=new Date(nowMs);
+  weeklyLootRows.filter(r=>Number(r.day_of_week)===now.getDay()).forEach(r=>{
+    if(bs["weekly:"+r.id]===false) return;
+    const p=String(r.spawn_time||"").slice(0,5).split(":").map(Number);
+    if(p.length!==2||!Number.isFinite(p[0])||!Number.isFinite(p[1])) return;
+    const at=new Date(now.getFullYear(),now.getMonth(),now.getDate(),p[0],p[1],0,0).getTime();
+    const ms=at-nowMs;
+    const points=[
+      {ms:180000,text:"3분 전",enabled:settings.voice_3m},
+      {ms:60000,text:"1분 전",enabled:settings.voice_1m},
+      {ms:30000,text:"30초 전",enabled:settings.voice_30s},
+      {ms:10000,text:"10초 전",enabled:settings.voice_10s}
+    ];
+    points.forEach(t=>{
+      if(!t.enabled||ms<=0||ms>t.ms) return;
+      const key=user.id+"-weekly-"+r.id+"-"+at+"-"+t.ms;
+      if(alerted.has(key)) return;
+      alerted.add(key); speak("주간 룻권 보스 "+r.boss_name+", "+t.text+"입니다.");
+    });
+    if(settings.voice_spawn&&ms<=0&&ms>=-5000){
+      const key=user.id+"-weekly-"+r.id+"-"+at+"-spawn";
+      if(!alerted.has(key)){alerted.add(key);speak("주간 룻권 보스 "+r.boss_name+", 출현 시간입니다.");}
+    }
+  });
+}
 
 function speak(text){
   if(!soundOn) return;
@@ -4661,7 +4767,7 @@ function ensurePersonalAlertUI(){
     display:none;
     position:fixed;
     inset:0;
-    z-index:100000;
+    z-index:2147483647;
     background:rgba(0,0,0,.94);
     overflow-y:auto;
     padding:15px;
@@ -4711,8 +4817,13 @@ function ensurePersonalAlertUI(){
 
       <hr>
 
-      <h3>보스별 알림</h3>
+      <h3>① 일반 필드보스 음성 알림</h3>
+      <label><input type="checkbox" id="personalFieldVoiceEnabled"> 일반 필드보스 음성 알림 사용</label>
       <div id="personalBossOptions"></div>
+      <hr>
+      <h3>② 주간 룻권 보스 음성 알림</h3>
+      <label><input type="checkbox" id="personalWeeklyVoiceEnabled"> 주간 룻권 보스 음성 알림 사용</label>
+      <div id="personalWeeklyBossOptions"></div>
 
       <hr>
 
@@ -4797,7 +4908,8 @@ function openPersonalAlertSettings(){
   $("personalVoiceSelect").value = s.voice_name || "";
 
   const bossSettings = s.boss_settings || {};
-
+  $("personalFieldVoiceEnabled").checked = bossSettings.__field_voice_enabled !== false;
+  $("personalWeeklyVoiceEnabled").checked = bossSettings.__weekly_voice_enabled !== false;
 
 $("personalBossOptions").innerHTML = `
   <style>
@@ -4919,6 +5031,17 @@ body {
 `;
 
 
+  $("personalWeeklyBossOptions").innerHTML = weeklyLootRows.length
+    ? weeklyLootRows.map(r => {
+        const key = "weekly:" + r.id;
+        const day = weeklyLootDays.find(d => d.id === Number(r.day_of_week));
+        return '<label style="display:flex;justify-content:space-between;gap:8px;padding:8px;margin:5px 0;background:#202b3c;border:1px solid #66552f;border-radius:8px">' +
+          '<span>' + escapeHtml(r.boss_name) + ' · ' + escapeHtml(day ? day.name : '') + ' ' + escapeHtml(r.spawn_time || '') + '</span>' +
+          '<input type="checkbox" data-personal-weekly-boss="' + escapeHtml(r.id) + '" ' +
+          (bossSettings[key] !== false ? 'checked' : '') + '></label>';
+      }).join("")
+    : '<div class="muted">주간 룻권 시간표에 등록된 보스가 없습니다.</div>';
+
   $("personalVoiceOptions").style.display =
     s.voice_enabled ? "block" : "none";
 
@@ -4992,11 +5115,16 @@ function previewPersonalVoice(){
 async function savePersonalAlertSettings(){
   if(!user || !myAlertSettings) return;
 
-  const bossSettings = {};
+  const bossSettings = {...(myAlertSettings.boss_settings || {})};
 
   document.querySelectorAll("[data-personal-boss]").forEach(el=>{
     bossSettings[el.dataset.personalBoss] = el.checked;
   });
+  document.querySelectorAll("[data-personal-weekly-boss]").forEach(el=>{
+    bossSettings["weekly:" + el.dataset.personalWeeklyBoss] = el.checked;
+  });
+  bossSettings.__field_voice_enabled = $("personalFieldVoiceEnabled").checked;
+  bossSettings.__weekly_voice_enabled = $("personalWeeklyVoiceEnabled").checked;
 
   const updated = {
     ...myAlertSettings,
@@ -5032,6 +5160,7 @@ async function savePersonalAlertSettings(){
 
   myAlertSettings = data;
   soundOn = !!myAlertSettings.voice_enabled;
+  closeBackPopup("personalAlertModal");
   $("personalAlertModal").style.display = "none";
   alert("개인 알림 설정이 저장되었습니다.");
 }
@@ -6149,7 +6278,7 @@ function setupRealtime(){
     .on("postgres_changes",{
       event:"*",schema:"public",table:"weekly_loot_schedule"
     },async()=>{
-      if($("weeklyLootModal")?.style.display === "block" && !weeklyLootEditMode){
+      if(!weeklyLootEditMode){
         try{await weeklyLootLoad();}catch(e){console.error("주간 룻권 실시간 갱신 실패",e);}
       }
     })
@@ -7104,6 +7233,7 @@ async function enterApp(currentUser){
 
 try{
 await loadAll();
+try{await weeklyLootLoad();}catch(e){console.warn("주간 룻권 시간표 초기 로드 실패:",e.message);}
 await loadMyAlertSettings();
 await loadAdminPushSettings();
 
@@ -9136,14 +9266,16 @@ fixedBossUpdateHighlight();
 // 주간 룻권 시간표 (고정보스 시간표와 완전 분리)
 // Supabase table: weekly_loot_schedule
 // =========================================
+// 게임 주간 기준은 수요일 시작: 수→목→금→토→일→월→화
+// day_of_week 값은 JavaScript 기준(일=0, 월=1, ... 토=6)을 그대로 유지합니다.
 const weeklyLootDays = [
-  {id:1,name:"월요일"},{id:2,name:"화요일"},{id:3,name:"수요일"},
-  {id:4,name:"목요일"},{id:5,name:"금요일"},{id:6,name:"토요일"},{id:0,name:"일요일"}
+  {id:3,name:"수요일"},{id:4,name:"목요일"},{id:5,name:"금요일"},
+  {id:6,name:"토요일"},{id:0,name:"일요일"},{id:1,name:"월요일"},{id:2,name:"화요일"}
 ];
 let weeklyLootRows = [];
 let weeklyLootOriginalRows = [];
 let weeklyLootEditMode = false;
-let weeklyLootSelectedDay = 1;
+let weeklyLootSelectedDay = 3;
 
 function weeklyLootEscape(v){ return escapeHtml(v); }
 
