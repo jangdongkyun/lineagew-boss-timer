@@ -773,6 +773,27 @@ body {
   min-width:105px;
 }
 
+
+/* 주간 룻권 시간표 */
+.weekly-loot-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.weekly-day-card{min-width:0;background:linear-gradient(145deg,#202b3c,#101722);border:1px solid #66552f;border-radius:10px;padding:11px}
+.weekly-day-title{color:#e8c879;font-weight:900;font-size:16px;margin-bottom:9px}
+.weekly-loot-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;padding:8px 6px;border-bottom:1px solid rgba(181,139,67,.22)}
+.weekly-loot-item:last-child{border-bottom:0}
+.weekly-loot-name{font-weight:800;color:#f2e5c8;overflow-wrap:anywhere}
+.weekly-loot-time{color:#9fe3bd;font-weight:900;white-space:nowrap}
+.weekly-loot-item.guild-loot-highlight .weekly-loot-name{font-size:1.22em;color:#ffe58a;text-shadow:0 0 8px #e6b94e,0 0 16px rgba(255,205,75,.7);animation:weeklyLootGlow 1.15s ease-in-out infinite alternate}
+.weekly-loot-item.guild-loot-highlight .weekly-loot-time{color:#ffe58a}
+@keyframes weeklyLootGlow{from{opacity:.72;filter:brightness(1)}to{opacity:1;filter:brightness(1.5);text-shadow:0 0 5px #fff0a8,0 0 13px #e8bd54,0 0 22px #c78b24}}
+.weekly-loot-edit{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:6px;margin-top:7px}
+.weekly-loot-edit input{min-width:0;width:100%;box-sizing:border-box;padding:8px;background:#0d1420;color:#fff;border:1px solid #66552f;border-radius:6px}
+.weekly-loot-item-actions{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end}
+.weekly-loot-settings-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;padding:14px;background:linear-gradient(145deg,#292313,#15120c);border:1px solid #b58b43;border-radius:10px}
+.weekly-loot-empty{color:#8391a5;font-size:12px;padding:7px 2px}
+@media(max-width:900px){.weekly-loot-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.weekly-loot-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.weekly-day-card{padding:8px}.weekly-day-title{font-size:14px}.weekly-loot-edit{grid-template-columns:minmax(0,1fr) 88px}.weekly-loot-settings-card{align-items:flex-start}.weekly-loot-settings-card .row{width:100%;flex-direction:column}.weekly-loot-settings-card button{width:100%;flex:1}}
+@media(max-width:370px){.weekly-loot-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -972,6 +993,9 @@ body {
 <div class="row" style="justify-content:space-between;align-items:center">
   <h2>필드 보스 현황</h2>
 <div class="row" style="gap:7px;align-items:center;flex-wrap:wrap">
+    <button class="primary" type="button" id="weeklyLootOpenBtn">
+      주간룻권
+    </button>
     <button class="primary" type="button" id="fixedBossOpenBtn">
       고정보스
     </button>
@@ -1147,7 +1171,20 @@ body {
 
 
   
-    <div id="nickBox" style="display:none;margin-top:12px">
+    <div id="nickBox" role="dialog" aria-modal="true" aria-labelledby="nickModalTitle" style="
+      display:none;position:fixed;inset:0;z-index:2147483646;
+      background:rgba(0,0,0,.88);padding:16px;box-sizing:border-box;
+      align-items:center;justify-content:center;overflow-y:auto">
+  <div style="width:100%;max-width:460px;background:#101a2b;border:1px solid #b58b43;
+    border-radius:14px;padding:20px;box-sizing:border-box;color:#fff">
+  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+    <b id="nickModalTitle" style="font-size:19px;color:#e8c879">닉네임 설정</b>
+    <button type="button" class="danger" id="cancelNickTopBtn">닫기 ✕</button>
+  </div>
+  <div style="margin-bottom:12px;padding:10px;border-radius:8px;background:#202b3c">
+    <span class="muted">현재 닉네임</span>
+    <b id="currentNickDisplay" style="display:block;margin-top:4px"></b>
+  </div>
   <div style="margin-bottom:10px">
     <label for="newNick">새 닉네임</label>
     <input id="newNick" class="grow" placeholder="새 닉네임">
@@ -1177,6 +1214,7 @@ body {
   <div class="row" style="gap:8px;">
    <button type="button" class="primary" id="saveNickBtn">저장</button>
    <button type="button" class="ghost" id="cancelNickBtn">취소</button>
+ </div>
  </div>
 </div>
 
@@ -1653,6 +1691,27 @@ style="
 <!-- 고정보스 시간표 팝업 끝 -->
 
   
+
+<!-- 주간 룻권 시간표: 고정보스 시간표와 독립된 데이터/화면 -->
+<div id="weeklyLootModal" role="dialog" aria-modal="true" aria-labelledby="weeklyLootTitle"
+ style="display:none;position:fixed;inset:0;z-index:2147483646;background:rgba(0,0,0,.94);
+ padding:12px;box-sizing:border-box;overflow-y:auto">
+ <div style="width:100%;max-width:1200px;margin:0 auto;background:#151b26;border:1px solid #b58b43;
+ border-radius:13px;padding:14px;box-sizing:border-box">
+  <div class="row" style="justify-content:space-between;align-items:center">
+   <h2 id="weeklyLootTitle" style="color:#e6bd68;margin:0">🏆 주간 룻권 시간표</h2>
+   <button type="button" class="danger" id="weeklyLootCloseBtn">닫기 ✕</button>
+  </div>
+  <div id="weeklyLootPermission" class="muted" style="margin:10px 0">요일별 룻권 시간표</div>
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px" id="weeklyLootAdminActions">
+   <button type="button" class="primary" id="weeklyLootEditBtn">시간표 수정</button>
+   <button type="button" class="primary" id="weeklyLootSaveBtn" style="display:none">저장</button>
+   <button type="button" class="ghost" id="weeklyLootCancelBtn" style="display:none">취소</button>
+  </div>
+  <div id="weeklyLootGrid" class="weekly-loot-grid"></div>
+ </div>
+</div>
+
 <script>
 /* 기존 Supabase 프로젝트 설정 */
 const SUPABASE_URL = "https://jswekbrsjkylrwhgvvre.supabase.co";
@@ -5968,16 +6027,11 @@ async function changeNickname(){
 // 닉네임 및 클래스 설정 화면 열기
 $("nickToggle").addEventListener("click",()=>{
   const box = $("nickBox");
-
-  if(getComputedStyle(box).display === "none"){
-    $("newNick").value = profile?.nickname || "";
-    $("newClass").value = profile?.character_class || "";
-
-    openBackPopup("nickBox");
-    box.style.display = "block";
-  }else{
-    closeBackPopup("nickBox");
-  }
+  $("currentNickDisplay").textContent = profile?.nickname || "혈맹원";
+  $("newNick").value = profile?.nickname || "";
+  $("newClass").value = profile?.character_class || "";
+  openBackPopup("nickBox");
+  box.style.display = "flex";
 });
 
 // 닉네임 및 클래스 저장 버튼
@@ -5991,7 +6045,7 @@ $("saveNickBtn").addEventListener("click",async()=>{
 
     if(!saved) return;
 
-    $("nickBox").style.display = "none";
+    closeBackPopup("nickBox");
 
     alert("닉네임과 클래스 설정이 저장되었습니다.");
 
@@ -6010,7 +6064,13 @@ if(cancelNickBtn){
   cancelNickBtn.addEventListener("click",()=>{
     closeBackPopup("nickBox");
   });
-}  
+}
+$("cancelNickTopBtn").addEventListener("click",()=>{
+  closeBackPopup("nickBox");
+});
+$("nickBox").addEventListener("click",event=>{
+  if(event.target === $("nickBox")) closeBackPopup("nickBox");
+});  
 
  // 혈맹원 조회 화면 열기
 $("clanMembersBtn").addEventListener("click",async()=>{
@@ -6076,6 +6136,17 @@ function setupRealtime(){
     .subscribe();
 
   realtimeChannels.push(channel);
+
+  const weeklyChannel = db.channel("weekly-loot-live")
+    .on("postgres_changes",{
+      event:"*",schema:"public",table:"weekly_loot_schedule"
+    },async()=>{
+      if($("weeklyLootModal")?.style.display === "block" && !weeklyLootEditMode){
+        try{await weeklyLootLoad();}catch(e){console.error("주간 룻권 실시간 갱신 실패",e);}
+      }
+    })
+    .subscribe();
+  realtimeChannels.push(weeklyChannel);
 }
 
 
@@ -9051,6 +9122,170 @@ setInterval(()=>{
 fixedBossUpdateHighlight();
 </script>
 
-<script src="./push.js"></script>
+<script src="./push.js">
+// =========================================
+// 주간 룻권 시간표 (고정보스 시간표와 완전 분리)
+// Supabase table: weekly_loot_schedule
+// =========================================
+const weeklyLootDays = [
+  {id:1,name:"월요일"},{id:2,name:"화요일"},{id:3,name:"수요일"},
+  {id:4,name:"목요일"},{id:5,name:"금요일"},{id:6,name:"토요일"},{id:0,name:"일요일"}
+];
+let weeklyLootRows = [];
+let weeklyLootOriginalRows = [];
+let weeklyLootEditMode = false;
+let weeklyLootSelectedDay = 1;
+
+function weeklyLootEscape(v){ return escapeHtml(v); }
+
+async function weeklyLootLoad(){
+  const {data,error} = await db.from("weekly_loot_schedule")
+    .select("id,day_of_week,boss_name,spawn_time,sort_order")
+    .order("day_of_week",{ascending:true}).order("sort_order",{ascending:true});
+  if(error) throw error;
+  weeklyLootRows = (data || []).map(r=>({...r,spawn_time:String(r.spawn_time||"").slice(0,5)}));
+  weeklyLootOriginalRows = JSON.parse(JSON.stringify(weeklyLootRows));
+  weeklyLootRender();
+}
+
+function weeklyLootRender(){
+  const grid = $("weeklyLootGrid");
+  if(!grid) return;
+  const admin = isAdmin();
+  $("weeklyLootPermission").textContent = admin
+    ? (weeklyLootEditMode ? "관리자 수정 모드 · 보스 이름과 출현 시각을 입력한 뒤 저장하세요." : "관리자만 수정할 수 있으며, 모든 회원에게 동일하게 표시됩니다.")
+    : "읽기 전용 · 관리자만 시간표를 수정할 수 있습니다.";
+  $("weeklyLootEditBtn").style.display = admin && !weeklyLootEditMode ? "" : "none";
+  $("weeklyLootSaveBtn").style.display = admin && weeklyLootEditMode ? "" : "none";
+  $("weeklyLootCancelBtn").style.display = admin && weeklyLootEditMode ? "" : "none";
+  $("weeklyOpenPushSettingsBtn").style.display = admin ? "" : "none";
+  grid.innerHTML = weeklyLootDays.map(day=>{
+    const rows = weeklyLootRows.filter(r=>Number(r.day_of_week)===day.id)
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const items = rows.length ? rows.map(r=>{
+      if(weeklyLootEditMode && admin){
+        return `<div class="weekly-loot-item">
+          <div class="weekly-loot-edit">
+            <input aria-label="${day.name} 보스 이름" data-weekly-name="${weeklyLootEscape(r.id)}" value="${weeklyLootEscape(r.boss_name)}" placeholder="보스 이름">
+            <input aria-label="${day.name} 출현 시각" data-weekly-time="${weeklyLootEscape(r.id)}" type="time" value="${weeklyLootEscape(r.spawn_time)}">
+            <div class="weekly-loot-item-actions">
+              <button type="button" class="danger" data-weekly-delete="${weeklyLootEscape(r.id)}">삭제</button>
+            </div>
+          </div>
+        </div>`;
+      }
+      return `<div class="weekly-loot-item guild-loot-highlight">
+        <span class="weekly-loot-name">${weeklyLootEscape(r.boss_name)}</span>
+        <span class="weekly-loot-time">${weeklyLootEscape(r.spawn_time || "--:--")}</span>
+      </div>`;
+    }).join("") : `<div class="weekly-loot-empty">등록된 룻권 보스가 없습니다.</div>`;
+    return `<section class="weekly-day-card" data-weekly-day="${day.id}">
+      <div class="weekly-day-title">${day.name}</div>${items}
+      ${weeklyLootEditMode && admin ? `<button type="button" class="ghost" style="width:100%;margin-top:8px" data-weekly-add="${day.id}">＋ 항목 추가</button>` : ""}
+    </section>`;
+  }).join("") + `
+    <section class="weekly-loot-settings-card">
+      <div><b>🔔 알리미 설정</b><div class="muted">음성 알림 및 관리자 푸시 알림</div></div>
+      <div class="row" style="gap:7px;flex-wrap:wrap">
+        <button type="button" class="primary" id="weeklyOpenVoiceSettingsBtn">음성 알림 설정</button>
+        ${admin ? `<button type="button" class="ghost" id="weeklyOpenPushSettingsBtn">관리자 푸시 설정</button>` : ""}
+      </div>
+    </section>`;
+}
+
+function weeklyLootCollectInputs(){
+  document.querySelectorAll("[data-weekly-name]").forEach(el=>{
+    const row=weeklyLootRows.find(r=>String(r.id)===String(el.dataset.weeklyName));
+    if(row) row.boss_name=el.value.trim();
+  });
+  document.querySelectorAll("[data-weekly-time]").forEach(el=>{
+    const row=weeklyLootRows.find(r=>String(r.id)===String(el.dataset.weeklyTime));
+    if(row) row.spawn_time=el.value;
+  });
+}
+
+function weeklyLootNewId(){
+  return "new_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+}
+function weeklyLootAdd(dayId){
+  weeklyLootCollectInputs();
+  const dayRows=weeklyLootRows.filter(r=>Number(r.day_of_week)===Number(dayId));
+  weeklyLootRows.push({id:weeklyLootNewId(),day_of_week:Number(dayId),boss_name:"",spawn_time:"",sort_order:dayRows.length});
+  weeklyLootRender();
+}
+$("weeklyLootGrid").addEventListener("click",event=>{
+  const add=event.target.closest("[data-weekly-add]");
+  const del=event.target.closest("[data-weekly-delete]");
+  if(add){weeklyLootAdd(Number(add.dataset.weeklyAdd));return;}
+  if(del){
+    weeklyLootCollectInputs();
+    weeklyLootRows=weeklyLootRows.filter(r=>String(r.id)!==String(del.dataset.weeklyDelete));
+    weeklyLootRender();
+  }
+});
+$("weeklyLootEditBtn").addEventListener("click",()=>{
+  if(!isAdmin()) return alert("관리자만 수정할 수 있습니다.");
+  weeklyLootOriginalRows=JSON.parse(JSON.stringify(weeklyLootRows));
+  weeklyLootEditMode=true;weeklyLootRender();
+});
+$("weeklyLootGrid").addEventListener("change",event=>{
+  const card=event.target.closest("[data-weekly-day]");
+  if(card) weeklyLootSelectedDay=Number(card.dataset.weeklyDay);
+});
+$("weeklyLootCancelBtn").addEventListener("click",()=>{
+  weeklyLootRows=JSON.parse(JSON.stringify(weeklyLootOriginalRows));
+  weeklyLootEditMode=false;weeklyLootRender();
+});
+$("weeklyLootSaveBtn").addEventListener("click",async()=>{
+  if(!isAdmin()) return alert("관리자만 저장할 수 있습니다.");
+  weeklyLootCollectInputs();
+  const invalid=weeklyLootRows.find(r=>!r.boss_name || !/^\d{2}:\d{2}$/.test(r.spawn_time||""));
+  if(invalid) return alert("모든 항목에 보스 이름과 출현 시각을 입력해 주세요.");
+  const btn=$("weeklyLootSaveBtn");btn.disabled=true;btn.textContent="저장 중...";
+  try{
+    const dayOrder={};
+    const payload=weeklyLootRows.map(r=>{
+      const day=Number(r.day_of_week);
+      const order=dayOrder[day]||0;dayOrder[day]=order+1;
+      return {day_of_week:day,boss_name:r.boss_name.trim(),spawn_time:r.spawn_time,sort_order:order};
+    });
+    const {data,error}=await db.rpc("admin_save_weekly_loot_schedule",{p_rows:payload});
+    if(error) throw error;
+    await weeklyLootLoad();weeklyLootEditMode=false;weeklyLootRender();
+    alert(`주간 룻권 시간표가 저장되었습니다. (${data ?? payload.length}개 항목)`);
+  }catch(e){
+    alert("주간 룻권 저장 실패: "+e.message);
+  }finally{btn.disabled=false;btn.textContent="저장";}
+});
+
+async function weeklyLootOpen(){
+  if(!user) return;
+  try{
+    await weeklyLootLoad();
+    weeklyLootEditMode=false;weeklyLootRender();
+    openBackPopup("weeklyLootModal");
+    $("weeklyLootModal").style.display="block";
+  }catch(e){
+    alert("주간 룻권 시간표를 불러오지 못했습니다.\nSupabase에 weekly_loot_schedule 테이블과 권한 정책이 설정되어 있는지 확인해 주세요.\n"+e.message);
+  }
+}
+$("weeklyLootOpenBtn").addEventListener("click",weeklyLootOpen);
+$("weeklyLootCloseBtn").addEventListener("click",()=>closeBackPopup("weeklyLootModal"));
+$("weeklyLootGrid").addEventListener("click",event=>{
+  if(event.target.closest("#weeklyOpenVoiceSettingsBtn")){
+    openPersonalAlertSettings();return;
+  }
+  if(event.target.closest("#weeklyOpenPushSettingsBtn")){
+    if(!isAdmin()) return alert("관리자만 설정할 수 있습니다.");
+    $("adminSettingsBtn").click();
+  }
+});
+
+// 주간 룻권 실시간 구독은 로그인 후 setupRealtime()에서 연결합니다.
+
+// 개인 알림 모달은 기존 user_alert_settings 저장소를 사용.
+// 일반 회원 화면에 푸시 설정 항목을 노출하지 않으며, 관리자만 별도 관리자 팝업에서 변경.
+
+</script>
 </body>
 </html>
