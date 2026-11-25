@@ -4711,7 +4711,7 @@ function speak(text){
 
     // 보스 음성 알림이 나오는 동안 코봇 마이크가 스피커 소리를
     // 명령으로 오인하지 않도록 잠시 듣기를 멈춥니다.
-    const resumeKobot = kobotActive && !document.hidden && !kobotPauseRecognition;
+    const resumeKobot = kobotActive && !kobotPauseRecognition;
     if(resumeKobot){
       kobotPauseRecognition = true;
       if(kobotRecognition){
@@ -4720,7 +4720,7 @@ function speak(text){
     }
 
     const resumeListening = ()=>{
-      if(resumeKobot && kobotActive && !document.hidden){
+      if(resumeKobot && kobotActive){
         kobotPauseRecognition = false;
         kobotScheduleRestart();
       }
@@ -6342,7 +6342,7 @@ function kobotScheduleRestart(){
 }
 
 function kobotStartRecognition(){
-  if(!kobotActive || !user || document.hidden || exitConfirmOpen || !kobotRecognition) return;
+  if(!kobotActive || !user || exitConfirmOpen || !kobotRecognition) return;
   try{
     kobotRecognition.start();
   }catch(error){
@@ -7815,14 +7815,12 @@ kobotUpdateReplyMode();
 document.addEventListener("visibilitychange",()=>{
   if(!kobotActive || exitConfirmOpen) return;
   if(document.hidden){
-    kobotClearTimers();
-    if(kobotRecognition){
-      try{kobotRecognition.stop();}catch(error){}
-    }
-    kobotSetStatus("화면이 숨겨져 있어 마이크 대기를 멈췄어요.");
-    kobotSetMessage("보탐봇 화면으로 돌아오면 코봇이 다시 대기합니다.");
+    // 앱이 백그라운드로 이동해도 코봇을 직접 종료하거나 인식기를 중지하지 않습니다.
+    // 브라우저/운영체제가 백그라운드 마이크를 제한할 수 있으므로 복귀 시 다시 연결합니다.
+    kobotSetStatus("백그라운드에서도 코봇을 유지하고 있어요.","active");
+    kobotSetMessage("브라우저 정책에 따라 화면이 숨겨진 동안 음성 인식이 일시 제한될 수 있어요.");
   }else{
-    kobotSetStatus("코봇이 다시 대기합니다.","active");
+    kobotSetStatus("코봇이 계속 대기합니다.","active");
     kobotStartRecognition();
   }
 });
