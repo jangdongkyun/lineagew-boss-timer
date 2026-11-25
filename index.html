@@ -1664,14 +1664,25 @@ let lastPresenceUpdate = 0;
 const $ = id => document.getElementById(id);
 
 
-// 휴대폰 뒤로 가기: 열려 있는 팝업부터 닫기
+
+// 뒤로 가기 처리: 팝업 우선 닫기 + 메인 화면 종료 확인
 const popupBackStack = [];
+let mainExitConfirmed = false;
 
-function openBackPopup(id){
+// 메인 화면 뒤로 가기 감지용 히스토리 등록
+if (!history.state || history.state.__mainBackGuard !== true) {
+  history.pushState(
+    { ...(history.state || {}), __mainBackGuard: true },
+    "",
+    location.href
+  );
+}
+
+function openBackPopup(id) {
   const box = $(id);
-  if(!box) return;
+  if (!box) return;
 
-  if(popupBackStack.includes(id)) return;
+  if (popupBackStack.includes(id)) return;
 
   popupBackStack.push(id);
 
@@ -1682,34 +1693,50 @@ function openBackPopup(id){
   );
 }
 
-function closeBackPopup(id){
+function closeBackPopup(id) {
   const lastId = popupBackStack[popupBackStack.length - 1];
 
-  if(lastId === id){
+  if (lastId === id) {
     history.back();
-  }else{
+  } else {
     const box = $(id);
-    if(box) box.style.display = "none";
+    if (box) box.style.display = "none";
   }
 }
 
-window.addEventListener("popstate",()=>{
+window.addEventListener("popstate", () => {
   const id = popupBackStack.pop();
 
-  if(!id) return;
+  // 팝업이 열려 있으면 팝업부터 닫기
+  if (id) {
+    if (id === "adminTools") {
+      closeAdminTools(true);
+      return;
+    }
 
-  // 관리자 설정창 닫기
-  if(id === "adminTools"){
-    closeAdminTools(true);
+    const box = $(id);
+    if (box) box.style.display = "none";
     return;
   }
 
-  const box = $(id);
+  // 종료 확인 후 실제 이동하는 경우에는 다시 묻지 않음
+  if (mainExitConfirmed) return;
 
-  if(box){
-    box.style.display = "none";
+  const shouldExit = window.confirm("종료하시겠습니까?");
+
+  if (shouldExit) {
+    mainExitConfirmed = true;
+    history.back();
+  } else {
+    // 취소하면 앱 화면에 계속 머무르도록 복구
+    history.pushState(
+      { ...(history.state || {}), __mainBackGuard: true },
+      "",
+      location.href
+    );
   }
 });
+
   
   
   // 관리자 팝업을 body 최상위로 이동
