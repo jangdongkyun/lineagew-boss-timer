@@ -1774,6 +1774,7 @@ let kobotLastIntent = "";
 let kobotConversationTime = 0;
 let kobotCurrentSpeechText = "";
 let kobotSpeechCancelledByUser = false;
+let kobotSpeechToken = 0;
   
 
 function kobotLoadReplyMode(){
@@ -6438,6 +6439,7 @@ function kobotSpeak(message, after){
 
   try{
     const synth = window.speechSynthesis;
+    const speechToken = ++kobotSpeechToken;
     synth.cancel();
 
     kobotIsSpeaking = true;
@@ -6461,6 +6463,7 @@ function kobotSpeak(message, after){
 const finish = ()=>{
   if(finished) return;
   finished = true;
+  if(speechToken !== kobotSpeechToken) return;
 
   const cancelledByUser = kobotSpeechCancelledByUser;
 
@@ -7119,6 +7122,7 @@ recognition.onresult = (event)=>{
       const enoughSpeech = result.isFinal ? normalized.length >= 1 : normalized.length >= 2;
       const looksLikeKobotEcho = normalized.length >= 2 && spoken.includes(normalized);
       if(enoughSpeech && !looksLikeKobotEcho){
+        kobotSpeechToken++;
         kobotSpeechCancelledByUser = true;
         kobotIsSpeaking = false;
         kobotCurrentSpeechText = "";
