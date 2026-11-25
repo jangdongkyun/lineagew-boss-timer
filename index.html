@@ -8211,6 +8211,24 @@ function fixedBossRender(){
 
   if(!tbody) return;
 
+
+  // 현재 요일 보기에서는 시간표 가로 길이를 약 1/3 줄임
+  const fixedBossZoomContent =
+    document.getElementById("fixedBossZoomContent");
+
+  if(fixedBossZoomContent){
+    if(showAllDays){
+      // 전체보기 또는 수정 모드
+      fixedBossZoomContent.style.width = "100%";
+      fixedBossZoomContent.style.minWidth = "760px";
+    }else{
+      // 현재 요일 보기
+      fixedBossZoomContent.style.width = "66.666%";
+      fixedBossZoomContent.style.minWidth = "0";
+    }
+  }
+
+  
 if(permission){
   if(admin && fixedBossEditMode){
     permission.textContent =
