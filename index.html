@@ -3303,16 +3303,31 @@ function parseCutTime(value){
   return result.toISOString();
 }
 
+// 보스 정식 이름과 등록된 모든 별명을 동일한 검색 대상으로 취급합니다.
+function getBossNameVariants(boss){
+  const rawAliases = Array.isArray(boss?.aliases)
+    ? boss.aliases
+    : String(boss?.aliases || "").split(/[,;\/、\n]+/);
+
+  return [boss?.name,...rawAliases]
+    .flatMap(value=>String(value || "").split(/[,;\/、\n]+/))
+    .map(value=>String(value).trim())
+    .filter(Boolean);
+}
+
+function normalizeBossName(value){
+  return String(value || "")
+    .toLocaleLowerCase()
+    .replace(/[\s.,!?~。，！？·_-]/g,"");
+}
+
 function findBossByName(name){
-  const target = String(name || "").trim().toLocaleLowerCase();
+  const target = normalizeBossName(name);
   if(!target) return null;
 
-  return bosses.find(b=>{
-    const names = [b.name,...(Array.isArray(b.aliases)?b.aliases:[])];
-    return names.some(n=>
-      String(n).trim().toLocaleLowerCase() === target
-    );
-  }) || null;
+  return (bosses || []).find(b=>
+    getBossNameVariants(b).some(n=>normalizeBossName(n) === target)
+  ) || null;
 }
 function renderManualBossList(){
   const input = $("manualBossName");
@@ -3858,7 +3873,7 @@ async function manualCut(){
 
   if(!boss){
     alert("등록된 보스 이름 또는 별명을 찾을 수 없습니다.");
-    return;
+    return false;
   }
 
   try{
@@ -3870,9 +3885,35 @@ async function manualCut(){
     $("manualCutTime").value = "";
 
     // 저장 완료 팝업은 표시하지 않습니다.
+    return true;
   }catch(e){
     alert(e.message);
+    return false;
   }
+}
+
+// 코봇의 '지금/현재 시각'은 직접 등록 입력창에 숫자(HHMM)로 채운 뒤
+// 기존 수기 컷 등록 함수를 실행해 동일한 저장 경로를 사용합니다.
+async function kobotRegisterThroughManualForm(boss,cutAt){
+  const modal = $("manualCutModal");
+  const bossInput = $("manualBossName");
+  const timeInput = $("manualCutTime");
+  if(!modal || !bossInput || !timeInput){
+    throw new Error("직접 등록 입력창을 찾을 수 없습니다.");
+  }
+
+  const numericTime =
+    String(cutAt.getHours()).padStart(2,"0") +
+    String(cutAt.getMinutes()).padStart(2,"0");
+
+  modal.style.display = "flex";
+  bossInput.value = boss.name;
+  timeInput.value = numericTime;
+
+  const saved = await manualCut();
+  if(!saved) throw new Error("직접 등록 입력창을 통한 컷 저장에 실패했습니다.");
+
+  modal.style.display = "none";
 }
 
 async function loadProfile(){
@@ -6590,21 +6631,15 @@ function kobotDetectIntent(text){
 
 
 function kobotFindBossInText(text){
-  const normalized = kobotNormalizeText(text)
-    .replace(/\s/g,"");
+  const normalized = normalizeBossName(text);
 
   if(!normalized) return null;
 
   const candidates = [];
 
   (bosses || []).forEach(boss => {
-    const aliases = Array.isArray(boss.aliases)
-      ? boss.aliases
-      : String(boss.aliases || "").split(",");
-
-    [boss.name, ...aliases].forEach(name => {
-      const alias = kobotNormalizeText(name)
-        .replace(/\s/g,"");
+    getBossNameVariants(boss).forEach(name => {
+      const alias = normalizeBossName(name);
 
       if(alias && normalized.includes(alias)){
         candidates.push({
@@ -6659,15 +6694,10 @@ function kobotFindBossInText(text){
   const scores = new Map();
 
   (bosses || []).forEach(boss=>{
-    const aliases = Array.isArray(boss.aliases)
-      ? boss.aliases
-      : String(boss.aliases || "").split(",");
-
     let bossScore = 0;
 
-    [boss.name,...aliases].forEach(name=>{
-      const alias = kobotNormalizeText(name)
-        .replace(/\s/g,"");
+    getBossNameVariants(boss).forEach(name=>{
+      const alias = normalizeBossName(name);
 
       if(alias.length < 3) return;
 
@@ -6765,7 +6795,11 @@ function kobotParseSpokenNumber(value){
 function kobotParseCutTimeFromSpeech(text){
   let compact = kobotNormalizeText(text).replace(/\s/g,"");
   compact = compact.replace(/^(시각|시간|컷시각|컷시간)/,"");
-  if(["지금컷","현재컷","방금컷","바로컷"].some(v=>compact.includes(v))) return new Date();
+  if(/(지금|현재|방금|바로)(컷|시각|시간)?/.test(compact)){
+    const now = new Date();
+    now.kobotUseManualForm = true;
+    return now;
+  }
   let hour = NaN, minute = NaN;
   const period = compact.includes("오후") ? "pm" : compact.includes("오전") ? "am" : "";
   let match = compact.match(/([0-9영공일이삼사오육륙칠팔구한두세네다섯여섯일곱여덟아홉열]+)시([0-9영공일이삼사오육칠팔구십]+)?분?/);
@@ -6816,7 +6850,11 @@ function kobotSaveCutWithoutConfirmation(boss,cutAt){
     kobotSpeak("네, 저장하겠습니다.",async()=>{
       if(!kobotActive) return;
       try{
-        await registerCut(pending.boss,pending.cutAt);
+        if(pending.cutAt && pending.cutAt.kobotUseManualForm){
+          await kobotRegisterThroughManualForm(pending.boss,pending.cutAt);
+        }else{
+          await registerCut(pending.boss,pending.cutAt);
+        }
         kobotMode = "wake";
         kobotSetStatus("컷 기록을 저장했어요.","active");
         kobotSetMessage("다시 부르려면 “코봇!”이라고 말씀해 주세요.");
@@ -6845,6 +6883,12 @@ function kobotSaveCutWithoutConfirmation(boss,cutAt){
 }
 
 function kobotHandleCommand(transcript){
+  const offCommand = kobotNormalizeText(transcript).replace(/\\s/g,"");
+  if(/^(코봇)?(오프|꺼|꺼줘|종료|그만)$/.test(offCommand)){
+    stopKobot();
+    return;
+  }
+
   if(kobotCommandTimer){
     clearTimeout(kobotCommandTimer);
     kobotCommandTimer = null;
@@ -7171,6 +7215,11 @@ recognition.onresult = (event)=>{
     if(!result.isFinal) continue;
 
     if(kobotMode === "wake"){
+      const wakeText = kobotNormalizeText(transcript).replace(/\\s/g,"");
+      if(/^(코봇)?(오프|꺼|꺼줘|종료|그만)$/.test(wakeText)){
+        stopKobot();
+        return;
+      }
       if(/코봇|코보|코봇아/.test(kobotNormalizeText(transcript))){
         kobotHandleWakeWord(transcript);
       }
