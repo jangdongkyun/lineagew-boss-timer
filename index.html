@@ -9159,7 +9159,7 @@ function weeklyLootRender(){
   $("weeklyLootEditBtn").style.display = admin && !weeklyLootEditMode ? "" : "none";
   $("weeklyLootSaveBtn").style.display = admin && weeklyLootEditMode ? "" : "none";
   $("weeklyLootCancelBtn").style.display = admin && weeklyLootEditMode ? "" : "none";
-  $("weeklyOpenPushSettingsBtn").style.display = admin ? "" : "none";
+
   grid.innerHTML = weeklyLootDays.map(day=>{
     const rows = weeklyLootRows.filter(r=>Number(r.day_of_week)===day.id)
       .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
