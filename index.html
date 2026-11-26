@@ -3591,14 +3591,15 @@ function openBossSearchModal(bossId){
   modal.style.display = "flex";
 }
 
-function refreshBossSearchModal(){
+function refreshBossSearchModal(force=false){
   const modal = $("bossSearchModal");
   if(!modal || !modal.classList.contains("is-open")) return;
-  const modalCard = $("bossSearchModalCard");
-  // 사용자가 팝업 안에서 입력 중이면 DOM을 통째로 교체하지 않습니다.
-  // 매초 카드 갱신으로 입력 포커스와 모바일 키보드가 사라지는 현상을 방지합니다.
-  if(modalCard && modalCard.contains(document.activeElement)) return;
 
+  // 매초 자동 갱신은 입력창에 입력한 컷 시간을 잃게 만들 수 있으므로
+  // 저장이 성공한 직후에만 팝업 카드를 새로 그립니다.
+  if(!force) return;
+
+  const modalCard = $("bossSearchModalCard");
   const current = modalCard?.firstElementChild;
   const bossId = current?.dataset.searchModalBossId;
   if(!bossId) return;
@@ -3610,12 +3611,11 @@ function refreshBossSearchModal(){
     clone.hidden = false;
     clone.removeAttribute("data-boss-card");
     clone.dataset.searchModalBossId = bossId;
-    // 실시간 갱신 후에도 팝업 안의 컷 등록 컨트롤을 활성 상태로 유지합니다.
     clone.querySelectorAll("button,input").forEach(control=>{
       control.disabled = false;
       control.removeAttribute("tabindex");
     });
-    $("bossSearchModalCard").replaceChildren(clone);
+    modalCard.replaceChildren(clone);
   }
 }
 
@@ -4192,6 +4192,7 @@ async function quickCut(bossId){
 
   try{
     await registerCut(boss,new Date().toISOString());
+    refreshBossSearchModal(true);
     // 저장 완료 팝업은 표시하지 않습니다.
   }catch(e){
     alert("컷 기록 실패: "+e.message);
@@ -4222,6 +4223,7 @@ async function rowCut(bossId, sourceInput=null){
     const cutAt = parseCutTime(input.value);
     await registerCut(boss,cutAt);
     input.value = "";
+    refreshBossSearchModal(true);
     // 저장 완료 팝업은 표시하지 않습니다.
   }catch(e){
     alert("컷 등록 실패: " + (e.message || e));
