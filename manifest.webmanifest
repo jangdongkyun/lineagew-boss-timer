@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "LINEAGE W 보탐봇",
+  "short_name": "보탐봇",
+  "description": "LINEAGE W 혈맹 보스 및 주간 룻권 알림",
+  "lang": "ko-KR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "icons": [
+    {
+      "src": "./assets/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
