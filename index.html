@@ -6764,19 +6764,19 @@ function setupRealtime(){
   realtimeChannels.forEach(c=>db.removeChannel(c));
   realtimeChannels = [];
 
-  const channel = db.channel("boss-command-live")
+  // 현재 선택한 서버의 컷 기록만 한 번 구독합니다.
+  // 중복 구독을 제거해 저장 이벤트가 여러 번 처리되는 문제를 막습니다.
+  const channel = db.channel(`boss-command-live-${currentServerId}`)
     .on("postgres_changes",{
       event:"*",schema:"public",table:"cut_records",
       filter:`server_id=eq.${currentServerId}`
     },async()=>{
-      await loadCuts();
-      renderAll();
-    })
-    .on("postgres_changes",{
-      event:"*",schema:"public",table:"cut_records"
-    },async()=>{
-      await loadCuts();
-      renderAll();
+      try{
+        await loadCuts();
+        renderAll();
+      }catch(error){
+        console.error("컷 기록 실시간 동기화 실패:",error);
+      }
     })
     .on("postgres_changes",{
       event:"*",schema:"public",table:"profiles"
