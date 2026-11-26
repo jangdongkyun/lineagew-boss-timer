@@ -7118,6 +7118,7 @@ function kobotFindBossInText(text){
 // 코봇 음성 컷 등록 보조 기능
 // =========================================
 let kobotPendingCut = null;
+let kobotPendingConfirmation = null;
 let kobotPendingCutBoss = null;
 let kobotPendingCutTime = null;
 let kobotPendingCutSession = false;
@@ -7215,6 +7216,7 @@ function kobotIsNegativeConfirmation(text){
   
 function kobotSaveCutWithoutConfirmation(boss,cutAt){
   if(!boss || !cutAt) return;
+  kobotPendingConfirmation = null;
   kobotPendingCut = null;
   kobotPendingCutBoss = null;
   kobotPendingCutTime = null;
@@ -7357,15 +7359,17 @@ function kobotHandleCommand(transcript){
   // 입력 취소 표현은 코봇 자체를 종료하지 않고 현재 진행 중인 컷 입력만 초기화합니다.
   // "다시", "처음부터", "중단", "그만" 등 어떤 단계에서 말해도 대기 중인 보스/시간을 모두 지웁니다.
   if(/^(코봇)?(취소|취소해|취소해줘|취소해주세요|취소할게|취소할래|다시|다시해|다시할게|다시할래|처음부터|새로|새로해|중단|중단해|중단해줘|그만|그만해|그만할게|그만입력|컷취소|컷입력취소|입력취소|하지마|하지말자|아니|아니요|아냐)$/.test(compact)){
+    const wasConfirming = !!kobotPendingConfirmation;
+    kobotPendingConfirmation = null;
     kobotPendingCut = null;
     kobotPendingCutBoss = null;
     kobotPendingCutTime = null;
     kobotPendingCutSession = false;
     kobotMode = "command";
     kobotSetStatus("항상 듣고 있어요.","active");
-    kobotSetMessage("진행 중인 컷 입력을 취소했어요. 처음부터 다시 말씀해 주세요.");
-    kobotAddReply("컷 입력 취소");
-    if(kobotVoiceReplyEnabled) kobotSpeak("컷 입력을 취소했어요.");
+    kobotSetMessage(wasConfirming ? "컷 기록을 저장하지 않았어요. 계속 듣고 있습니다." : "진행 중인 컷 입력을 취소했어요. 처음부터 다시 말씀해 주세요.");
+    kobotAddReply(wasConfirming ? "컷 저장 취소" : "컷 입력 취소");
+    if(kobotVoiceReplyEnabled) kobotSpeak(wasConfirming ? "저장하지 않았어요." : "컷 입력을 취소했어요.");
     return;
   }
 
@@ -7410,8 +7414,30 @@ function kobotHandleCommand(transcript){
     return;
   }
 
+  // 보스와 시간이 모두 인식되면 바로 저장하지 않고 한 번 더 확인합니다.
+  // 확인 대기 중에는 '네/예/맞아/등록해'만 저장을 진행하고, 취소 표현은 위에서 처리합니다.
+  if(kobotPendingConfirmation){
+    if(kobotIsPositiveConfirmation(compact)){
+      const confirmed = kobotPendingConfirmation;
+      kobotPendingConfirmation = null;
+      kobotSaveCutWithoutConfirmation(confirmed.boss,confirmed.cutAt);
+      return;
+    }
+    kobotSetStatus("컷 기록 확인 대기","active");
+    kobotSetMessage(kobotPendingConfirmation.boss.name+" "+kobotPendingConfirmation.timeText+" 컷으로 저장할까요? '네' 또는 '아니요'라고 말씀해 주세요.");
+    kobotAddReply("저장 여부를 확인해 주세요.");
+    if(kobotVoiceReplyEnabled) kobotSpeak("이 내용으로 저장할까요? 네 또는 아니요라고 말씀해 주세요.");
+    return;
+  }
+
   if(boss && cutAt){
-    kobotSaveCutWithoutConfirmation(boss,cutAt);
+    const timeText = new Date(cutAt).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",hour12:false});
+    kobotPendingConfirmation = {boss,cutAt,timeText};
+    kobotPendingCutSession = true;
+    kobotSetStatus("컷 기록 확인 대기","active");
+    kobotSetMessage(boss.name+" "+timeText+" 컷으로 저장할까요? '네' 또는 '아니요'라고 말씀해 주세요.");
+    kobotAddReply(boss.name+" "+timeText+" 저장 확인");
+    if(kobotVoiceReplyEnabled) kobotSpeak(boss.name+" "+timeText+". 이 내용으로 저장할까요?");
     return;
   }
 
@@ -7610,6 +7636,7 @@ function startKobot(){
   kobotActive = true;
   kobotMode = "command";
   kobotPendingCut = null;
+  kobotPendingConfirmation = null;
   kobotPendingCutBoss = null;
   kobotPauseRecognition = false;
   kobotAfterStop = null;
@@ -7626,6 +7653,11 @@ function startKobot(){
 
 function stopKobot(){
   // 코봇을 완전히 종료하고 음성 출력/재시작 예약도 모두 정리합니다.
+  kobotPendingConfirmation = null;
+  kobotPendingCut = null;
+  kobotPendingCutBoss = null;
+  kobotPendingCutTime = null;
+  kobotPendingCutSession = false;
   kobotActive = false;
   kobotMode = "command";
   kobotPauseRecognition = true;
