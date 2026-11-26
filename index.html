@@ -4180,7 +4180,7 @@ async function editCut(recordId){
 }
 
 async function quickCut(bossId){
-  const boss = bosses.find(b=>b.id===bossId);
+  const boss = bosses.find(b=>String(b.id)===String(bossId));
   if(!boss) return;
 
   if(!confirm(`${boss.name}\n현재 시각으로 컷 기록을 등록할까요?`)) return;
