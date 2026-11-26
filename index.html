@@ -3425,9 +3425,45 @@ function getSortedBosses(){
 }
 
 /* 시간 입력: 2135 / 21:35 모두 지원 */
+// 자연어 시간 표현을 기존 24시간제 입력으로 변환합니다.
+// 예: 저녁 7시 → 19:00, 자정 12시 → 00:00
+function normalizeNaturalCutTime(value){
+  let v = String(value || "").trim().replace(/\\s+/g,"");
+  if(!v) return v;
+
+  // 기존 숫자 입력은 그대로 유지
+  if(/^\\d{4}$/.test(v) || /^\\d{1,2}:\\d{2}$/.test(v)) return v;
+
+  v = v.replace(/(로)?(컷(등록)?(해줘|해주세요)?|등록해줘|등록해주세요)$/,"");
+
+  if(v.includes("정오") && !/[0-9영공일이삼사오육륙칠팔구한두세네다섯여섯일곱여덟아홉열]+시/.test(v)){
+    return "12:00";
+  }
+  if(v.includes("자정") && !/[0-9영공일이삼사오육륙칠팔구한두세네다섯여섯일곱여덟아홉열]+시/.test(v)){
+    return "00:00";
+  }
+
+  const match = v.match(/(새벽|아침|오전|낮|오후|저녁|밤|정오|자정)?([0-9영공일이삼사오육륙칠팔구한두세네다섯여섯일곱여덟아홉열십]+)시(?:([0-9영공일이삼사오육륙칠팔구한두세네다섯여섯일곱여덟아홉열십]+)분?)?/);
+  if(!match) return v;
+
+  const period = match[1] || "";
+  let hour = kobotParseSpokenNumber(match[2]);
+  const minute = match[3] ? kobotParseSpokenNumber(match[3]) : 0;
+  if(!Number.isFinite(hour) || !Number.isFinite(minute)) return v;
+
+  if(period==="자정") hour=0;
+  else if(period==="정오") hour=12;
+  else if((period==="오후" || period==="저녁" || period==="밤") && hour>=1 && hour<=11) hour+=12;
+  else if((period==="오전" || period==="새벽" || period==="아침") && hour===12) hour=0;
+
+  if(hour<0 || hour>23 || minute<0 || minute>59) return v;
+  return String(hour).padStart(2,"0")+":"+String(minute).padStart(2,"0");
+}
+
 function parseCutTime(value){
   let v = String(value || "").trim();
   if(!v) throw new Error("컷 시간을 입력하세요.");
+  v = normalizeNaturalCutTime(v);
 
   let hour, minute;
   if(/^\d{4}$/.test(v)){
@@ -7161,7 +7197,7 @@ function kobotParseCutTimeFromSpeech(text){
   }
 
   let hour = NaN, minute = NaN;
-  const period = compact.includes("오후") ? "pm" : compact.includes("오전") ? "am" : "";
+  const period = /(오후|저녁|밤)/.test(compact) ? "pm" : /(오전|새벽|아침)/.test(compact) ? "am" : "";
   let match = compact.match(/([0-9영공일이삼사오육륙칠팔구한두세네다섯여섯일곱여덟아홉열]+)시([0-9영공일이삼사오육칠팔구십]+)?분?/);
   if(match){
     hour = kobotParseSpokenNumber(match[1]);
@@ -7196,7 +7232,9 @@ function kobotParseCutTimeFromSpeech(text){
   }
 
   if(!Number.isFinite(hour)) return null;
-  if(period==="pm" && hour>=1 && hour<=11) hour+=12;
+  if(compact.includes("자정")) hour=0;
+  else if(compact.includes("정오")) hour=12;
+  else if(period==="pm" && hour>=1 && hour<=11) hour+=12;
   if(period==="am" && hour===12) hour=0;
   if(hour<0 || hour>23 || minute<0 || minute>59) return null;
   return parseCutTime(String(hour).padStart(2,"0")+":"+String(minute).padStart(2,"0"));
