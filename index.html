@@ -124,6 +124,21 @@ h3{font-size:14px;margin:0 0 10px}
 }
 .stat b{color:var(--gold);margin-left:5px}
 .boss-list{display:grid;gap:5px}
+.boss-pagination{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;flex-wrap:wrap;margin:10px 0;
+  padding:9px 10px;background:#101923;border:1px solid var(--line);
+  border-radius:9px;
+}
+.boss-page-sizes{display:flex;gap:5px;flex-wrap:wrap}
+.boss-page-sizes button,.boss-page-nav button{padding:7px 10px;font-size:12px}
+.boss-page-sizes button.active{
+  background:#80602b;border-color:#e6bd68;color:#fff0c8;
+  box-shadow:0 0 8px rgba(230,189,104,.2);
+}
+.boss-page-nav{display:flex;align-items:center;gap:7px}
+.boss-page-info{font-size:12px;color:var(--muted);white-space:nowrap}
+.boss-card[hidden]{display:none !important}
 
 .boss-card{
   background:var(--panel);
@@ -1017,6 +1032,18 @@ body {
     출현한 보스는 5분간 최상단에 표시됩니다.
   </div>
 
+  <div class="boss-pagination" id="bossPagination" aria-label="보스카드 보기 방식">
+    <div class="boss-page-sizes">
+      <button type="button" data-boss-page-size="5">5개씩</button>
+      <button type="button" data-boss-page-size="10">10개씩</button>
+      <button type="button" data-boss-page-size="all">전체</button>
+    </div>
+    <div class="boss-page-nav">
+      <button type="button" class="ghost" data-boss-page-prev>이전</button>
+      <span class="boss-page-info" data-boss-page-info>1 / 1</span>
+      <button type="button" class="ghost" data-boss-page-next>다음</button>
+    </div>
+  </div>
   <div class="boss-list" id="bossList"></div>
 
   <div id="emptyBoss" class="muted" style="display:none;text-align:center;padding:25px">
@@ -4453,6 +4480,79 @@ async function updatePresence(){
   }
 }
 
+// 보스카드 페이지 보기 설정: 기본 5개씩, 회원 기기별 선택값 유지
+let bossCardPageSize = (()=>{
+  try{
+    const saved = localStorage.getItem("lineagew_boss_card_page_size");
+    return saved === "10" || saved === "all" ? saved : "5";
+  }catch(e){
+    return "5";
+  }
+})();
+let bossCardCurrentPage = 0;
+
+function applyBossCardPagination(sorted = getSortedBosses()){
+  const list = $("bossList");
+  const pagination = $("bossPagination");
+  if(!list || !pagination) return;
+
+  const total = sorted.length;
+  const pageSize = bossCardPageSize === "all" ? Math.max(total,1) : Number(bossCardPageSize);
+  const pageCount = Math.max(1,Math.ceil(total/pageSize));
+  bossCardCurrentPage = Math.min(Math.max(0,bossCardCurrentPage),pageCount-1);
+
+  const start = bossCardCurrentPage * pageSize;
+  const end = bossCardPageSize === "all" ? total : start + pageSize;
+  const visibleIds = new Set(sorted.slice(start,end).map(b=>String(b.id)));
+
+  list.querySelectorAll("[data-boss-card]").forEach(card=>{
+    card.hidden = !visibleIds.has(String(card.dataset.bossCard));
+  });
+
+  pagination.querySelectorAll("[data-boss-page-size]").forEach(btn=>{
+    const active = btn.dataset.bossPageSize === bossCardPageSize;
+    btn.classList.toggle("active",active);
+    btn.setAttribute("aria-pressed",String(active));
+  });
+
+  const info = pagination.querySelector("[data-boss-page-info]");
+  const prev = pagination.querySelector("[data-boss-page-prev]");
+  const next = pagination.querySelector("[data-boss-page-next]");
+  if(info) info.textContent = bossCardPageSize === "all"
+    ? `전체 ${total}마리`
+    : `${total ? start+1 : 0}-${Math.min(end,total)} / ${total}마리 · ${bossCardCurrentPage+1}/${pageCount}페이지`;
+  if(prev) prev.disabled = bossCardPageSize === "all" || bossCardCurrentPage <= 0;
+  if(next) next.disabled = bossCardPageSize === "all" || bossCardCurrentPage >= pageCount-1;
+}
+
+const bossPagination = $("bossPagination");
+if(bossPagination){
+  bossPagination.addEventListener("click",event=>{
+    const sizeButton = event.target.closest("[data-boss-page-size]");
+    if(sizeButton){
+      bossCardPageSize = sizeButton.dataset.bossPageSize;
+      bossCardCurrentPage = 0;
+      try{ localStorage.setItem("lineagew_boss_card_page_size",bossCardPageSize); }catch(e){}
+      renderBosses();
+      return;
+    }
+
+    if(event.target.closest("[data-boss-page-prev]")){
+      bossCardCurrentPage = Math.max(0,bossCardCurrentPage-1);
+      applyBossCardPagination();
+      return;
+    }
+
+    if(event.target.closest("[data-boss-page-next]")){
+      const total = getSortedBosses().length;
+      const size = bossCardPageSize === "all" ? Math.max(total,1) : Number(bossCardPageSize);
+      const pages = Math.max(1,Math.ceil(total/size));
+      bossCardCurrentPage = Math.min(pages-1,bossCardCurrentPage+1);
+      applyBossCardPagination();
+    }
+  });
+}
+
 function renderBosses(){
   const list = $("bossList");
   const sorted = getSortedBosses();
@@ -4543,6 +4643,8 @@ card.innerHTML = `
   existing.forEach((el,id)=>{
     if(!ids.has(id)) el.remove();
   });
+
+  applyBossCardPagination(sorted);
 }
 
 function updateTimers(){
@@ -4620,6 +4722,7 @@ if(overdue && elapsed <= 300000){
       }
     });
   }
+  applyBossCardPagination(sorted);
   $("clock").textContent = new Date().toLocaleTimeString("ko-KR",{
     hour12:false
   });
