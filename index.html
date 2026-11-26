@@ -7254,8 +7254,9 @@ function kobotSaveCutWithoutConfirmation(boss,cutAt){
 }
 
 function kobotHandleCommand(transcript){
-  const offCommand = kobotNormalizeText(transcript).replace(/\\s/g,"");
-  if(/^(코봇)?(오프|꺼|꺼줘|종료|그만)$/.test(offCommand)){
+  const offCommand = kobotNormalizeText(transcript).replace(/\s/g,"");
+  if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘|그만|그만해|중지|중지해)$/.test(offCommand) ||
+     /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘)$/.test(offCommand)){
     stopKobot();
     return;
   }
@@ -7597,8 +7598,8 @@ function kobotCreateRecognition(){
   recognition.onstart = ()=>{
     if(!kobotActive) return;
     if(kobotMode === "wake"){
-      kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
-      kobotSetMessage("“코봇!”이라고 부르면 응답합니다.");
+      kobotSetStatus("항상 듣고 있어요.","active");
+      kobotSetMessage("호출어 없이 바로 말씀하시면 됩니다.");
     }else{
       kobotSetStatus("말씀을 듣고 있어요.","active");
     }
@@ -7626,18 +7627,13 @@ recognition.onresult = (event)=>{
 
     if(!result.isFinal) continue;
 
-    if(kobotMode === "wake"){
-      const wakeText = kobotNormalizeText(transcript).replace(/\\s/g,"");
-      if(/^(코봇)?(오프|꺼|꺼줘|종료|그만)$/.test(wakeText)){
-        stopKobot();
-        return;
-      }
-      if(/코봇|코보|코봇아/.test(kobotNormalizeText(transcript))){
-        kobotHandleWakeWord(transcript);
-      }
+    const normalizedCommand = kobotNormalizeText(transcript).replace(/\s/g,"");
+    if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘|그만|그만해|중지|중지해)$/.test(normalizedCommand) ||
+       /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘)$/.test(normalizedCommand)){
+      stopKobot();
       return;
     }
-
+    kobotMode = "command";
     kobotHandleCommand(transcript);
     return;
   }
@@ -7707,7 +7703,7 @@ function startKobot(){
 
   kobotClearTimers();
   kobotActive = true;
-  kobotMode = "wake";
+  kobotMode = "command";
   kobotPendingCut = null;
   kobotPendingCutBoss = null;
   kobotPauseRecognition = false;
@@ -7716,7 +7712,7 @@ function startKobot(){
 
   $("kobotStartBtn").disabled = true;
   $("kobotStopBtn").disabled = false;
-  kobotSetMessage("“코봇!”이라고 부르면 대화를 시작합니다.");
+  kobotSetMessage("마이크가 켜져 있어요. 코봇이라고 부르지 않아도 바로 말씀하시면 됩니다. 예: 가스트 컷, 다음 보스, 코봇 종료");
   kobotSetStatus("마이크 연결 중...","active");
   kobotStartRecognition();
 }
@@ -7738,7 +7734,7 @@ function stopKobot(){
   if(stopBtn) stopBtn.disabled = true;
 
   kobotSetStatus("코봇이 꺼져 있어요.");
-  kobotSetMessage("사용하려면 코봇 시작 버튼을 눌러주세요.");
+  kobotSetMessage("코봇이 종료됐어요. 다시 사용하려면 코봇 시작 버튼을 눌러주세요.");
   kobotSetTranscript("음성 인식 내용이 여기에 표시됩니다.");
 }
 
