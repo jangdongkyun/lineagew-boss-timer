@@ -1460,7 +1460,7 @@ style="
 
     <div class="muted" style="margin-bottom:12px">
       보스 이름 또는 별명을 입력하고 컷 시간을 입력하세요.
-      예: 2135 또는 21:35
+      예: 저녁 7시, 오전 5시, 2135 또는 21:35
     </div>
 
     <div class="section-grid">
@@ -1485,8 +1485,8 @@ style="
   <div style="display:flex;gap:8px;align-items:center">
     <input
       id="manualCutTime"
-      placeholder="2135 또는 21:35"
-      maxlength="5"
+      placeholder="저녁 7시 / 2135 / 21:35"
+      maxlength="30"
       style="width:50%;min-width:0;flex:1"
     >
 
@@ -4895,8 +4895,8 @@ card.innerHTML = `
     <div class="cut-time">
       <input
         data-cut-input="${b.id}"
-        placeholder="2135 / 21:35"
-        maxlength="5"
+        placeholder="저녁 7시 / 2135"
+        maxlength="30"
       >
       <button class="primary" data-row-cut>등록</button>
     </div>
