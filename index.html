@@ -4727,7 +4727,7 @@ if(bossMoreControls){
       bossCardVisibleCount = BOSS_CARD_BATCH_SIZE;
       try{ localStorage.setItem("lineagew_boss_card_visible_count",String(BOSS_CARD_BATCH_SIZE)); }catch(e){}
       applyBossCardPagination();
-      window.scrollTo({top:0,behavior:"smooth"});
+      $("bossList")?.scrollIntoView({behavior:"smooth",block:"start"});
     }
   });
 }
