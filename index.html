@@ -3584,6 +3584,13 @@ function openBossSearchModal(bossId){
     control.removeAttribute("tabindex");
   });
   target.replaceChildren(clone);
+
+  // 보스를 선택하면 검색어와 검색 결과를 비워 다음 검색을 바로 할 수 있게 합니다.
+  const searchInput = $("bossSearchInput");
+  const searchResults = $("bossSearchResults");
+  if(searchInput) searchInput.value = "";
+  if(searchResults) searchResults.replaceChildren();
+
   $("bossSearchModalTitle").textContent = boss.name + " · 보스 정보";
 
   openBackPopup("bossSearchModal");
