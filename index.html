@@ -5242,15 +5242,22 @@ function ensurePersonalAlertUI(){
           type="button" style="margin-top:8px">목소리 미리 듣기</button>
       </div>
 
-      <hr>
-
-      <h3>① 일반 필드보스 음성 알림</h3>
-      <label><input type="checkbox" id="personalFieldVoiceEnabled"> 일반 필드보스 음성 알림 사용</label>
-      <div id="personalBossOptions"></div>
-      <hr>
-      <h3>② 주간 룻권 보스 음성 알림</h3>
-      <label><input type="checkbox" id="personalWeeklyVoiceEnabled"> 주간 룻권 보스 음성 알림 사용</label>
-      <div id="personalWeeklyBossOptions"></div>
+      <div id="personalVoiceCategoryOptions" style="display:none;margin-top:14px">
+        <div style="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px">
+          <h3 style="margin:0 0 10px;color:#e8c879">① 일반 필드보스 음성 알림</h3>
+          <label><input type="checkbox" id="personalFieldVoiceEnabled"> 일반 필드보스 음성 알림 사용</label>
+          <div id="personalBossOptions" style="display:none;margin-top:12px">
+            <p style="margin:0 0 8px;color:#d8c99f;font-size:13px">음성 알림을 받을 필드보스를 선택해 주세요.</p>
+          </div>
+        </div>
+        <div style="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px">
+          <h3 style="margin:0 0 10px;color:#e8c879">② 주간 룻권 보스 음성 알림</h3>
+          <label><input type="checkbox" id="personalWeeklyVoiceEnabled"> 주간 룻권 보스 음성 알림 사용</label>
+          <div id="personalWeeklyBossOptions" style="display:none;margin-top:12px">
+            <p style="margin:0 0 8px;color:#d8c99f;font-size:13px">음성 알림을 받을 주간 룻권 보스를 선택해 주세요.</p>
+          </div>
+        </div>
+      </div>
 
       <hr>
 
@@ -5286,11 +5293,20 @@ $("savePersonalAlertBtn").addEventListener(
   savePersonalAlertSettings
 );
 
-// 음성 알림 사용 여부 변경
-$("personalVoiceEnabled").addEventListener("change",()=>{
-  $("personalVoiceOptions").style.display =
-    $("personalVoiceEnabled").checked ? "block" : "none";
-});
+// 음성 알림 사용 여부에 따라 세부 설정을 표시
+function updatePersonalVoiceSections(){
+  const enabled = $("personalVoiceEnabled").checked;
+  $("personalVoiceOptions").style.display = enabled ? "block" : "none";
+  $("personalVoiceCategoryOptions").style.display = enabled ? "block" : "none";
+  $("personalBossOptions").style.display =
+    enabled && $("personalFieldVoiceEnabled").checked ? "block" : "none";
+  $("personalWeeklyBossOptions").style.display =
+    enabled && $("personalWeeklyVoiceEnabled").checked ? "block" : "none";
+}
+
+$("personalVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
+$("personalFieldVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
+$("personalWeeklyVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
 
   // 닫기 버튼으로 닫기
 $("closePersonalAlertBtn").addEventListener("click",()=>{
@@ -5469,8 +5485,7 @@ body {
       }).join("")
     : '<div class="muted">주간 룻권 시간표에 등록된 보스가 없습니다.</div>';
 
-  $("personalVoiceOptions").style.display =
-    s.voice_enabled ? "block" : "none";
+  updatePersonalVoiceSections();
 
  // 휴대폰 뒤로 가기 기록 추가
 openBackPopup("personalAlertModal");
