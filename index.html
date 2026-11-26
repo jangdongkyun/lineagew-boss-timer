@@ -6761,7 +6761,7 @@ function kobotUpdateReplyMode(){
   const voiceBtn = $("kobotVoiceModeBtn");
   const textBtn = $("kobotTextModeBtn");
   if(voiceBtn){
-    voiceBtn.textContent = kobotVoiceReplyEnabled ? "🔊 음성 대답 켜짐" : "🔇 음성 대답 꺼짐";
+    voiceBtn.textContent = kobotVoiceReplyEnabled ? "✓ 🔊 음성 대답 켜짐" : "🔇 음성 대답 꺼짐";
     voiceBtn.setAttribute("aria-pressed",String(kobotVoiceReplyEnabled));
     voiceBtn.className = kobotVoiceReplyEnabled ? "primary" : "ghost";
   }
@@ -6859,13 +6859,17 @@ const finish = ()=>{
   // 기존 응답 완료 콜백은 실행하지 않음
   if(cancelledByUser) return;
 
+  if(kobotActive){
+    kobotSetStatus("항상 듣고 있어요.","active");
+    kobotSetMessage("보스 이름과 컷 시간을 언제든지 말씀해 주세요.");
+  }
   if(typeof after === "function") after();
 };
 
     utterance.onend = finish;
     utterance.onerror = finish;
 
-    kobotSetStatus("코봇이 음성으로 응답하고 있어요.","active");
+    kobotSetStatus("음성 대답 중 · 마이크는 계속 듣고 있어요.","active");
     synth.speak(utterance);
   }catch(error){
     console.error("코봇 음성 응답 오류:",error);
@@ -7209,381 +7213,128 @@ function kobotIsNegativeConfirmation(text){
 
   
 function kobotSaveCutWithoutConfirmation(boss,cutAt){
-  const pending = {boss,cutAt};
+  if(!boss || !cutAt) return;
   kobotPendingCut = null;
   kobotPendingCutBoss = null;
   kobotPendingCutTime = null;
   kobotPendingCutSession = false;
-  kobotPauseRecognition = true;
-  kobotAfterStop = ()=>{
-    kobotAfterStop = null;
-    kobotPauseRecognition = false;
-    kobotSpeak("네, 저장하겠습니다.",async()=>{
-      if(!kobotActive) return;
-      try{
-        if(pending.cutAt && pending.cutAt.kobotUseManualForm){
-          await kobotRegisterThroughManualForm(pending.boss,pending.cutAt);
-        }else{
-          await registerCut(pending.boss,pending.cutAt);
-        }
-        kobotMode = "wake";
-        kobotSetStatus("컷 기록을 저장했어요.","active");
-        kobotSetMessage("다시 부르려면 “코봇!”이라고 말씀해 주세요.");
-        kobotStartRecognition();
-      }catch(error){
-        console.error("코봇 컷 등록 오류:",error);
-        kobotMode = "wake";
-        kobotSpeak("컷 저장에 실패했어요. 로그인 상태와 데이터 연결을 확인해 주세요.",()=>{
-          if(kobotActive) kobotStartRecognition();
-        });
+  kobotSetStatus("컷 기록 저장 중...","active");
+  kobotSetMessage(boss.name+" 컷 기록을 저장하고 있어요.");
+  (async()=>{
+    try{
+      if(cutAt && cutAt.kobotUseManualForm){
+        await kobotRegisterThroughManualForm(boss,cutAt);
+      }else{
+        await registerCut(boss,cutAt);
       }
-    });
-  };
-  if(kobotRecognition){
-    try{kobotRecognition.stop();}
-    catch(error){
-      const callback = kobotAfterStop;
-      kobotAfterStop = null;
-      if(callback) callback();
+      kobotSetStatus("항상 듣고 있어요.","active");
+      kobotSetMessage("다음 보스 이름이나 컷 시간을 바로 말씀해 주세요.");
+      kobotAddReply(boss.name+" 컷 등록 완료");
+      if(kobotVoiceReplyEnabled) kobotSpeak("컷 등록 완료");
+    }catch(error){
+      console.error("코봇 컷 등록 오류:",error);
+      kobotSetStatus("컷 저장에 실패했어요.","error");
+      kobotSetMessage("다시 보스 이름과 컷 시간을 말씀해 주세요.");
+      kobotAddReply("컷 저장에 실패했어요.");
+      if(kobotVoiceReplyEnabled) kobotSpeak("컷 저장에 실패했어요.");
     }
-  }else{
-    const callback = kobotAfterStop;
-    kobotAfterStop = null;
-    if(callback) callback();
-  }
+  })();
 }
 
 function kobotHandleCommand(transcript){
-  const offCommand = kobotNormalizeText(transcript).replace(/\s/g,"");
-  if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘|그만|그만해|중지|중지해)$/.test(offCommand) ||
-     /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘|종료)$/.test(offCommand)){
+  const text = kobotNormalizeText(transcript);
+  const compact = text.replace(/\s/g,"");
+  if(!compact) return;
+
+  if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘|그만|그만해|중지|중지해)$/.test(compact) ||
+     /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘|종료)$/.test(compact)){
     stopKobot();
     return;
-  }
-
-  if(kobotCommandTimer){
-    clearTimeout(kobotCommandTimer);
-    kobotCommandTimer = null;
   }
 
   kobotMode = "command";
   kobotSetTranscript("인식한 말씀: " + transcript);
   kobotAddReply(transcript,"나");
 
-  const text = kobotNormalizeText(transcript);
-  if(!text) return;
-  const intent = kobotDetectIntent(text);
-
-  // 답변 후 기존 음성 인식 대기 상태로 복귀
-function kobotRespond(message){
-  kobotSpeak(message,()=>{
-    if(!kobotActive) return;
-
-    kobotSetStatus("말씀을 듣고 있어요.","active");
-    kobotSetMessage("말씀하시면 바로 들을게요.");
-  });
-}
-
-
-  // 컷 등록 흐름은 다른 질문보다 항상 먼저 처리합니다.
-  const spokenBoss = kobotFindBossInText(text);
-  const spokenCutAt = kobotParseCutTimeFromSpeech(text);
-  const hasCutWord = /(컷|기록|등록|입력|잡았|처치|잡은시간|컷시간|컷시각)/.test(text);
-  const isCutStartOnly = /^(컷|컷등록|컷기록|기록|등록|컷입력)$/.test(text.replace(/\s/g,""));
-
-  if(kobotPendingCut){
-    if(kobotIsPositiveConfirmation(text)){
-      const pending = kobotPendingCut;
-      kobotPendingCut = null;
-      kobotPendingCutSession = false;
-      kobotPauseRecognition = true;
-      kobotAfterStop = ()=>{
-        kobotAfterStop = null;
-        kobotPauseRecognition = false;
-        (async()=>{
-          try{
-            await registerCut(pending.boss,pending.cutAt);
-            kobotSpeak(`${pending.boss.name} 컷 기록을 등록했어요.`,()=>{
-              if(!kobotActive) return;
-              kobotSetStatus("말씀을 듣고 있어요.","active");
-              kobotSetMessage("다른 보스 컷도 말씀해 주세요.");
-              kobotStartRecognition();
-            });
-          }catch(error){
-            console.error("코봇 컷 등록 오류:",error);
-            kobotRespond("컷 등록에 실패했어요. 로그인 상태와 데이터 연결을 확인해 주세요.");
-          }
-        })();
-      };
-      if(kobotRecognition){
-        try{kobotRecognition.stop();}
-        catch(error){const cb=kobotAfterStop;kobotAfterStop=null;if(cb)cb();}
-      }else{const cb=kobotAfterStop;kobotAfterStop=null;if(cb)cb();}
-      return;
-    }
-    if(kobotIsNegativeConfirmation(text)){
-      kobotPendingCut=null;
-      kobotPendingCutSession=false;
-      kobotRespond("컷 등록을 취소했어요.");
-      return;
-    }
-    kobotRespond("등록할까요? 네 또는 아니요로 대답해 주세요.");
-    return;
-  }
-
-  // 먼저 보스 이름을 말한 경우 다음 발화의 컷 시각을 연결합니다.
-  if(kobotPendingCutBoss){
-    if(spokenBoss) kobotPendingCutBoss=spokenBoss;
-    if(spokenCutAt){
-      kobotSaveCutWithoutConfirmation(spokenBoss || kobotPendingCutBoss,spokenCutAt);
-      return;
-    }
-    if(spokenBoss){
-      kobotRespond(spokenBoss.name+" 보스를 확인했어요. 컷 시각을 말씀해 주세요.");
-      return;
-    }
-    if(kobotIsNegativeConfirmation(text)){
-      kobotPendingCutBoss=null;
-      kobotPendingCutSession=false;
-      kobotRespond("컷 입력을 취소했어요.");
-      return;
-    }
-    kobotRespond(kobotPendingCutBoss.name+" 컷 시각을 말씀해 주세요. 예: 21시 35분 또는 이일삼오");
-    return;
-  }
-
-  // 컷 키워드 또는 시각을 먼저 말한 경우 보스 이름을 기다립니다.
-  if(kobotPendingCutSession || kobotPendingCutTime){
-    if(spokenBoss && spokenCutAt){
-      kobotSaveCutWithoutConfirmation(spokenBoss,spokenCutAt);
-      return;
-    }
-    if(spokenBoss){
-      if(kobotPendingCutTime){
-        kobotSaveCutWithoutConfirmation(spokenBoss,kobotPendingCutTime);
-      }else{
-        kobotPendingCutBoss=spokenBoss;
-        kobotRespond(spokenBoss.name+" 보스를 확인했어요. 컷 시각을 말씀해 주세요.");
-      }
-      return;
-    }
-    if(spokenCutAt){
-      kobotPendingCutTime=spokenCutAt;
-      kobotPendingCutSession=true;
-      kobotRespond("컷 시각을 확인했어요. 이제 보스 이름을 말씀해 주세요.");
-      return;
-    }
-    if(kobotIsNegativeConfirmation(text)){
-      kobotPendingCutTime=null;
-      kobotPendingCutSession=false;
-      kobotRespond("컷 입력을 취소했어요.");
-      return;
-    }
-    kobotRespond("컷 기록을 위해 보스 이름이나 컷 시각을 말씀해 주세요.");
-    return;
-  }
-
-  // 보스와 시각이 한 번에 들어오면 컷 키워드가 없어도 우선 저장합니다.
-  if(spokenBoss && spokenCutAt){
-    kobotSaveCutWithoutConfirmation(spokenBoss,spokenCutAt);
-    return;
-  }
-
-  // 시각만 먼저 말한 경우도 컷 시각으로 기억하고 보스 이름을 기다립니다.
-  if(spokenCutAt && !spokenBoss){
-    kobotPendingCutTime=spokenCutAt;
-    kobotPendingCutSession=true;
-    kobotRespond("컷 시각을 확인했어요. 이제 보스 이름을 말씀해 주세요.");
-    return;
-  }
-
-  // 보스 이름을 먼저 말한 경우에도 컷 입력을 이어갈 수 있도록 보스를 기억합니다.
-  if(spokenBoss && !/(언제나와|몇분남았|얼마나남았|몇시간남았|출현시간|예상시간|몇시야|몇시에나와)/.test(text)){
-    kobotPendingCutBoss=spokenBoss;
-    kobotPendingCutSession=true;
-    kobotRespond(spokenBoss.name+" 보스를 확인했어요. 컷 시각을 말씀해 주세요. 출현 시간을 물으시려면 언제 나와라고 말씀해 주세요.");
-    return;
-  }
-
-  // '컷'부터 말하면 이후 보스·시각을 어떤 순서로 말해도 연결합니다.
-  if(hasCutWord || isCutStartOnly){
-    kobotPendingCutSession=true;
-    if(spokenBoss) kobotPendingCutBoss=spokenBoss;
-    if(spokenCutAt) kobotPendingCutTime=spokenCutAt;
-    if(spokenBoss && spokenCutAt){
-      kobotSaveCutWithoutConfirmation(spokenBoss,spokenCutAt);
-      return;
-    }
-    if(spokenBoss){
-      kobotRespond(spokenBoss.name+" 보스를 확인했어요. 컷 시각을 말씀해 주세요.");
-      return;
-    }
-    if(spokenCutAt){
-      kobotRespond("컷 시각을 확인했어요. 이제 보스 이름을 말씀해 주세요.");
-      return;
-    }
-    kobotRespond("네, 컷 등록을 시작할게요. 보스 이름이나 컷 시각을 먼저 말씀해 주세요.");
-    return;
-  }
-
-  // 글씨 전용 모드
-  if(
-    text.includes("글씨로 대답") ||
-    text.includes("글씨 전용") ||
-    text.includes("음성 끄") ||
-    text.includes("조용히 대답")
-  ){
+  // 음성 대답 설정은 컷 입력과 별도로 처리합니다.
+  if(/(글씨로대답|글씨전용|음성끄|조용히대답)/.test(compact)){
     kobotSetReplyMode(false,false);
-    kobotRespond("글씨 전용으로 바꿨어요. 이제 대답은 화면에 글씨로만 표시할게요.");
+    kobotSetStatus("항상 듣고 있어요.","active");
+    kobotSetMessage("음성 대답이 꺼졌어요. 컷 입력은 계속 듣고 있어요.");
+    kobotAddReply("음성 대답 꺼짐");
     return;
   }
-
-  // 음성 대답 모드
-  if(
-    text.includes("음성으로 대답") ||
-    text.includes("음성 켜") ||
-    text.includes("말로 대답")
-  ){
+  if(/(음성으로대답|음성켜|말로대답)/.test(compact)){
     kobotSetReplyMode(true,false);
-    kobotRespond("음성 대답을 켰어요. 이제 말로 대답할게요.");
+    kobotSetStatus("항상 듣고 있어요.","active");
+    kobotSetMessage("음성 대답이 켜졌어요. 컷 입력은 계속 듣고 있어요.");
+    kobotAddReply("음성 대답 켜짐");
+    kobotSpeak("음성 대답 켜짐");
     return;
   }
 
-  // 도움말
-  if(intent === "help"){
-    kobotRespond(
-      "다음 보스 누구야, 그다음 보스는, 가스트 언제 나와처럼 물어보세요. 보스 이름과 컷 시간을 말하면 컷 등록도 도와드릴게요."
-    );
+  if(/^(취소|취소해|그만입력|컷취소)$/.test(compact)){
+    kobotPendingCut = null;
+    kobotPendingCutBoss = null;
+    kobotPendingCutTime = null;
+    kobotPendingCutSession = false;
+    kobotSetMessage("컷 입력을 취소했어요. 다음 보스 이름이나 컷 시간을 말씀해 주세요.");
+    kobotAddReply("컷 입력 취소");
     return;
   }
 
-  // 감사 인사
-if(intent === "thanks"){
-  kobotRespond("천만에요. 도움이 되어서 기뻐요. 다른 보스 정보도 필요하시면 말씀해 주세요.");
-  return;
-}
-  
-  // 전체 보스 현황
-if(intent === "all_bosses"){
-    const list = kobotGetUpcomingBosses();
-
-    if(!list.length){
-      kobotRespond("예정된 보스 시간이 등록되어 있지 않아요.");
-      return;
-    }
-
-    const message = list.slice(0,5).map((boss,index)=>{
-      return `${index+1}번 ${boss.name}, ${kobotFormatRemaining(Number(nextAt(boss)))} 후`;
-    }).join(". ");
-
-    kobotLastDiscussedBoss = list[0];
-    kobotRespond(`가까운 보스 순서예요. ${message}`);
-    return;
-  }
-
-  // 두 번째 보스
-if(intent === "second_boss"){
-    const list = kobotGetUpcomingBosses();
-
-    if(list.length < 2){
-      kobotRespond("그다음으로 예정된 보스 정보가 없어요.");
-      return;
-    }
-
-    const boss = list[1];
-    kobotLastDiscussedBoss = boss;
-
-    kobotRespond(
-      `그다음 보스는 ${boss.name}이에요. 예상 시간까지 ${kobotFormatRemaining(Number(nextAt(boss)))} 남았어요.`
-    );
-    return;
-  }
-
-  // 첫 번째 다음 보스
-if(intent === "next_boss"){
-    const list = kobotGetUpcomingBosses();
-
-    if(!list.length){
-      kobotRespond("예정된 보스 시간이 등록되어 있지 않아요.");
-      return;
-    }
-
-    const boss = list[0];
-    kobotLastDiscussedBoss = boss;
-
-    kobotRespond(
-      `다음 보스는 ${boss.name}이에요. 예상 시간까지 ${kobotFormatRemaining(Number(nextAt(boss)))} 남았어요.`
-    );
-    return;
-  }
-
-  // 특정 보스 조회
   const boss = kobotFindBossInText(text);
+  const cutAt = kobotParseCutTimeFromSpeech(text);
+  const cutWord = /(컷|기록|등록|입력|잡았|처치|잡은시간|컷시간|컷시각)/.test(text);
+  const startOnly = /^(컷|컷등록|컷기록|기록|등록|컷입력)$/.test(compact);
+
+  if(boss && cutAt){
+    kobotSaveCutWithoutConfirmation(boss,cutAt);
+    return;
+  }
 
   if(boss){
-    kobotLastDiscussedBoss = boss;
-
-    const at = nextAt(boss);
-
-    if(at == null){
-      kobotRespond(`${boss.name}의 다음 출현 예정 시간을 아직 알 수 없어요.`);
+    if(kobotPendingCutTime){
+      const savedTime = kobotPendingCutTime;
+      kobotSaveCutWithoutConfirmation(boss,savedTime);
       return;
     }
-
-    kobotRespond(
-      `${boss.name}은 예상 출현까지 ${kobotFormatRemaining(Number(at))} 남았어요.`
-    );
+    kobotPendingCutBoss = boss;
+    kobotPendingCutSession = true;
+    kobotSetStatus("컷 시간 입력 대기","active");
+    kobotSetMessage("컷 시간을 말씀해 주세요. 예: 21시 35분, 2135, 지금");
+    kobotAddReply("컷 시간을 입력해 주세요.");
+    if(kobotVoiceReplyEnabled) kobotSpeak("컷 시간을 말씀해 주세요.");
     return;
   }
 
-
-  // 직전 대화의 보스에 대한 후속 질문
-  const followUpText = text.replace(/\s/g,"");
-
-  const asksClockTime =
-    /(출현예상시각|예상출현시각|몇시야|몇시인데|몇시에나와|몇시에출현|출현몇시)/.test(followUpText);
-
-  const asksRemaining =
-    /(몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간|언제출현)/.test(followUpText);
-
-  if(
-    kobotLastDiscussedBoss &&
-    (
-      /(걔는?|그보스|그건|그거는|아까말한보스|방금말한보스).*(몇분남았|얼마나남았|언제나와|몇시간남았|출현시간|예상시간|몇시에나와|언제출현|출현예상시각|예상출현시각|몇시)/.test(followUpText) ||
-      asksClockTime ||
-      asksRemaining
-    )
-  ){
-    const previousBoss = kobotLastDiscussedBoss;
-    const at = nextAt(previousBoss);
-
-    if(at == null){
-      kobotRespond(`${previousBoss.name}의 출현 예정 시간을 확인할 수 없어요.`);
+  if(cutAt){
+    if(kobotPendingCutBoss){
+      const savedBoss = kobotPendingCutBoss;
+      kobotSaveCutWithoutConfirmation(savedBoss,cutAt);
       return;
     }
-
-    if(asksClockTime){
-      const expectedTime = new Date(Number(at)).toLocaleTimeString(
-        "ko-KR",
-        {hour:"numeric",minute:"2-digit",hour12:true}
-      );
-
-      kobotRespond(
-        `${previousBoss.name}의 예상 출현 시각은 ${expectedTime}이에요.`
-      );
-      return;
-    }
-
-    kobotRespond(
-      `${previousBoss.name}은 예상 출현까지 ${kobotFormatRemaining(Number(at))} 남았어요.`
-    );
+    kobotPendingCutTime = cutAt;
+    kobotPendingCutSession = true;
+    kobotSetStatus("보스 이름 입력 대기","active");
+    kobotSetMessage("보스 이름을 말씀해 주세요.");
+    kobotAddReply("보스 이름을 입력해 주세요.");
+    if(kobotVoiceReplyEnabled) kobotSpeak("보스 이름을 말씀해 주세요.");
     return;
   }
 
+  if(cutWord || startOnly){
+    kobotPendingCutSession = true;
+    kobotSetStatus("컷 입력 대기","active");
+    kobotSetMessage("보스 이름이나 컷 시간을 말씀해 주세요.");
+    kobotAddReply("컷 입력을 시작했어요.");
+    if(kobotVoiceReplyEnabled) kobotSpeak("보스 이름이나 컷 시간을 말씀해 주세요.");
+    return;
+  }
 
-kobotRespond(
-  "말씀하신 내용을 조금 더 구체적으로 알려주시겠어요? 다음 보스 조회인지, 특정 보스 시간 조회인지, 컷 등록인지 말씀해 주시면 바로 도와드릴게요."
-);
+  // 조회나 잡담은 처리하지 않고 컷 입력에 필요한 정보만 기다립니다.
+  kobotSetStatus("항상 듣고 있어요.","active");
+  kobotSetMessage("컷 입력은 보스 이름과 컷 시간을 말하면 됩니다.");
 }
 
 function kobotCreateRecognition(){
@@ -7597,12 +7348,9 @@ function kobotCreateRecognition(){
 
   recognition.onstart = ()=>{
     if(!kobotActive) return;
-    if(kobotMode === "wake"){
-      kobotSetStatus("항상 듣고 있어요.","active");
-      kobotSetMessage("호출어 없이 바로 말씀하시면 됩니다.");
-    }else{
-      kobotSetStatus("말씀을 듣고 있어요.","active");
-    }
+    kobotMode = "command";
+    kobotSetStatus("항상 듣고 있어요.","active");
+    kobotSetMessage("호출어 없이 보스 이름과 컷 시간을 바로 말씀해 주세요.");
   };
 
   
@@ -7617,12 +7365,19 @@ recognition.onresult = (event)=>{
 
     // 코봇이 말하는 중에도 마이크는 계속 열어 두고 사용자 발화를 우선 감지합니다.
     if(kobotIsSpeaking && transcript.trim()){
-      // 음성 인식에 사용자 발화가 들어오면 대답 내용과 관계없이 즉시 멈춥니다.
-      kobotSpeechToken++;
-      kobotSpeechCancelledByUser = true;
-      kobotIsSpeaking = false;
-      kobotCurrentSpeechText = "";
-      if("speechSynthesis" in window) window.speechSynthesis.cancel();
+      const heard = kobotNormalizeText(transcript).replace(/\s/g,"");
+      const spoken = kobotNormalizeText(kobotCurrentSpeechText).replace(/\s/g,"");
+      // 코봇 자신의 스피커 음성이 마이크에 되돌아온 경우는 무시하고,
+      // 사용자의 다른 발화가 감지되면 즉시 음성 대답을 중단합니다.
+      const isSpeakerEcho = heard.length >= 3 && spoken &&
+        (spoken.includes(heard) || heard.includes(spoken));
+      if(!isSpeakerEcho){
+        kobotSpeechToken++;
+        kobotSpeechCancelledByUser = true;
+        kobotIsSpeaking = false;
+        kobotCurrentSpeechText = "";
+        if("speechSynthesis" in window) window.speechSynthesis.cancel();
+      }
     }
 
     if(!result.isFinal){
@@ -7722,7 +7477,7 @@ function startKobot(){
 
   $("kobotStartBtn").disabled = true;
   $("kobotStopBtn").disabled = false;
-  kobotSetMessage("마이크가 켜져 있어요. 코봇이라고 부르지 않아도 바로 말씀하시면 됩니다. 예: 가스트 컷, 다음 보스, 코봇 종료");
+  kobotSetMessage("마이크가 켜져 있어요. 호출어 없이 보스 이름과 컷 시간을 바로 말씀해 주세요.");
   kobotSetStatus("마이크 연결 중...","active");
   kobotStartRecognition();
 }
