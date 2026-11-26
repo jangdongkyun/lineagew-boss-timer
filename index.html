@@ -2110,6 +2110,7 @@ document.addEventListener("click",event=>{
 
   if(event.target?.id === "exitConfirmYesBtn"){
     mainExitConfirmed = true;
+    stopKobot();
     closeExitConfirm(false);
 
     // 확인창용 기록과 앱 기준 기록을 건너뛰어 이전 화면으로 이동
@@ -7459,14 +7460,24 @@ function startKobot(){
 }
 
 function stopKobot(){
+  // 코봇을 완전히 종료하고 음성 출력/재시작 예약도 모두 정리합니다.
   kobotActive = false;
   kobotMode = "command";
   kobotPauseRecognition = true;
   kobotAfterStop = null;
   kobotClearTimers();
+  kobotSpeechToken++;
+  kobotIsSpeaking = false;
+  kobotCurrentSpeechText = "";
+  kobotSpeechCancelledByUser = true;
+
+  if("speechSynthesis" in window){
+    try{window.speechSynthesis.cancel();}catch(error){}
+  }
 
   if(kobotRecognition){
-    try{kobotRecognition.stop();}catch(error){}
+    try{kobotRecognition.abort ? kobotRecognition.abort() : kobotRecognition.stop();}catch(error){}
+    kobotRecognition = null;
   }
 
   const startBtn = $("kobotStartBtn");
@@ -8026,6 +8037,12 @@ $("kobotTextModeBtn").addEventListener("click",()=>{
   kobotSpeak("글씨 전용으로 바꿨어요. 이제 대답은 화면에 글씨로만 표시할게요.");
 });
 kobotUpdateReplyMode();
+
+// 브라우저 탭 닫기/페이지 이탈 등 실제 앱 종료 시 코봇 마이크도 종료합니다.
+// 다시 접속해도 자동 실행하지 않으며, 사용자가 시작 버튼을 눌러야 켜집니다.
+window.addEventListener("pagehide",()=>{
+  if(kobotActive) stopKobot();
+});
 
 document.addEventListener("visibilitychange",()=>{
   if(!kobotActive || exitConfirmOpen) return;
