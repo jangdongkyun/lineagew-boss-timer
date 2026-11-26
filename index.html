@@ -1082,13 +1082,7 @@ body {
     출현한 보스는 5분간 최상단에 표시됩니다.
   </div>
 
-  <div class="boss-list" id="bossList"></div>
-  <div class="boss-more-controls" id="bossMoreControls">
-    <button type="button" class="primary" data-boss-load-more>＋ 펼치기</button>
-    <button type="button" class="boss-show-all" data-boss-show-all>전체 펼치기</button>
-    <button type="button" class="ghost" data-boss-collapse>접기</button>
-  </div>
-  <div class="boss-more-info" id="bossMoreInfo" aria-live="polite"></div>
+  <div class="boss-search-panel">
     <h3>🔎 보스 출현시간 검색</h3>
     <div class="boss-search-row">
       <input id="bossSearchInput" type="search" autocomplete="off"
@@ -1098,6 +1092,14 @@ body {
     <div id="bossSearchResults" class="boss-search-results" aria-live="polite"></div>
     <div class="muted">검색 결과를 선택하면 해당 보스의 카드가 팝업으로 열립니다.</div>
   </div>
+
+  <div class="boss-list" id="bossList"></div>
+  <div class="boss-more-controls" id="bossMoreControls">
+    <button type="button" class="primary" data-boss-load-more>＋ 펼치기</button>
+    <button type="button" class="boss-show-all" data-boss-show-all>전체 펼치기</button>
+    <button type="button" class="ghost" data-boss-collapse>접기</button>
+  </div>
+  <div class="boss-more-info" id="bossMoreInfo" aria-live="polite"></div>
 
   <div id="emptyBoss" class="muted" style="display:none;text-align:center;padding:25px">
     등록된 보스가 없습니다.
