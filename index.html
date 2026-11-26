@@ -1667,7 +1667,14 @@ style="
     <label><input type="checkbox" id="adminWeeklyPush10m"> 예정 시각 10분 전</label><br>
     <label><input type="checkbox" id="adminWeeklyPush5m"> 예정 시각 5분 전</label><br>
     <label><input type="checkbox" id="adminWeeklyPush1m"> 예정 시각 1분 전</label>
+    <p style="color:#e8c879;font-weight:bold;margin:12px 0 7px">요일별 룻권 보스 선택</p>
+    <div id="adminWeeklyPushDayTabs" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0"></div>
+    <label style="display:flex;align-items:center;gap:8px;padding:10px;background:#30291b;border:1px solid #b89542;border-radius:8px;font-weight:800">
+      <input type="checkbox" id="adminWeeklyPushDayAll" checked>
+      해당 요일 룻권 보스 전체 알림
+    </label>
     <div id="adminWeeklyPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px"></div>
+    <div class="muted" style="margin-top:6px;font-size:12px">전체 알림을 해제하면 해당 요일의 보스를 개별 선택할 수 있습니다. 요일별 설정은 저장 후 계속 유지됩니다.</div>
   </div>
   <div class="muted" style="margin-top:8px">필드보스 푸시와 주간 룻권 푸시는 별도 설정입니다.</div>
 
@@ -2316,6 +2323,69 @@ async function loadMyAlertSettings() {
   soundOn = !!myAlertSettings.voice_enabled;
 }
 // =========================================
+// 관리자 주간 룻권 푸시: 요일별 전체/개별 선택
+// =========================================
+let adminWeeklyPushDraft = {};
+let adminWeeklyPushSelectedDay = 1;
+const adminWeeklyPushDays = [
+  {id:1,name:"월"},{id:2,name:"화"},{id:3,name:"수"},
+  {id:4,name:"목"},{id:5,name:"금"},{id:6,name:"토"},{id:0,name:"일"}
+];
+
+function renderAdminWeeklyPushOptions(){
+  const tabs=$("adminWeeklyPushDayTabs");
+  const master=$("adminWeeklyPushDayAll");
+  const options=$("adminWeeklyPushBossOptions");
+  if(!tabs||!master||!options) return;
+
+  tabs.innerHTML=adminWeeklyPushDays.map(day=>
+    '<button type="button" data-admin-weekly-day="'+day.id+'" style="padding:8px 2px;font-size:12px;border:1px solid '+(day.id===adminWeeklyPushSelectedDay?'#e6bd68':'#46536a')+';background:'+(day.id===adminWeeklyPushSelectedDay?'#80602c':'#202b3c')+';color:#fff;border-radius:7px;font-weight:800">'+day.name+'</button>'
+  ).join("");
+
+  const allKey="__weekly_day_all_"+adminWeeklyPushSelectedDay;
+  const allEnabled=adminWeeklyPushDraft[allKey]!==false;
+  master.checked=allEnabled;
+
+  const dayRows=(weeklyLootRows||[]).filter(row=>Number(row.day_of_week)===adminWeeklyPushSelectedDay);
+  if(!dayRows.length){
+    options.innerHTML='<div class="muted" style="grid-column:1/-1">이 요일에 등록된 룻권 보스가 없습니다.</div>';
+    return;
+  }
+
+  if(allEnabled){
+    options.innerHTML='<div class="muted" style="grid-column:1/-1;padding:8px">전체 알림이 켜져 있어 이 요일의 룻권 보스 '+dayRows.length+'개가 모두 푸시 대상입니다.</div>';
+    return;
+  }
+
+  options.innerHTML=dayRows.map(row=>{
+    const key="weekly_day:"+adminWeeklyPushSelectedDay+":"+row.id;
+    const checked=adminWeeklyPushDraft[key]!==undefined
+      ? adminWeeklyPushDraft[key]!==false
+      : adminWeeklyPushDraft["weekly:"+row.id]!==false;
+    return '<label style="display:flex;align-items:center;gap:7px;padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px">'+
+      '<input type="checkbox" data-admin-weekly-day-boss="'+escapeHtml(row.id)+'" '+(checked?'checked':'')+'>'+
+      '<span>'+escapeHtml(row.boss_name)+' · '+escapeHtml(row.spawn_time||'')+'</span></label>';
+  }).join("");
+}
+
+$("adminWeeklyPushDayTabs")?.addEventListener("click",event=>{
+  const button=event.target.closest("[data-admin-weekly-day]");
+  if(!button) return;
+  adminWeeklyPushSelectedDay=Number(button.dataset.adminWeeklyDay);
+  renderAdminWeeklyPushOptions();
+});
+$("adminWeeklyPushDayAll")?.addEventListener("change",event=>{
+  adminWeeklyPushDraft["__weekly_day_all_"+adminWeeklyPushSelectedDay]=event.target.checked;
+  renderAdminWeeklyPushOptions();
+});
+$("adminWeeklyPushBossOptions")?.addEventListener("change",event=>{
+  const input=event.target.closest("[data-admin-weekly-day-boss]");
+  if(!input) return;
+  const key="weekly_day:"+adminWeeklyPushSelectedDay+":"+input.dataset.adminWeeklyDayBoss;
+  adminWeeklyPushDraft[key]=input.checked;
+});
+
+// =========================================
 // 관리자 푸시 알림 설정 불러오기
 // =========================================
 async function loadAdminPushSettings(){
@@ -2364,6 +2434,7 @@ async function loadAdminPushSettings(){
 
 
   const pushBossSettings = data.push_boss_settings || {};
+  adminWeeklyPushDraft = {...pushBossSettings};
   const voiceBossSettings = data.boss_settings || {};
   $("adminFieldVoiceEnabled").checked = voiceBossSettings.__admin_field_voice_enabled !== false;
   $("adminWeeklyVoiceEnabled").checked = voiceBossSettings.__admin_weekly_voice_enabled !== false;
@@ -2487,15 +2558,7 @@ async function loadAdminPushSettings(){
   `;
 
 
-  $("adminWeeklyPushBossOptions").innerHTML = weeklyLootRows.length
-    ? weeklyLootRows.map(r => {
-        const key = "weekly:" + r.id;
-        return '<label style="display:flex;align-items:center;gap:7px;padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px">' +
-          '<input type="checkbox" data-admin-weekly-push-boss="' + escapeHtml(r.id) + '" ' +
-          (pushBossSettings[key] !== false ? 'checked' : '') + '>' +
-          '<span>' + escapeHtml(r.boss_name) + ' · ' + escapeHtml(r.spawn_time || '') + '</span></label>';
-      }).join("")
-    : '<div class="muted">등록된 주간 룻권 보스가 없습니다.</div>';
+  renderAdminWeeklyPushOptions();
 
   $("adminPushOptions").style.display = data.push_enabled ? "block" : "none";
   $("adminWeeklyPushDetails").style.display = pushBossSettings.__weekly_enabled === true ? "block" : "none";
@@ -2529,7 +2592,7 @@ async function saveAdminPushSettings(){
   btn.disabled = true;
   btn.textContent = "저장 중...";
 
-  const pushBossSettings = {};
+  const pushBossSettings = {...adminWeeklyPushDraft};
 
   document.querySelectorAll("[data-admin-push-boss]").forEach(el=>{
     pushBossSettings[el.dataset.adminPushBoss] = el.checked;
