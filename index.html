@@ -2020,11 +2020,7 @@ window.addEventListener("popstate",()=>{
   // 종료 확인창이 이미 열린 상태에서 뒤로가기를 한 번 더 누르면
   // 확인창을 유지하고 방지 기록만 다시 등록
   if(exitConfirmOpen){
-    history.pushState(
-      { ...(history.state || {}), __exitConfirmOpen: true },
-      "",
-      location.href
-    );
+    closeExitConfirm(true);
     return;
   }
 
@@ -2049,7 +2045,7 @@ document.addEventListener("keydown",event=>{
   const manualModal = $("manualCutModal");
   if(manualModal && manualModal.style.display !== "none"){
     event.preventDefault();
-    manualModal.style.display = "none";
+    closeBackPopup("manualCutModal");
     return;
   }
 
@@ -5660,6 +5656,7 @@ function openCutHistory(){
   ensureCutHistoryUI();
 
   cutHistoryMode = "boss";
+  openBackPopup("cutHistoryModal");
   $("cutHistoryModal").style.display = "block";
 
   renderHistory();
@@ -5667,7 +5664,7 @@ function openCutHistory(){
 
 function closeCutHistory(){
   const modal = $("cutHistoryModal");
-  if(modal) modal.style.display = "none";
+  if(modal) closeBackPopup("cutHistoryModal");
 }
 
 
@@ -8138,6 +8135,7 @@ $("logoutBtn").addEventListener("click",async()=>{
   
 // 수기 컷 팝업 열기
 $("manualCutOpenBtn").addEventListener("click",()=>{
+  openBackPopup("manualCutModal");
   $("manualCutModal").style.display = "flex";
   $("manualBossName").focus();
   renderManualBossList();
@@ -8145,13 +8143,13 @@ $("manualCutOpenBtn").addEventListener("click",()=>{
 
 // 수기 컷 팝업 닫기
 $("manualCutCloseBtn").addEventListener("click",()=>{
-  $("manualCutModal").style.display = "none";
+  closeBackPopup("manualCutModal");
 });
 
 // 팝업 바깥 클릭 시 닫기
 $("manualCutModal").addEventListener("click",e=>{
   if(e.target === $("manualCutModal")){
-    $("manualCutModal").style.display = "none";
+    closeBackPopup("manualCutModal");
   }
 });
 
@@ -8536,7 +8534,7 @@ function ensureParticipationUI(){
 
     
     $("closeParticipationBtn").addEventListener("click",()=>{
-      modal.style.display = "none";
+      closeBackPopup("participationModal");
     });
 
     $("participationMonth").addEventListener("change",()=>{
@@ -8561,6 +8559,7 @@ async function openParticipationHistory(){
       `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   }
 
+  openBackPopup("participationModal");
   modal.style.display = "block";
 
   await renderParticipationHistory();
