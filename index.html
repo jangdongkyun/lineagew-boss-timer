@@ -9956,6 +9956,22 @@ $("weeklyLootGrid").addEventListener("click",event=>{
 // 개인 알림 모달은 기존 user_alert_settings 저장소를 사용.
 // 일반 회원 화면에 푸시 설정 항목을 노출하지 않으며, 관리자만 별도 관리자 팝업에서 변경.
 
+
+/* 전역 팝업 바깥 클릭으로 닫히는 동작 차단 */
+document.addEventListener("click",event=>{
+  const target = event.target;
+  if(!(target instanceof Element)) return;
+  // 팝업의 가장 바깥 배경 자체를 누른 경우에만 기존 닫기/취소 이벤트를 차단한다.
+  // 팝업 내부 버튼(닫기, 취소, 저장 등)의 정상 동작은 그대로 유지한다.
+  const isPopupBackdrop = target.matches(
+    '[id$="Modal"], [id$="Box"], .modal-backdrop, .popup-backdrop, .modal-overlay, .popup-overlay'
+  );
+  if(isPopupBackdrop){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+}, true);
+
 </script>
 </body>
 </html>
