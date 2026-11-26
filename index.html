@@ -1893,14 +1893,14 @@ let myAlertSettings = null;
 // KOBOT 음성 비서 상태
 let kobotRecognition = null;
 let kobotActive = false;
-let kobotMode = "wake";
+let kobotMode = "command";
 let kobotRestartTimer = null;
 let kobotCommandTimer = null;
 let kobotPauseRecognition = false;
 let kobotAfterStop = null;
 let kobotVoiceReplyEnabled = true;
 let kobotIsSpeaking = false;
-// 코봇 대화 맥락 기억
+// 코봇 음성 입력 상태
 let kobotLastBoss = null;
 let kobotLastIntent = "";
 let kobotConversationTime = 0;
@@ -6700,7 +6700,7 @@ function setupRealtime(){
 
 
 // =========================================
-// KOBOT 음성 비서 - 1단계: 호출어 및 음성 응답
+// KOBOT 음성 컷 입력 - 호출어 없이 상시 인식
 // =========================================
 const KOBOT_RECOGNITION =
   window.SpeechRecognition || window.webkitSpeechRecognition;
