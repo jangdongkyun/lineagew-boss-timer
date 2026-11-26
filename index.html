@@ -7351,7 +7351,12 @@ function kobotRespond(message){
       return;
     }
     if(spokenBoss){
-      kobotSaveCutWithoutConfirmation(spokenBoss,kobotPendingCutTime || new Date());
+      if(kobotPendingCutTime){
+        kobotSaveCutWithoutConfirmation(spokenBoss,kobotPendingCutTime);
+      }else{
+        kobotPendingCutBoss=spokenBoss;
+        kobotRespond(spokenBoss.name+" 보스를 확인했어요. 컷 시각을 말씀해 주세요.");
+      }
       return;
     }
     if(spokenCutAt){
@@ -7373,6 +7378,14 @@ function kobotRespond(message){
   // 보스와 시각이 한 번에 들어오면 컷 키워드가 없어도 우선 저장합니다.
   if(spokenBoss && spokenCutAt){
     kobotSaveCutWithoutConfirmation(spokenBoss,spokenCutAt);
+    return;
+  }
+
+  // 보스 이름을 먼저 말한 경우에도 컷 입력을 이어갈 수 있도록 보스를 기억합니다.
+  if(spokenBoss && !/(언제나와|몇분남았|얼마나남았|몇시간남았|출현시간|예상시간|몇시야|몇시에나와)/.test(text)){
+    kobotPendingCutBoss=spokenBoss;
+    kobotPendingCutSession=true;
+    kobotRespond(spokenBoss.name+" 보스를 확인했어요. 컷 시각을 말씀해 주세요. 출현 시간을 물으시려면 언제 나와라고 말씀해 주세요.");
     return;
   }
 
