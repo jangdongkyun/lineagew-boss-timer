@@ -1060,6 +1060,7 @@ body {
     <h2>필드 보스 현황</h2>
 
     <div class="row" style="gap:7px;align-items:center;flex-wrap:wrap">
+      <button class="ghost" type="button" id="bossCompactBtn">간략히</button>
       <button class="primary" type="button" id="weeklyLootOpenBtn">
         주간룻권
       </button>
@@ -1083,12 +1084,11 @@ body {
 
   <div class="boss-list" id="bossList"></div>
   <div class="boss-more-controls" id="bossMoreControls">
-    <button type="button" class="primary" data-boss-load-more>＋ 추가로 확인하기</button>
-    <button type="button" class="boss-show-all" data-boss-show-all>전체보기</button>
+    <button type="button" class="primary" data-boss-load-more>＋ 펼치기</button>
+    <button type="button" class="boss-show-all" data-boss-show-all>전체 펼치기</button>
+    <button type="button" class="ghost" data-boss-collapse>접기</button>
   </div>
   <div class="boss-more-info" id="bossMoreInfo" aria-live="polite"></div>
-
-  <div class="boss-search-panel">
     <h3>🔎 보스 출현시간 검색</h3>
     <div class="boss-search-row">
       <input id="bossSearchInput" type="search" autocomplete="off"
@@ -4703,13 +4703,16 @@ function applyBossCardPagination(sorted = getSortedBosses()){
   const remaining = Math.max(0,total-visibleCount);
   const moreButton = controls.querySelector("[data-boss-load-more]");
   const allButton = controls.querySelector("[data-boss-show-all]");
+  const collapseButton = controls.querySelector("[data-boss-collapse]");
+  const expanded = bossCardVisibleCount > BOSS_CARD_BATCH_SIZE;
 
-  controls.style.display = remaining > 0 ? "flex" : "none";
+  controls.style.display = total > BOSS_CARD_BATCH_SIZE ? "flex" : "none";
   if(moreButton){
-    moreButton.textContent = `＋ 추가로 확인하기 (${Math.min(BOSS_CARD_BATCH_SIZE,remaining)}마리 더)`;
-    moreButton.disabled = remaining <= 0;
+    moreButton.textContent = `＋ 펼치기 (${Math.min(BOSS_CARD_BATCH_SIZE,remaining)}마리 더)`;
+    moreButton.style.display = remaining > 0 ? "" : "none";
   }
-  if(allButton) allButton.disabled = remaining <= 0;
+  if(allButton) allButton.style.display = remaining > 0 ? "" : "none";
+  if(collapseButton) collapseButton.style.display = expanded ? "" : "none";
   if(info){
     info.textContent = total === 0 ? "" :
       bossCardVisibleCount === Infinity || visibleCount >= total
@@ -4735,7 +4738,24 @@ if(bossMoreControls){
       bossCardVisibleCount = Infinity;
       try{ localStorage.setItem("lineagew_boss_card_visible_count","all"); }catch(e){}
       applyBossCardPagination();
+      return;
     }
+
+    if(event.target.closest("[data-boss-collapse]")){
+      bossCardVisibleCount = BOSS_CARD_BATCH_SIZE;
+      try{ localStorage.setItem("lineagew_boss_card_visible_count",String(BOSS_CARD_BATCH_SIZE)); }catch(e){}
+      applyBossCardPagination();
+    }
+  });
+}
+
+const bossCompactBtn = $("bossCompactBtn");
+if(bossCompactBtn){
+  bossCompactBtn.addEventListener("click",()=>{
+    bossCardVisibleCount = BOSS_CARD_BATCH_SIZE;
+    try{ localStorage.setItem("lineagew_boss_card_visible_count",String(BOSS_CARD_BATCH_SIZE)); }catch(e){}
+    applyBossCardPagination();
+    $("bossList")?.scrollIntoView({behavior:"smooth",block:"start"});
   });
 }
 
