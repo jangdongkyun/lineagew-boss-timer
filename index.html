@@ -7381,6 +7381,14 @@ function kobotRespond(message){
     return;
   }
 
+  // 시각만 먼저 말한 경우도 컷 시각으로 기억하고 보스 이름을 기다립니다.
+  if(spokenCutAt && !spokenBoss){
+    kobotPendingCutTime=spokenCutAt;
+    kobotPendingCutSession=true;
+    kobotRespond("컷 시각을 확인했어요. 이제 보스 이름을 말씀해 주세요.");
+    return;
+  }
+
   // 보스 이름을 먼저 말한 경우에도 컷 입력을 이어갈 수 있도록 보스를 기억합니다.
   if(spokenBoss && !/(언제나와|몇분남았|얼마나남았|몇시간남았|출현시간|예상시간|몇시야|몇시에나와)/.test(text)){
     kobotPendingCutBoss=spokenBoss;
