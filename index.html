@@ -7146,8 +7146,24 @@ function kobotHandleCommand(transcript){
   const compact = text.replace(/\s/g,"");
   if(!compact) return;
 
-  if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘|그만|그만해|중지|중지해)$/.test(compact) ||
-     /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘|종료)$/.test(compact)){
+  // 입력 취소 표현은 코봇 자체를 종료하지 않고 현재 진행 중인 컷 입력만 초기화합니다.
+  // "다시", "처음부터", "중단", "그만" 등 어떤 단계에서 말해도 대기 중인 보스/시간을 모두 지웁니다.
+  if(/^(코봇)?(취소|취소해|취소해줘|취소해주세요|취소할게|취소할래|다시|다시해|다시할게|다시할래|처음부터|새로|새로해|중단|중단해|중단해줘|그만|그만해|그만할게|그만입력|컷취소|컷입력취소|입력취소|하지마|하지말자|아니|아니요|아냐)$/.test(compact)){
+    kobotPendingCut = null;
+    kobotPendingCutBoss = null;
+    kobotPendingCutTime = null;
+    kobotPendingCutSession = false;
+    kobotMode = "command";
+    kobotSetStatus("항상 듣고 있어요.","active");
+    kobotSetMessage("진행 중인 컷 입력을 취소했어요. 처음부터 다시 말씀해 주세요.");
+    kobotAddReply("컷 입력 취소");
+    if(kobotVoiceReplyEnabled) kobotSpeak("컷 입력을 취소했어요.");
+    return;
+  }
+
+  // 코봇 자체 종료는 명시적인 종료 표현으로만 처리합니다.
+  if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘)$/.test(compact) ||
+     /^(코봇)?(오프|꺼|종료)(해|해줘|해주세요|시켜줘|종료)$/.test(compact)){
     stopKobot();
     return;
   }
@@ -7170,16 +7186,6 @@ function kobotHandleCommand(transcript){
     kobotSetMessage("음성 대답이 켜졌어요. 컷 입력은 계속 듣고 있어요.");
     kobotAddReply("음성 대답 켜짐");
     kobotSpeak("음성 대답 켜짐");
-    return;
-  }
-
-  if(/^(취소|취소해|그만입력|컷취소)$/.test(compact)){
-    kobotPendingCut = null;
-    kobotPendingCutBoss = null;
-    kobotPendingCutTime = null;
-    kobotPendingCutSession = false;
-    kobotSetMessage("컷 입력을 취소했어요. 다음 보스 이름이나 컷 시간을 말씀해 주세요.");
-    kobotAddReply("컷 입력 취소");
     return;
   }
 
