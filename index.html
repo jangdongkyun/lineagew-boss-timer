@@ -6881,45 +6881,7 @@ const finish = ()=>{
 }
 
 
-function kobotHandleWakeWord(transcript){
-  if(kobotCommandTimer){
-    clearTimeout(kobotCommandTimer);
-    kobotCommandTimer = null;
-  }
-  kobotMode = "command";
-  kobotSetTranscript("호출어 감지: " + transcript);
-  kobotSetStatus("호출을 확인했어요.","active");
-  kobotPauseRecognition = true;
-  kobotAfterStop = ()=>{
-    kobotAfterStop = null;
-    kobotPauseRecognition = false;
-    kobotSpeak("네, 듣고 있어요.",()=>{
-      if(!kobotActive) return;
-      kobotSetStatus("말씀을 듣고 있어요.","active");
-      kobotSetMessage("보스 이름과 컷을 말씀해 주세요.");
-      kobotStartRecognition();
-      kobotCommandTimer = setTimeout(()=>{
-        if(!kobotActive || kobotMode !== "command") return;
-        kobotMode = "wake";
-        kobotSetStatus("코봇 호출을 기다리고 있어요.","active");
-        kobotSetMessage("다시 부르려면 “코봇!”이라고 말씀해 주세요.");
-      },15000);
-    });
-  };
-  if(kobotRecognition){
-    try{kobotRecognition.stop();}
-    catch(error){
-      const callback = kobotAfterStop;
-      kobotAfterStop = null;
-      if(callback) callback();
-    }
-  }else{
-    const callback = kobotAfterStop;
-    kobotAfterStop = null;
-    if(callback) callback();
-  }
-}
-
+// 호출어 대기/비서 조회 기능은 컷 입력 전용 모드에서 사용하지 않습니다.
 
 // =========================================
 // 코봇 자연어 보스 조회
@@ -6936,43 +6898,6 @@ function kobotNormalizeText(value){
     .replace(/\s+/g, " ")
     .trim();
 }
-
-
-function kobotDetectIntent(text){
-  const t = kobotNormalizeText(text).replace(/\s/g,"");
-
-  if(
-    /(도움말|무슨명령|어떻게사용|뭘할수있어|사용방법)/.test(t)
-  ) return "help";
-
-  if(
-    /(전체보스|보스현황|보스목록|보스상황|보스들상태|보스들전체상황|전체상황알려줘|보스전체알려줘|보스들현황|보스들목록)/.test(t)
-  ) return "all_bosses";
-
-  if(
-    /(그다음보스|두번째보스|2번째보스|다음다음보스|그다음은)/.test(t)
-  ) return "second_boss";
-
-  if(
-    /(다음보스|가장먼저나올|먼저나올보스|제일먼저나올|가장가까운보스|다음에나올보스|다음으로나올보스|다음리스폰)/.test(t)
-  ) return "next_boss";
-
-  if(
-    /(언제나와|몇분남았|얼마나남았|몇시간남았|출현시간|예상시간)/.test(t)
-  ) return "boss_time";
-
-  if(
-    /(컷|기록|등록|입력|잡았|처치)/.test(t)
-  ) return "cut";
-
-  if(
-    /(고마워|감사해|감사합니다|수고했어)/.test(t)
-  ) return "thanks";
-
-  return "unknown";
-}
-
-
 
 
 function kobotFindBossInText(text){
@@ -7087,31 +7012,6 @@ function kobotFindBossInText(text){
   if(second && best[1]-second[1]<0.10) return null;
   return best[0];
 }
-
-function kobotGetUpcomingBosses(){
-  return (getSortedBosses() || [])
-    .filter(boss => nextAt(boss) != null)
-    .sort((a,b) => Number(nextAt(a)) - Number(nextAt(b)));
-}
-
-function kobotFormatRemaining(timestamp){
-  const remaining = Number(timestamp) - Date.now();
-
-  if(remaining <= 0) return "예정 시간이 지났어요.";
-
-  if(typeof formatDuration === "function"){
-    return formatDuration(remaining);
-  }
-
-  const totalMinutes = Math.ceil(remaining / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  return hours > 0
-    ? `${hours}시간 ${minutes}분`
-    : `${minutes}분`;
-}
-
 
 // =========================================
 // 코봇 음성 컷 등록 보조 기능
@@ -7534,7 +7434,7 @@ await loadAdminPushSettings();
     await updatePresence();
     setupRealtime();
     kobotSetStatus("코봇 시작 버튼을 누르면 사용할 수 있어요.");
-    kobotSetMessage("마이크 권한을 허용한 뒤 “코봇!”이라고 불러보세요.");
+    kobotSetMessage("컷 입력을 사용하려면 코봇 시작을 누르고 보스 이름과 컷 시간을 바로 말씀해 주세요.");
   }catch(e){
     console.error("데이터 불러오기 오류:",e);
     alert("데이터 불러오기 실패: "+e.message+"\n\n오류 위치:\n"+e.stack);
