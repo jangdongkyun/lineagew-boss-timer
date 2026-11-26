@@ -1896,6 +1896,9 @@ let kobotActive = false;
 let kobotMode = "command";
 let kobotRestartTimer = null;
 let kobotCommandTimer = null;
+let kobotInterimTimer = null;
+let kobotInterimText = "";
+let kobotLastInterimHandled = "";
 let kobotPauseRecognition = false;
 let kobotAfterStop = null;
 let kobotVoiceReplyEnabled = true;
@@ -6731,6 +6734,11 @@ function kobotClearTimers(){
     clearTimeout(kobotCommandTimer);
     kobotCommandTimer = null;
   }
+  if(kobotInterimTimer){
+    clearTimeout(kobotInterimTimer);
+    kobotInterimTimer = null;
+  }
+  kobotInterimText = "";
 }
 
 function kobotScheduleRestart(){
@@ -7326,23 +7334,46 @@ recognition.onresult = (event)=>{
     if(isSpeakerEcho) continue;
 
     if(!result.isFinal){
-      // 중간 인식 결과도 즉시 화면에 보여 주고, 종료 명령은 최종 인식 전에도 처리합니다.
+      // 중간 인식 결과는 마지막 음성 입력 후 650ms 동안 추가 발화가 없으면 먼저 처리합니다.
       kobotSetTranscript("듣는 중: " + transcript);
       const interimCommand = kobotNormalizeText(transcript).replace(/\s/g,"");
       if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘)$/.test(interimCommand) ||
          /^(코봇)?(오프|꺼|종료)(해|해줘|해주세요|시켜줘|종료)$/.test(interimCommand)){
+        if(kobotInterimTimer) clearTimeout(kobotInterimTimer);
+        kobotInterimTimer = null;
         stopKobot();
         return;
       }
+      kobotInterimText = transcript;
+      if(kobotInterimTimer) clearTimeout(kobotInterimTimer);
+      kobotInterimTimer = setTimeout(()=>{
+        kobotInterimTimer = null;
+        const pendingText = kobotInterimText;
+        kobotInterimText = "";
+        if(!kobotActive || !pendingText) return;
+        kobotLastInterimHandled = kobotNormalizeText(pendingText).replace(/\s/g,"");
+        kobotMode = "command";
+        kobotHandleCommand(pendingText);
+      },650);
       continue;
     }
 
+    if(kobotInterimTimer) clearTimeout(kobotInterimTimer);
+    kobotInterimTimer = null;
+    kobotInterimText = "";
     const normalizedCommand = kobotNormalizeText(transcript).replace(/\s/g,"");
     if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘)$/.test(normalizedCommand) ||
        /^(코봇)?(오프|꺼|종료)(해|해줘|해주세요|시켜줘|종료)$/.test(normalizedCommand)){
+      kobotLastInterimHandled = "";
       stopKobot();
       return;
     }
+    // 중간 결과를 먼저 처리한 뒤 동일한 최종 결과가 도착하면 중복 등록하지 않습니다.
+    if(kobotLastInterimHandled && normalizedCommand === kobotLastInterimHandled){
+      kobotLastInterimHandled = "";
+      return;
+    }
+    kobotLastInterimHandled = "";
     kobotMode = "command";
     kobotHandleCommand(transcript);
     return;
