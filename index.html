@@ -1060,7 +1060,6 @@ body {
     <h2>필드 보스 현황</h2>
 
     <div class="row" style="gap:7px;align-items:center;flex-wrap:wrap">
-      <button class="ghost" type="button" id="bossCompactBtn">간략히</button>
       <button class="primary" type="button" id="weeklyLootOpenBtn">
         주간룻권
       </button>
@@ -1073,25 +1072,26 @@ body {
     </div>
   </div>
 
-  <div style="margin:-2px 0 10px">
-    <span class="badge">출현 예정 시간순 자동 정렬</span>
-  </div>
-
   <div class="muted" style="margin-bottom:12px">
     타이머를 누르면 현재 시각으로 컷이 기록됩니다.
     출현한 보스는 5분간 최상단에 표시됩니다.
   </div>
 
   <div class="boss-search-panel">
-    <h3>🔎 보스 출현시간 검색</h3>
+    <h3>🔎 보스 출현 시간 검색</h3>
     <div class="boss-search-row">
       <input id="bossSearchInput" type="search" autocomplete="off"
         placeholder="보스 이름 또는 별칭 입력">
       <button type="button" class="primary" id="bossSearchBtn">검색</button>
     </div>
     <div id="bossSearchResults" class="boss-search-results" aria-live="polite"></div>
-    <div class="muted">검색 결과를 선택하면 해당 보스의 카드가 팝업으로 열립니다.</div>
+    <div class="muted">보스를 선택하면 해당 보스의 카드가 팝업으로 열립니다.</div>
   </div>
+
+  <button class="ghost" type="button" id="bossCompactBtn"
+    style="display:block;width:100%;height:32px;min-height:32px;padding:4px 10px;margin:8px 0 10px;border-radius:7px;line-height:1.2">
+    간략히
+  </button>
 
   <div class="boss-list" id="bossList"></div>
   <div class="boss-more-controls" id="bossMoreControls">
@@ -3356,19 +3356,8 @@ function missedCount(boss){
   return Math.floor((now - firstMissTime) / interval) + 1;
 }
 function getSortedBosses(){
-  const now = Date.now();
-  return [...bosses].sort((a,b)=>{
-    const ta = nextAt(a);
-    const tb = nextAt(b);
-    const aSpawn = ta !== null && ta <= now && now-ta <= 300000;
-    const bSpawn = tb !== null && tb <= now && now-tb <= 300000;
-
-    if(aSpawn !== bSpawn) return aSpawn ? -1 : 1;
-    if(ta === null && tb === null) return a.name.localeCompare(b.name,"ko");
-    if(ta === null) return 1;
-    if(tb === null) return -1;
-    return ta-tb;
-  });
+  // 출현 예정 시간에 따른 자동 정렬 없이 등록된 보스 순서를 유지합니다.
+  return [...bosses];
 }
 
 /* 시간 입력: 2135 / 21:35 모두 지원 */
