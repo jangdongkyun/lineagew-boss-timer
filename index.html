@@ -3594,7 +3594,12 @@ function openBossSearchModal(bossId){
 function refreshBossSearchModal(){
   const modal = $("bossSearchModal");
   if(!modal || !modal.classList.contains("is-open")) return;
-  const current = $("bossSearchModalCard")?.firstElementChild;
+  const modalCard = $("bossSearchModalCard");
+  // 사용자가 팝업 안에서 입력 중이면 DOM을 통째로 교체하지 않습니다.
+  // 매초 카드 갱신으로 입력 포커스와 모바일 키보드가 사라지는 현상을 방지합니다.
+  if(modalCard && modalCard.contains(document.activeElement)) return;
+
+  const current = modalCard?.firstElementChild;
   const bossId = current?.dataset.searchModalBossId;
   if(!bossId) return;
   const source = $("bossList")?.querySelector(
