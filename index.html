@@ -5,6 +5,14 @@
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0e14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="보탐봇">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./assets/pwa-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/pwa-icon.svg">
 <title>해적 렌팀 스케쥴러</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -10108,6 +10116,15 @@ fixedBossUpdateHighlight();
 </script>
 
 <script src="./push.js"></script>
+<script>
+// PWA 실행 및 기존 푸시 알림이 같은 서비스 워커를 사용하도록 등록합니다.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .catch(error => console.warn("서비스 워커 등록 실패:", error));
+  });
+}
+</script>
 <script>
 // =========================================
 // 주간 룻권 시간표 (고정보스 시간표와 완전 분리)
