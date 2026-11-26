@@ -5561,11 +5561,26 @@ modal.addEventListener("click",e=>{
 }
 
 
-function openPersonalAlertSettings(){
+async function openPersonalAlertSettings(){
   ensurePersonalAlertUI();
 
+  if(!user){
+    alert("로그인 후 개인 알림 설정을 열 수 있습니다.");
+    return;
+  }
+
+  // 로그인 직후 설정 데이터 로딩이 아직 끝나지 않았거나
+  // 일시적인 조회 실패로 비어 있으면 열기 시점에 다시 불러옵니다.
   if(!myAlertSettings){
-    alert("개인 알림 설정을 불러오지 못했습니다. 다시 로그인해 주세요.");
+    try{
+      await loadMyAlertSettings();
+    }catch(error){
+      console.error("개인 알림 설정 재조회 실패:",error);
+    }
+  }
+
+  if(!myAlertSettings){
+    alert("개인 알림 설정을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.");
     return;
   }
 
