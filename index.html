@@ -2168,11 +2168,11 @@ async function loadMyAlertSettings() {
       user_id: user.id,
 
       voice_enabled: true,
-      voice_3m: true,
-      voice_1m: true,
-      voice_30s: true,
-      voice_10s: true,
-      voice_spawn: true,
+      voice_alert_3m: true,
+      voice_alert_1m: true,
+      voice_alert_30s: true,
+      voice_alert_10s: true,
+      voice_alert_spawn: true,
 
       push_enabled: false,
       push_alert_3m: false,
@@ -5035,10 +5035,10 @@ function checkVoice(boss, at, ms) {
   if (isVoiceQuietHours(settings)) return;
 
   const thresholds = [
-    { ms: 180000, text: "3분 전", enabled: settings.voice_3m },
-    { ms: 60000, text: "1분 전", enabled: settings.voice_1m },
-    { ms: 30000, text: "30초 전", enabled: settings.voice_30s },
-    { ms: 10000, text: "10초 전", enabled: settings.voice_10s }
+    { ms: 180000, text: "3분 전", enabled: settings.voice_alert_3m },
+    { ms: 60000, text: "1분 전", enabled: settings.voice_alert_1m },
+    { ms: 30000, text: "30초 전", enabled: settings.voice_alert_30s },
+    { ms: 10000, text: "10초 전", enabled: settings.voice_alert_10s }
   ];
 
   thresholds.forEach(t => {
@@ -5055,7 +5055,7 @@ function checkVoice(boss, at, ms) {
   const spawnKey = `${user.id}-${boss.id}-${at}-spawn`;
 
   if (
-    settings.voice_spawn &&
+    settings.voice_alert_spawn &&
     ms <= 0 &&
     ms >= -5000 &&
     !alerted.has(spawnKey)
@@ -5095,10 +5095,10 @@ function checkWeeklyLootVoice(nowMs=Date.now()){
     const at=new Date(baseDate.getFullYear(),baseDate.getMonth(),baseDate.getDate(),p[0],p[1],0,0).getTime();
     const ms=at-nowMs;
     const points=[
-      {ms:180000,text:"3분 전",enabled:settings.voice_3m},
-      {ms:60000,text:"1분 전",enabled:settings.voice_1m},
-      {ms:30000,text:"30초 전",enabled:settings.voice_30s},
-      {ms:10000,text:"10초 전",enabled:settings.voice_10s}
+      {ms:180000,text:"3분 전",enabled:settings.voice_alert_3m},
+      {ms:60000,text:"1분 전",enabled:settings.voice_alert_1m},
+      {ms:30000,text:"30초 전",enabled:settings.voice_alert_30s},
+      {ms:10000,text:"10초 전",enabled:settings.voice_alert_10s}
     ];
     points.forEach(t=>{
       if(!t.enabled||ms<=0||ms>t.ms) return;
@@ -5106,7 +5106,7 @@ function checkWeeklyLootVoice(nowMs=Date.now()){
       if(alerted.has(key)) return;
       alerted.add(key); speak("주간 룻권 보스 "+r.boss_name+", "+t.text+"입니다.");
     });
-    if(settings.voice_spawn&&ms<=0&&ms>=-5000){
+    if(settings.voice_alert_spawn&&ms<=0&&ms>=-5000){
       const key=user.id+"-weekly-"+r.id+"-"+at+"-spawn";
       if(!alerted.has(key)){alerted.add(key);speak("주간 룻권 보스 "+r.boss_name+", 출현 시간입니다.");}
     }
@@ -5317,11 +5317,11 @@ function openPersonalAlertSettings(){
   const s = myAlertSettings;
 
   $("personalVoiceEnabled").checked = !!s.voice_enabled;
-  $("myVoice3m").checked = !!s.voice_3m;
-  $("myVoice1m").checked = !!s.voice_1m;
-  $("myVoice30s").checked = !!s.voice_30s;
-  $("myVoice10s").checked = !!s.voice_10s;
-  $("myVoiceSpawn").checked = !!s.voice_spawn;
+  $("myVoice3m").checked = !!s.voice_alert_3m;
+  $("myVoice1m").checked = !!s.voice_alert_1m;
+  $("myVoice30s").checked = !!s.voice_alert_30s;
+  $("myVoice10s").checked = !!s.voice_alert_10s;
+  $("myVoiceSpawn").checked = !!s.voice_alert_spawn;
 
   $("personalVoiceQuiet").checked =
     !!s.voice_quiet_hours_enabled;
@@ -5557,11 +5557,11 @@ async function savePersonalAlertSettings(){
     ...myAlertSettings,
 
     voice_enabled: $("personalVoiceEnabled").checked,
-    voice_3m: $("myVoice3m").checked,
-    voice_1m: $("myVoice1m").checked,
-    voice_30s: $("myVoice30s").checked,
-    voice_10s: $("myVoice10s").checked,
-    voice_spawn: $("myVoiceSpawn").checked,
+    voice_alert_3m: $("myVoice3m").checked,
+    voice_alert_1m: $("myVoice1m").checked,
+    voice_alert_30s: $("myVoice30s").checked,
+    voice_alert_10s: $("myVoice10s").checked,
+    voice_alert_spawn: $("myVoiceSpawn").checked,
 
     voice_name: $("personalVoiceSelect").value,
     boss_settings: bossSettings,
