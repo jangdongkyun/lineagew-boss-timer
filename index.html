@@ -2052,6 +2052,12 @@ window.addEventListener("popstate",()=>{
     const box = $(id);
     if(box) box.style.display = "none";
     if(id === "bossSearchModal" && box) box.classList.remove("is-open");
+
+    // 수기 컷 팝업에서 기기/브라우저 뒤로가기를 누르면
+    // 팝업만 닫고 끝내지 않고 앱 종료 확인창까지 이어서 표시합니다.
+    if(id === "manualCutModal"){
+      openExitConfirm();
+    }
     return;
   }
 
@@ -2081,7 +2087,7 @@ document.addEventListener("keydown",event=>{
     return;
   }
 
-  // 수기 컷 팝업은 기존 화면 전환 구조상 별도 history 항목이 없으므로 먼저 닫음
+  // 수기 컷 팝업이 열린 상태의 ESC도 기기 뒤로가기와 같은 종료 확인 흐름을 따릅니다.
   const manualModal = $("manualCutModal");
   if(manualModal && manualModal.style.display !== "none"){
     event.preventDefault();
