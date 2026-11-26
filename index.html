@@ -178,7 +178,7 @@ h3{font-size:14px;margin:0 0 10px}
   display:grid !important;opacity:1 !important;
 }
 .boss-search-modal-card .boss-card button,
-.boss-search-modal-card .boss-card input{pointer-events:none}
+.boss-search-modal-card .boss-card input{pointer-events:auto}
 .boss-search-modal-card .boss-card button:disabled{opacity:1}
 .boss-search-confirm{display:block;width:100%;margin-top:13px;padding:12px}
 @media(max-width:600px){
@@ -3578,9 +3578,10 @@ function openBossSearchModal(bossId){
   clone.hidden = false;
   clone.removeAttribute("data-boss-card");
   clone.dataset.searchModalBossId = String(bossId);
+  // 검색 팝업에서도 컷 등록 컨트롤을 사용할 수 있도록 활성화합니다.
   clone.querySelectorAll("button,input").forEach(control=>{
-    control.disabled = true;
-    control.tabIndex = -1;
+    control.disabled = false;
+    control.removeAttribute("tabindex");
   });
   target.replaceChildren(clone);
   $("bossSearchModalTitle").textContent = boss.name + " · 보스 정보";
@@ -3604,9 +3605,10 @@ function refreshBossSearchModal(){
     clone.hidden = false;
     clone.removeAttribute("data-boss-card");
     clone.dataset.searchModalBossId = bossId;
+    // 실시간 갱신 후에도 팝업 안의 컷 등록 컨트롤을 활성 상태로 유지합니다.
     clone.querySelectorAll("button,input").forEach(control=>{
-      control.disabled = true;
-      control.tabIndex = -1;
+      control.disabled = false;
+      control.removeAttribute("tabindex");
     });
     $("bossSearchModalCard").replaceChildren(clone);
   }
@@ -3652,6 +3654,33 @@ $("bossSearchResults")?.addEventListener("click",event=>{
   if(choice) openBossSearchModal(choice.dataset.searchBoss);
 });
 $("bossSearchConfirmBtn")?.addEventListener("click",closeBossSearchModal);
+
+// 복제된 검색 팝업 카드에는 원본 이벤트가 복제되지 않으므로 이벤트 위임으로 연결합니다.
+$("bossSearchModalCard")?.addEventListener("click",event=>{
+  const card = event.target.closest("[data-search-modal-boss-id]");
+  if(!card) return;
+  const bossId = card.dataset.searchModalBossId;
+
+  if(event.target.closest("[data-quick], [data-timer]")){
+    quickCut(bossId);
+    return;
+  }
+  if(event.target.closest("[data-row-cut]")){
+    rowCut(bossId,card.querySelector("[data-cut-input]"));
+    return;
+  }
+  if(event.target.closest("[data-rollback]")){
+    rollbackCut(bossId);
+  }
+});
+
+$("bossSearchModalCard")?.addEventListener("keydown",event=>{
+  if(event.key !== "Enter" || !event.target.matches("[data-cut-input]")) return;
+  event.preventDefault();
+  const card = event.target.closest("[data-search-modal-boss-id]");
+  if(card) rowCut(card.dataset.searchModalBossId,event.target);
+});
+
 $("bossSearchModal")?.addEventListener("click",event=>{
   if(event.target === $("bossSearchModal")) closeBossSearchModal();
 });
@@ -4164,16 +4193,15 @@ async function quickCut(bossId){
   }
 }
 
-async function rowCut(bossId){
- 
-
+async function rowCut(bossId, sourceInput=null){
   const boss = bosses.find(b=>String(b.id)===String(bossId));
 
   const card = document.querySelector(
     `[data-boss-card="${bossId}"]`
   );
 
-  const input = card?.querySelector("[data-cut-input]");
+  // 검색 팝업에서 실행된 경우 팝업 안의 입력창을 우선 사용합니다.
+  const input = sourceInput || card?.querySelector("[data-cut-input]");
 
   if(!boss){
     alert("보스 정보를 찾을 수 없습니다.");
