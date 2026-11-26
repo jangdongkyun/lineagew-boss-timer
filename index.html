@@ -7237,6 +7237,95 @@ function kobotSaveCutWithoutConfirmation(boss,cutAt){
   })();
 }
 
+async function kobotRollbackLastCut(boss){
+  if(!user) throw new Error("로그인이 필요합니다.");
+  if(!boss) throw new Error("보스 정보를 찾을 수 없습니다.");
+
+  kobotPendingCut = null;
+  kobotPendingCutBoss = null;
+  kobotPendingCutTime = null;
+  kobotPendingCutSession = false;
+
+  kobotSetStatus("이전 컷 기록 확인 중...","active");
+  kobotSetMessage(boss.name+"의 직전 컷 기록을 확인하고 있어요.");
+
+  try{
+    // 최신 서버 기록을 다시 불러와 현재 선택 서버의 해당 보스만 확인합니다.
+    await loadCuts();
+
+    const resetAt = boss.timer_reset_at
+      ? new Date(boss.timer_reset_at).getTime()
+      : 0;
+
+    const bossRecords = (cuts || [])
+      .filter(c =>
+        String(c.boss_id) === String(boss.id) &&
+        Number(c.server_id) === Number(currentServerId) &&
+        new Date(c.cut_at).getTime() > resetAt
+      )
+      .sort((a,b) =>
+        new Date(b.updated_at || b.cut_at) -
+        new Date(a.updated_at || a.cut_at)
+      );
+
+    const latestIndex = bossRecords.findIndex(c=>!c.pending_delete_at);
+    if(latestIndex < 0){
+      throw new Error("취소할 활성 컷 기록을 찾지 못했어요.");
+    }
+
+    const latest = bossRecords[latestIndex];
+    const previous = bossRecords
+      .slice(latestIndex + 1)
+      .find(c=>String(c.id)!==String(latest.id));
+
+    if(!previous){
+      throw new Error("이전 컷 기록이 없어 시간을 되돌릴 수 없어요.");
+    }
+
+    // 방금 등록된 최신 기록은 10분 삭제 대기로 보내고,
+    // 직전 기록은 다시 활성화해 타이머가 이전 시간부터 계산되게 합니다.
+    const deleteAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    const {error:latestError} = await db
+      .from("cut_records")
+      .update({pending_delete_at:deleteAt})
+      .eq("id",latest.id)
+      .eq("server_id",currentServerId);
+
+    if(latestError) throw latestError;
+
+    const {error:previousError} = await db
+      .from("cut_records")
+      .update({pending_delete_at:null})
+      .eq("id",previous.id)
+      .eq("server_id",currentServerId);
+
+    if(previousError){
+      // 이전 기록 복구에 실패하면 최신 기록의 삭제 대기도 원상 복구합니다.
+      await db.from("cut_records")
+        .update({pending_delete_at:latest.pending_delete_at || null})
+        .eq("id",latest.id)
+        .eq("server_id",currentServerId);
+      throw previousError;
+    }
+
+    await loadCuts();
+    renderAll();
+
+    const previousTime = new Date(previous.cut_at).toLocaleString("ko-KR");
+    kobotSetStatus("항상 듣고 있어요.","active");
+    kobotSetMessage(boss.name+" 컷 시간을 이전 기록으로 되돌렸어요. ("+previousTime+")");
+    kobotAddReply(boss.name+" 이전 컷 기록으로 복구 완료");
+    if(kobotVoiceReplyEnabled) kobotSpeak(boss.name+" 이전 컷 기록으로 되돌렸어요.");
+  }catch(error){
+    console.error("코봇 컷 취소 오류:",error);
+    kobotSetStatus("컷 취소에 실패했어요.","error");
+    kobotSetMessage(error.message || "이전 컷 기록으로 되돌리지 못했어요.");
+    kobotAddReply("컷 취소 실패: "+(error.message || "오류가 발생했어요."));
+    if(kobotVoiceReplyEnabled) kobotSpeak("컷 취소에 실패했어요.");
+  }
+}
+
 function kobotHandleCommand(transcript){
   const text = kobotNormalizeText(transcript);
   const compact = text.replace(/\s/g,"");
@@ -7289,6 +7378,12 @@ function kobotHandleCommand(transcript){
   const cutAt = kobotParseCutTimeFromSpeech(text);
   const cutWord = /(컷|기록|등록|입력|잡았|처치|잡은시간|컷시간|컷시각)/.test(text);
   const startOnly = /^(컷|컷등록|컷기록|기록|등록|컷입력)$/.test(compact);
+
+  // 저장이 끝난 특정 보스의 컷을 취소하면 직전 컷 기록으로 타이머를 되돌립니다.
+  if(boss && /컷(기록)?취소(해줘|해주세요|해)?$/.test(compact)){
+    kobotRollbackLastCut(boss);
+    return;
+  }
 
   if(boss && cutAt){
     kobotSaveCutWithoutConfirmation(boss,cutAt);
