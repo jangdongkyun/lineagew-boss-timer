@@ -861,6 +861,90 @@ body {
 @media(max-width:620px){.weekly-loot-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.weekly-day-card{padding:8px}.weekly-day-title{font-size:14px}.weekly-loot-edit{grid-template-columns:minmax(0,1fr) 88px}.weekly-loot-settings-card{align-items:flex-start}.weekly-loot-settings-card .row{width:100%;flex-direction:column}.weekly-loot-settings-card button{width:100%;flex:1}}
 @media(max-width:370px){.weekly-loot-grid{grid-template-columns:1fr}}
 
+
+/* 삼성 휴대폰 팝업 보기의 작은 창 대응 */
+@media (max-width: 390px) {
+  html, body {
+    width: 100%;
+    min-width: 0 !important;
+    overflow-x: hidden;
+  }
+  .wrap {
+    width: 100%;
+    min-width: 0 !important;
+    padding: 5px !important;
+  }
+  header {
+    gap: 5px;
+    margin-bottom: 7px;
+  }
+  .logo { font-size: 16px; letter-spacing: 0; }
+  .sub { font-size: 9px; }
+  #serverSelector { gap: 3px !important; }
+  .server-btn {
+    min-width: 0;
+    padding: 5px 7px;
+    font-size: 10px;
+  }
+  .panel {
+    padding: 7px;
+    margin-bottom: 7px;
+    border-radius: 8px;
+  }
+  .boss-list { gap: 3px; }
+  .boss-card {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(62px, .62fr) !important;
+    gap: 3px;
+    padding: 5px;
+    border-radius: 6px;
+  }
+  .boss-main { min-width: 0; }
+  .boss-name {
+    font-size: 14px !important;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .boss-alias { font-size: 8px; }
+  .timer {
+    min-width: 0;
+    font-size: 12px !important;
+    padding: 3px 1px;
+  }
+  .boss-actions {
+    grid-column: 1 / -1;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) !important;
+    gap: 3px;
+  }
+  .boss-actions button {
+    min-width: 0;
+    padding: 4px 2px !important;
+    font-size: 9px !important;
+    line-height: 1.15;
+    white-space: normal;
+  }
+  .boss-actions input {
+    min-width: 0;
+    padding: 4px 3px;
+    font-size: 10px !important;
+  }
+  button {
+    max-width: 100%;
+  }
+  .stats { gap: 3px; margin-bottom: 6px; }
+  .stat { padding: 4px 6px; font-size: 9px; }
+}
+
+/* 팝업 창 높이가 낮을 때 불필요한 여백 축소 */
+@media (max-height: 520px) {
+  .wrap { padding-top: 4px; padding-bottom: 4px; }
+  header { margin-bottom: 5px; }
+  .panel { margin-bottom: 6px; }
+  .boss-card { padding-top: 4px; padding-bottom: 4px; }
+  .boss-actions button { padding-top: 3px; padding-bottom: 3px; }
+}
+
 </style>
 </head>
 <body>
