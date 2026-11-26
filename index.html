@@ -7214,6 +7214,17 @@ function kobotIsNegativeConfirmation(text){
 }
 
   
+function kobotRequestCutConfirmation(boss,cutAt){
+  if(!boss || !cutAt) return;
+  const timeText = new Date(cutAt).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",hour12:false});
+  kobotPendingConfirmation = {boss,cutAt,timeText};
+  kobotPendingCutSession = true;
+  kobotSetStatus("컷 기록 확인 대기","active");
+  kobotSetMessage(boss.name+" "+timeText+" 컷으로 저장할까요? '네' 또는 '아니요'라고 말씀해 주세요.");
+  kobotAddReply(boss.name+" "+timeText+" 저장 확인");
+  if(kobotVoiceReplyEnabled) kobotSpeak(boss.name+" "+timeText+". 이 내용으로 저장할까요?");
+}
+
 function kobotSaveCutWithoutConfirmation(boss,cutAt){
   if(!boss || !cutAt) return;
   kobotPendingConfirmation = null;
@@ -7431,20 +7442,16 @@ function kobotHandleCommand(transcript){
   }
 
   if(boss && cutAt){
-    const timeText = new Date(cutAt).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",hour12:false});
-    kobotPendingConfirmation = {boss,cutAt,timeText};
-    kobotPendingCutSession = true;
-    kobotSetStatus("컷 기록 확인 대기","active");
-    kobotSetMessage(boss.name+" "+timeText+" 컷으로 저장할까요? '네' 또는 '아니요'라고 말씀해 주세요.");
-    kobotAddReply(boss.name+" "+timeText+" 저장 확인");
-    if(kobotVoiceReplyEnabled) kobotSpeak(boss.name+" "+timeText+". 이 내용으로 저장할까요?");
+    kobotRequestCutConfirmation(boss,cutAt);
     return;
   }
 
   if(boss){
     if(kobotPendingCutTime){
       const savedTime = kobotPendingCutTime;
-      kobotSaveCutWithoutConfirmation(boss,savedTime);
+      kobotPendingCutBoss = null;
+      kobotPendingCutTime = null;
+      kobotRequestCutConfirmation(boss,savedTime);
       return;
     }
     kobotPendingCutBoss = boss;
@@ -7459,7 +7466,9 @@ function kobotHandleCommand(transcript){
   if(cutAt){
     if(kobotPendingCutBoss){
       const savedBoss = kobotPendingCutBoss;
-      kobotSaveCutWithoutConfirmation(savedBoss,cutAt);
+      kobotPendingCutBoss = null;
+      kobotPendingCutTime = null;
+      kobotRequestCutConfirmation(savedBoss,cutAt);
       return;
     }
     kobotPendingCutTime = cutAt;
