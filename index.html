@@ -506,6 +506,8 @@ h3{font-size:14px;margin:0 0 10px}
   font-weight:800;
 }
 .quick-links a:first-child{border-color:#7b6033;color:var(--gold)}
+.quick-links #discordLinkBtn{padding:11px 15px;border-color:#5865f2;background:#313b67;color:#fff;font-size:13px;font-weight:800}
+.quick-links #discordLinkBtn.discord-linked{border-color:#63d69b;background:#20583f;color:#d8ffe8}
 .admin-only{display:none}
 #message{margin:10px 0;color:var(--yellow);font-size:13px;white-space:pre-wrap}
 .badge{
@@ -1814,7 +1816,7 @@ style="
     <a href="https://trade.ssatem.com/" target="_blank" rel="noopener">싸템 바로가기</a>
     <a href="https://www.barotem.com/" target="_blank" rel="noopener">바로템 바로가기</a>
     <a href="https://www.youtube.com/" target="_blank" rel="noopener">유튜브</a>
-    <a href="https://discord.com/login" target="_blank" rel="noopener">디스코드 로그인</a>
+    <button type="button" id="discordLinkBtn" class="ghost">디스코드 계정 연동</button>
   </div>
 </div>
 
@@ -8079,6 +8081,7 @@ await loadAdminPushSettings();
       return;
     }
     await updatePresence();
+    await refreshDiscordLinkButton();
     setupRealtime();
     kobotSetStatus("코봇 시작 버튼을 누르면 사용할 수 있어요.");
     kobotSetMessage("컷 입력을 사용하려면 코봇 시작을 누르고 보스 이름과 컷 시간을 바로 말씀해 주세요.");
@@ -8763,7 +8766,86 @@ function showPasswordRecoveryForm(){
 }
 
   
+async function refreshDiscordLinkButton(){
+  const btn = $("discordLinkBtn");
+  if(!btn) return;
+
+  if(!user){
+    btn.textContent = "디스코드 계정 연동";
+    btn.classList.remove("discord-linked");
+    btn.title = "먼저 보탐봇에 로그인해 주세요.";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "디스코드 확인 중...";
+  try{
+    const {data,error} = await db.auth.getUserIdentities();
+    if(error) throw error;
+
+    const discordIdentity = (data?.identities || []).find(identity=>identity.provider==="discord");
+    if(discordIdentity){
+      const discordName = discordIdentity.identity_data?.global_name
+        || discordIdentity.identity_data?.username
+        || "연동 완료";
+      btn.textContent = "디스코드 연동됨";
+      btn.title = "연결된 디스코드 계정: " + discordName;
+      btn.classList.add("discord-linked");
+    }else{
+      btn.textContent = "디스코드 계정 연동";
+      btn.title = "현재 보탐봇 계정에 디스코드 계정을 연결합니다.";
+      btn.classList.remove("discord-linked");
+    }
+  }catch(error){
+    console.warn("디스코드 연동 상태 확인 실패:",error);
+    btn.textContent = "디스코드 계정 연동";
+    btn.title = "연동 상태를 확인할 수 없습니다.";
+    btn.classList.remove("discord-linked");
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+$("discordLinkBtn").addEventListener("click",async()=>{
+  if(!user){
+    alert("먼저 보탐봇에 로그인한 뒤 디스코드 계정을 연동해 주세요.");
+    return;
+  }
+
+  const btn = $("discordLinkBtn");
+  btn.disabled = true;
+  try{
+    const {data,error:identityError} = await db.auth.getUserIdentities();
+    if(identityError) throw identityError;
+
+    const alreadyLinked = (data?.identities || []).some(identity=>identity.provider==="discord");
+    if(alreadyLinked){
+      alert("이 보탐봇 계정에는 이미 디스코드 계정이 연결되어 있습니다.");
+      await refreshDiscordLinkButton();
+      return;
+    }
+
+    const redirectTo = window.location.href.split(/[?#]/)[0];
+    const {error} = await db.auth.linkIdentity({
+      provider:"discord",
+      options:{redirectTo}
+    });
+    if(error) throw error;
+  }catch(error){
+    console.error("디스코드 계정 연동 실패:",error);
+    alert("디스코드 연동을 시작하지 못했습니다.\n\n" + error.message
+      + "\n\nSupabase의 Discord 로그인 제공자와 수동 계정 연동 설정이 완료되어 있는지 확인해 주세요.");
+    await refreshDiscordLinkButton();
+  }finally{
+    btn.disabled = false;
+  }
+});
+
 db.auth.onAuthStateChange((event,session)=>{
+  if(event==="USER_UPDATED" || event==="SIGNED_IN"){
+    setTimeout(()=>refreshDiscordLinkButton(),0);
+  }
+
   if(event==="PASSWORD_RECOVERY"){
     showPasswordRecoveryForm();
   }
