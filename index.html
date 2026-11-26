@@ -2053,8 +2053,12 @@ window.addEventListener("popstate",()=>{
     if(box) box.style.display = "none";
     if(id === "bossSearchModal" && box) box.classList.remove("is-open");
 
+    // 코봇 설명서는 일반 안내 팝업이므로 뒤로가기를 누르면
+    // 설명서만 닫고 앱 종료 확인창은 띄우지 않습니다.
+    if(id === "kobotManualModal") return;
+
     // 수기 컷 팝업에서 기기/브라우저 뒤로가기를 누르면
-    // 팝업만 닫고 끝내지 않고 앱 종료 확인창까지 이어서 표시합니다.
+    // 팝업을 닫은 뒤 앱 종료 확인창을 표시합니다.
     if(id === "manualCutModal"){
       openExitConfirm();
     }
@@ -8043,17 +8047,19 @@ kobotMergePanels();
 })();
 const kobotManualModal = $("kobotManualModal");
 $("kobotManualBtn").addEventListener("click",()=>{
+  openBackPopup("kobotManualModal");
   kobotManualModal.style.display = "flex";
 });
 $("kobotManualCloseBtn").addEventListener("click",()=>{
-  kobotManualModal.style.display = "none";
+  closeBackPopup("kobotManualModal");
 });
 kobotManualModal.addEventListener("click",(event)=>{
-  if(event.target === kobotManualModal) kobotManualModal.style.display = "none";
+  if(event.target === kobotManualModal) closeBackPopup("kobotManualModal");
 });
 document.addEventListener("keydown",(event)=>{
   if(event.key === "Escape" && kobotManualModal.style.display === "flex"){
-    kobotManualModal.style.display = "none";
+    event.preventDefault();
+    closeBackPopup("kobotManualModal");
   }
 });
 
