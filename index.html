@@ -7335,7 +7335,7 @@ async function kobotRollbackLastCut(boss){
 // 컷 취소/되돌리기 음성 명령의 다양한 어순과 말투를 판별합니다.
 // 보스 이름이 함께 인식된 경우에만 아래 판별 결과를 실행하므로 일반 '취소'와 구분됩니다.
 function kobotIsRollbackCommand(value){
-  const compact = kobotNormalizeText(value).replace(/\\s/g,"");
+  const compact = kobotNormalizeText(value).replace(/\s/g,"");
   if(!compact) return false;
 
   // 컷/기록/시간을 되돌리라는 대상 표현과 취소/복구 동사가 함께 있어야 합니다.
