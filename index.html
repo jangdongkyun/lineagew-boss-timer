@@ -7410,9 +7410,12 @@ function kobotIsRollbackCommand(value){
 // 코봇 음성 조회: 기존 보스/서버/컷 데이터만 읽으며 타이머 구조는 변경하지 않습니다.
 function kobotSpeakAnswer(message){
   kobotSetStatus("조회 완료","active");
-  kobotSetMessage(message);
-  kobotAddReply(message);
-  if(kobotVoiceReplyEnabled) kobotSpeak(message);
+  if(kobotVoiceReplyEnabled){
+    kobotSpeak(message);
+  }else{
+    kobotSetMessage(message);
+    kobotAddReply(message);
+  }
 }
 function kobotFormatDateTime(value){
   const d=new Date(value);
@@ -7439,11 +7442,11 @@ async function kobotAnswerBossQuery(boss,compact){
   }
   await kobotRefreshQueryCuts();
   const record=latestCut(boss.id);
-  if(!record){
-    kobotSpeakAnswer(boss.name+"은 현재 "+currentServerId+"번 서버에 등록된 컷 기록이 없습니다.");
-    return;
-  }
   if(kobotIsPersonQuery(compact)){
+    if(!record){
+      kobotSpeakAnswer(boss.name+"은 현재 "+currentServerId+"번 서버에 등록된 컷 기록이 없습니다.");
+      return;
+    }
     let enteredAt=null;
     try{
       const {data,error}=await db.from("cut_record_history")
@@ -7463,6 +7466,10 @@ async function kobotAnswerBossQuery(boss,compact){
     return;
   }
   if(/(컷시간|컷시각|몇시에컷|몇시컷|언제컷|실제컷)/.test(compact)){
+    if(!record){
+      kobotSpeakAnswer(boss.name+"은 현재 서버에 등록된 컷 기록이 없습니다.");
+      return;
+    }
     kobotSpeakAnswer(boss.name+"의 실제 컷 시간은 "+kobotFormatDateTime(record.cut_at)+"입니다.");
     return;
   }
@@ -7507,6 +7514,33 @@ function kobotAnswerLocalStats(compact){
   return false;
 }
 async function kobotHandleReadCommand(compact,boss){
+  if(/(몇번서버|현재서버|서버뭐)/.test(compact)){
+    kobotSpeakAnswer("현재 선택된 서버는 "+currentServerId+"번 서버입니다.");return true;
+  }
+  if(/(별칭|별명)/.test(compact) && boss){
+    const aliases=(Array.isArray(boss.aliases)?boss.aliases:[]).filter(Boolean);
+    kobotSpeakAnswer(boss.name+"의 등록된 별칭은 "+(aliases.length?aliases.join(", "):"없음")+"입니다.");return true;
+  }
+  if(/(지금|현재).*(출현|나온)|출현한보스|나온보스/.test(compact)){
+    await kobotRefreshQueryCuts();
+    const spawned=(bosses||[]).filter(b=>b.is_active!==false).filter(b=>{
+      const t=nextAt(b);return Number.isFinite(t) && t<=Date.now() && t>Date.now()-5*60*1000;
+    });
+    kobotSpeakAnswer(spawned.length
+      ? "현재 출현 시간인 보스는 "+spawned.map(b=>b.name).join(", ")+"입니다."
+      : "현재 5분 출현 시간에 해당하는 보스는 없습니다.");
+    return true;
+  }
+  if(/(전체현황|보스현황|현황알려)/.test(compact)){
+    await kobotRefreshQueryCuts();
+    const list=(bosses||[]).filter(b=>b.is_active!==false)
+      .map(b=>({boss:b,time:nextAt(b)})).filter(x=>Number.isFinite(x.time))
+      .sort((a,b)=>a.time-b.time).slice(0,6);
+    if(!list.length){kobotSpeakAnswer("출현 예정 시간을 계산할 수 있는 보스가 없습니다.");return true;}
+    const summary=list.map(x=>x.boss.name+" "+(x.time<=Date.now()?"출현 시간":kobotFormatDateTime(x.time))).join(". ");
+    kobotSpeakAnswer("현재 "+currentServerId+"번 서버의 가까운 보스 현황입니다. "+summary);
+    return true;
+  }
   if(/(도움말|사용법|명령어)/.test(compact)){
     kobotSpeakAnswer("보스 이름과 컷이라고 말하면 컷 입력을 시작합니다. 보스 이름과 언제 나와라고 물으면 출현 시간을 안내하고, 누가 컷했어라고 물으면 최근 기록자를 안내합니다. 다음 보스 뭐야라고 물어도 됩니다.");
     return true;
@@ -7514,7 +7548,10 @@ async function kobotHandleReadCommand(compact,boss){
   if(/(다음보스|가장빨리|제일빨리|임박)/.test(compact)){
     await kobotAnswerNextBoss();return true;
   }
-  if(kobotAnswerLocalStats(compact)) return true;
+  if(/(내가|오늘|참여율|참여현황)/.test(compact)){
+    await kobotRefreshQueryCuts();
+    if(kobotAnswerLocalStats(compact)) return true;
+  }
   if(boss && kobotIsQueryIntent(compact)){
     await kobotAnswerBossQuery(boss,compact);return true;
   }
