@@ -1183,8 +1183,9 @@ body {
         <p style="margin:4px 0">취소한 뒤 보스 이름과 컷 시간을 처음부터 다시 말씀해 주세요.</p>
         <h3 style="color:#e8c879;margin:12px 0 5px">4. 이미 등록한 컷 되돌리기</h3>
         <p style="margin:4px 0">컷 등록이 완료된 뒤 잘못 입력한 것을 알았다면 <b>“가스트 컷 취소”</b>처럼 보스 이름 뒤에 <b>“컷 취소”</b>라고 말하세요. 코봇이 해당 보스의 가장 최근 컷 기록을 취소하고, 그 직전 컷 기록 시간으로 타이머를 되돌립니다.</p>
-        <p style="background:#242a33;border-radius:9px;padding:10px;margin:6px 0"><b>말하기 예시: “가스트 컷 취소” · “갈증의 드레이크 컷 취소”</b></p>
-        <p style="margin:4px 0">현재 선택된 서버의 해당 보스 기록만 처리합니다. 되돌릴 이전 컷 기록이 없으면 변경하지 않고 실패 안내를 합니다. 이 명령은 입력 중인 내용을 지우는 “취소”와 달리, 이미 저장된 컷 기록을 이전 시간으로 복구하는 기능입니다.</p>
+        <p style="background:#242a33;border-radius:9px;padding:10px;margin:6px 0"><b>말하기 예시:</b><br>“가스트 컷 취소” · “가스트 컷을 취소해” · “가스트 컷 취소해줘”<br>“컷 취소 가스트” · “가스트 기록 되돌려줘” · “가스트 이전 기록으로”<br>“가스트 마지막 컷 취소” · “가스트 컷 복구해” · “가스트 컷 원복해”</p>
+        <p style="margin:4px 0">말하는 순서나 존댓말이 달라도 컷/기록/시간을 취소·되돌리기·복구하라는 뜻이 함께 인식되면 처리합니다. “컷트”, “커트”처럼 비슷하게 인식된 표현도 일부 허용합니다. 단, 보스 이름을 찾지 못하거나 취소 의도가 불분명하면 기록을 변경하지 않습니다.</p>
+        <p style="margin:4px 0">현재 선택된 서버의 해당 보스 기록만 처리합니다. 되돌릴 이전 컷 기록이 없으면 변경하지 않고 실패 안내를 합니다. 이 명령은 입력 중인 내용을 지우는 “취소”와 달리, 이미 저장된 컷 기록을 이전 시간으로 복구하는 기능입니다. “가스트 취소”처럼 컷 취소인지 입력 취소인지 모호한 말은 안전을 위해 저장 기록을 되돌리지 않습니다.</p>
         <h3 style="color:#e8c879;margin:12px 0 5px">5. 대답 방식 바꾸기</h3>
         <ul style="padding-left:22px;margin:4px 0">
           <li><b>🔊 음성 대답 켜짐</b>: 코봇이 음성으로도 안내합니다.</li>
@@ -7331,6 +7332,23 @@ async function kobotRollbackLastCut(boss){
   }
 }
 
+// 컷 취소/되돌리기 음성 명령의 다양한 어순과 말투를 판별합니다.
+// 보스 이름이 함께 인식된 경우에만 아래 판별 결과를 실행하므로 일반 '취소'와 구분됩니다.
+function kobotIsRollbackCommand(value){
+  const compact = kobotNormalizeText(value).replace(/\\s/g,"");
+  if(!compact) return false;
+
+  // 컷/기록/시간을 되돌리라는 대상 표현과 취소/복구 동사가 함께 있어야 합니다.
+  // '가스트 취소'처럼 대상이 불분명한 짧은 말은 이미 저장된 기록을 건드리지 않습니다.
+  const hasCutReference = /(컷|컷트|커트|기록|시간|타이머|것)/.test(compact);
+  const hasUndoIntent = /(취소|취조|되돌|돌려|돌리|복구|복원|롤백|원복|이전으로|전으로|돌아가|취소해|취소할)/.test(compact);
+  if(!hasCutReference || !hasUndoIntent) return false;
+
+  // 취소/복구 대상이 컷이나 기록과 연결된 문장인지 한 번 더 확인합니다.
+  return /(컷|컷트|커트|기록|시간|타이머|것).{0,12}(취소|취조|되돌|돌려|돌리|복구|복원|롤백|원복|이전으로|전으로|돌아가)/.test(compact) ||
+    /(취소|취조|되돌|돌려|돌리|복구|복원|롤백|원복|이전으로|전으로|돌아가).{0,12}(컷|컷트|커트|기록|시간|타이머|것)/.test(compact);
+}
+
 function kobotHandleCommand(transcript){
   const text = kobotNormalizeText(transcript);
   const compact = text.replace(/\s/g,"");
@@ -7384,8 +7402,10 @@ function kobotHandleCommand(transcript){
   const cutWord = /(컷|기록|등록|입력|잡았|처치|잡은시간|컷시간|컷시각)/.test(text);
   const startOnly = /^(컷|컷등록|컷기록|기록|등록|컷입력)$/.test(compact);
 
-  // 저장이 끝난 특정 보스의 컷을 취소하면 직전 컷 기록으로 타이머를 되돌립니다.
-  if(boss && /컷(기록)?취소(해줘|해주세요|해)?$/.test(compact)){
+  // 이미 저장된 컷 취소: 보스명 + 다양한 컷 취소/복구 표현을 인식합니다.
+  // 예: "가스트 컷 취소", "가스트 컷을 취소해", "컷 취소 가스트",
+  //     "가스트 기록 되돌려줘", "가스트 이전 기록으로", "가스트 컷 복구해".
+  if(boss && kobotIsRollbackCommand(compact)){
     kobotRollbackLastCut(boss);
     return;
   }
