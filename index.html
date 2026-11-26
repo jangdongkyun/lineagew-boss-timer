@@ -3428,11 +3428,11 @@ function getSortedBosses(){
 // 자연어 시간 표현을 기존 24시간제 입력으로 변환합니다.
 // 예: 저녁 7시 → 19:00, 자정 12시 → 00:00
 function normalizeNaturalCutTime(value){
-  let v = String(value || "").trim().replace(/\\s+/g,"");
+  let v = String(value || "").trim().replace(/\s+/g,"");
   if(!v) return v;
 
   // 기존 숫자 입력은 그대로 유지
-  if(/^\\d{4}$/.test(v) || /^\\d{1,2}:\\d{2}$/.test(v)) return v;
+  if(/^\d{4}$/.test(v) || /^\d{1,2}:\d{2}$/.test(v)) return v;
 
   v = v.replace(/(로)?(컷(등록)?(해줘|해주세요)?|등록해줘|등록해주세요)$/,"");
 
@@ -7190,6 +7190,9 @@ function kobotParseSpokenNumber(value){
 function kobotParseCutTimeFromSpeech(text){
   let compact = kobotNormalizeText(text).replace(/\s/g,"");
   compact = compact.replace(/^(시각|시간|컷시각|컷시간)/,"");
+  if(compact === "정오" || compact === "정오12시") return parseCutTime("12:00");
+  if(compact === "자정" || compact === "자정12시") return parseCutTime("00:00");
+
   if(/(지금|현재|방금|바로)(컷|시각|시간)?/.test(compact)){
     const now = new Date();
     now.kobotUseManualForm = true;
