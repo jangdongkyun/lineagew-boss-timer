@@ -2009,6 +2009,7 @@ window.addEventListener("popstate",()=>{
 
     const box = $(id);
     if(box) box.style.display = "none";
+    if(id === "bossSearchModal" && box) box.classList.remove("is-open");
     return;
   }
 
