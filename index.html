@@ -140,6 +140,7 @@ h3{font-size:14px;margin:0 0 10px}
 .boss-card[hidden]{display:none !important}
 
 .boss-search-panel{
+  scroll-margin-top:12px;
   margin-top:15px;
   padding:12px;
   border:1px solid #46536a;
@@ -3516,6 +3517,13 @@ function closeBossSearchModal(){
 
 const bossSearchInput = $("bossSearchInput");
 if(bossSearchInput){
+  // 모바일 키패드가 열릴 때 검색창이 가려지지 않도록 검색 패널을 위쪽으로 이동
+  bossSearchInput.addEventListener("focus",()=>{
+    setTimeout(()=>{
+      const panel = bossSearchInput.closest(".boss-search-panel");
+      if(panel) panel.scrollIntoView({behavior:"smooth",block:"start"});
+    },180);
+  });
   bossSearchInput.addEventListener("input",renderBossSearchResults);
   bossSearchInput.addEventListener("keydown",event=>{
     if(event.key==="Enter"){
