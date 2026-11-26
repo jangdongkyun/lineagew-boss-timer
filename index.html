@@ -7269,8 +7269,7 @@ recognition.onresult = (event)=>{
       const heard = kobotNormalizeText(transcript).replace(/\s/g,"");
       const spoken = kobotNormalizeText(kobotCurrentSpeechText).replace(/\s/g,"");
       // 코봇 자신의 음성은 명령으로 오인하지 않고, 다른 사용자 발화면 즉시 대답을 멈춥니다.
-      isSpeakerEcho = heard.length >= 3 && !!spoken &&
-        (spoken.includes(heard) || heard.includes(spoken));
+      isSpeakerEcho = heard.length >= 1 && !!spoken && spoken.includes(heard);
       if(!isSpeakerEcho){
         kobotSpeechToken++;
         kobotSpeechCancelledByUser = true;
