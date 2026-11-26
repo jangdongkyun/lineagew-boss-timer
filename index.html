@@ -7256,7 +7256,7 @@ function kobotSaveCutWithoutConfirmation(boss,cutAt){
 function kobotHandleCommand(transcript){
   const offCommand = kobotNormalizeText(transcript).replace(/\s/g,"");
   if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘|그만|그만해|중지|중지해)$/.test(offCommand) ||
-     /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘)$/.test(offCommand)){
+     /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘|종료)$/.test(offCommand)){
     stopKobot();
     return;
   }
@@ -7630,7 +7630,7 @@ recognition.onresult = (event)=>{
       kobotSetTranscript("듣는 중: " + transcript);
       const interimCommand = kobotNormalizeText(transcript).replace(/\s/g,"");
       if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘|그만|그만해|중지|중지해)$/.test(interimCommand) ||
-         /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘)$/.test(interimCommand)){
+         /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘|종료)$/.test(interimCommand)){
         stopKobot();
         return;
       }
@@ -7639,7 +7639,7 @@ recognition.onresult = (event)=>{
 
     const normalizedCommand = kobotNormalizeText(transcript).replace(/\s/g,"");
     if(/^(코봇)?(오프|오프해|오프해줘|꺼|꺼줘|꺼주세요|종료|종료해|종료해줘|그만|그만해|중지|중지해)$/.test(normalizedCommand) ||
-       /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘)$/.test(normalizedCommand)){
+       /^(코봇)?(오프|꺼|종료|그만|중지)(해|해줘|해주세요|시켜줘|종료)$/.test(normalizedCommand)){
       stopKobot();
       return;
     }
