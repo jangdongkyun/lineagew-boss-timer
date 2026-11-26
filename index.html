@@ -3352,8 +3352,15 @@ function missedCount(boss){
   return Math.floor((now - firstMissTime) / interval) + 1;
 }
 function getSortedBosses(){
-  // 출현 예정 시간에 따른 자동 정렬 없이 등록된 보스 순서를 유지합니다.
-  return [...bosses];
+  // 다음 리스폰 대기시간이 짧은 보스부터 항상 위에 표시합니다.
+  // 출현 시간이 없는 보스는 계산 가능한 보스 뒤쪽에 둡니다.
+  return [...(bosses || [])].sort((a,b)=>{
+    const aAt = nextAt(a);
+    const bAt = nextAt(b);
+    const aTime = aAt == null ? Infinity : Number(aAt);
+    const bTime = bAt == null ? Infinity : Number(bAt);
+    return aTime - bTime;
+  });
 }
 
 /* 시간 입력: 2135 / 21:35 모두 지원 */
