@@ -7260,6 +7260,7 @@ async function kobotRollbackLastCut(boss){
   if(!user) throw new Error("로그인이 필요합니다.");
   if(!boss) throw new Error("보스 정보를 찾을 수 없습니다.");
 
+  kobotPendingConfirmation = null;
   kobotPendingCut = null;
   kobotPendingCutBoss = null;
   kobotPendingCutTime = null;
