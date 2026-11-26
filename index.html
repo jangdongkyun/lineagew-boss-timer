@@ -138,6 +138,57 @@ h3{font-size:14px;margin:0 0 10px}
 }
 .boss-card[hidden]{display:none !important}
 
+.boss-search-panel{
+  margin-top:15px;
+  padding:12px;
+  border:1px solid #46536a;
+  border-radius:10px;
+  background:#101722;
+}
+.boss-search-panel h3{margin-bottom:9px;color:#e8c879}
+.boss-search-row{display:flex;gap:7px;align-items:center}
+.boss-search-row input{flex:1;min-width:0}
+.boss-search-row button{white-space:nowrap}
+.boss-search-results{display:grid;gap:5px;margin:8px 0}
+.boss-search-results:empty{display:none}
+.boss-search-result{
+  width:100%;text-align:left;padding:9px 11px;
+  background:#202c3c;border-color:#46536a;
+}
+.boss-search-result small{display:block;color:var(--muted);font-weight:400;margin-top:2px}
+.boss-search-empty{padding:8px;color:var(--muted);font-size:12px}
+.boss-search-modal{
+  display:none;position:fixed;inset:0;z-index:2147483646;
+  align-items:center;justify-content:center;padding:14px;
+  background:rgba(0,0,0,.86);overflow-y:auto;
+}
+.boss-search-modal.is-open{display:flex}
+.boss-search-modal-box{
+  width:min(100%,760px);max-height:90vh;overflow-y:auto;
+  padding:15px;border:1px solid #b58b43;border-radius:14px;
+  background:linear-gradient(145deg,#202b3d,#101722);
+  box-shadow:0 12px 40px rgba(0,0,0,.7);
+}
+.boss-search-modal-header{
+  color:#f0d58d;font-size:17px;font-weight:900;margin-bottom:12px;
+}
+.boss-search-modal-card .boss-card{
+  display:grid !important;opacity:1 !important;
+}
+.boss-search-modal-card .boss-card button,
+.boss-search-modal-card .boss-card input{pointer-events:none}
+.boss-search-modal-card .boss-card button:disabled{opacity:1}
+.boss-search-confirm{display:block;width:100%;margin-top:13px;padding:12px}
+@media(max-width:600px){
+  .boss-search-row{align-items:stretch}
+  .boss-search-modal{padding:9px}
+  .boss-search-modal-box{padding:11px;max-height:92vh}
+  .boss-search-modal-card .boss-card{
+    grid-template-columns:minmax(0,1fr) minmax(90px,.8fr) !important;
+  }
+  .boss-search-modal-card .boss-actions{grid-column:1/-1}
+}
+
 .boss-card{
   background:var(--panel);
   border:1px solid var(--line);
@@ -1037,8 +1088,31 @@ body {
   </div>
   <div class="boss-more-info" id="bossMoreInfo" aria-live="polite"></div>
 
+  <div class="boss-search-panel">
+    <h3>🔎 보스 출현시간 검색</h3>
+    <div class="boss-search-row">
+      <input id="bossSearchInput" type="search" autocomplete="off"
+        placeholder="보스 이름 또는 별칭 입력">
+      <button type="button" class="primary" id="bossSearchBtn">검색</button>
+    </div>
+    <div id="bossSearchResults" class="boss-search-results" aria-live="polite"></div>
+    <div class="muted">검색 결과를 선택하면 해당 보스의 카드가 팝업으로 열립니다.</div>
+  </div>
+
   <div id="emptyBoss" class="muted" style="display:none;text-align:center;padding:25px">
     등록된 보스가 없습니다.
+  </div>
+</div>
+
+<div id="bossSearchModal" class="boss-search-modal" role="dialog"
+  aria-modal="true" aria-labelledby="bossSearchModalTitle">
+  <div class="boss-search-modal-box">
+    <div class="boss-search-modal-header">
+      <strong id="bossSearchModalTitle">보스 정보</strong>
+    </div>
+    <div id="bossSearchModalCard" class="boss-search-modal-card"></div>
+    <button type="button" class="primary boss-search-confirm"
+      id="bossSearchConfirmBtn">확인</button>
   </div>
 </div>
 
@@ -3358,6 +3432,135 @@ function findBossByName(name){
     getBossNameVariants(b).some(n=>normalizeBossName(n) === target)
   ) || null;
 }
+
+// 보스 검색 결과를 선택하면 실제 보스 카드의 표시 내용을 팝업으로 복제합니다.
+function renderBossSearchResults(){
+  const input = $("bossSearchInput");
+  const results = $("bossSearchResults");
+  if(!input || !results) return;
+
+  const query = normalizeBossName(input.value);
+  results.innerHTML = "";
+  if(!query) return;
+
+  const matches = [...(bosses || [])]
+    .filter(b=>getBossNameVariants(b).some(name=>
+      normalizeBossName(name).includes(query)
+    ))
+    .sort((a,b)=>a.name.localeCompare(b.name,"ko"))
+    .slice(0,10);
+
+  if(!matches.length){
+    const empty = document.createElement("div");
+    empty.className = "boss-search-empty";
+    empty.textContent = "일치하는 보스가 없습니다.";
+    results.appendChild(empty);
+    return;
+  }
+
+  matches.forEach(b=>{
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "boss-search-result";
+    button.dataset.searchBoss = b.id;
+    const name = document.createElement("strong");
+    name.textContent = b.name;
+    button.appendChild(name);
+
+    const aliases = getBossNameVariants(b).filter(n=>n!==b.name);
+    if(aliases.length){
+      const small = document.createElement("small");
+      small.textContent = "별칭: " + aliases.join(", ");
+      button.appendChild(small);
+    }
+    results.appendChild(button);
+  });
+}
+
+function openBossSearchModal(bossId){
+  const boss = (bosses || []).find(b=>String(b.id)===String(bossId));
+  const sourceCard = $("bossList")?.querySelector(
+    `[data-boss-card="${CSS.escape(String(bossId))}"]`
+  );
+  const modal = $("bossSearchModal");
+  const target = $("bossSearchModalCard");
+  if(!boss || !sourceCard || !modal || !target) return;
+
+  const clone = sourceCard.cloneNode(true);
+  clone.hidden = false;
+  clone.removeAttribute("data-boss-card");
+  clone.dataset.searchModalBossId = String(bossId);
+  clone.querySelectorAll("button,input").forEach(control=>{
+    control.disabled = true;
+    control.tabIndex = -1;
+  });
+  target.replaceChildren(clone);
+  $("bossSearchModalTitle").textContent = boss.name + " · 보스 정보";
+
+  openBackPopup("bossSearchModal");
+  modal.classList.add("is-open");
+  modal.style.display = "flex";
+}
+
+function refreshBossSearchModal(){
+  const modal = $("bossSearchModal");
+  if(!modal || !modal.classList.contains("is-open")) return;
+  const current = $("bossSearchModalCard")?.firstElementChild;
+  const bossId = current?.dataset.searchModalBossId;
+  if(!bossId) return;
+  const source = $("bossList")?.querySelector(
+    `[data-boss-card="${CSS.escape(String(bossId))}"]`
+  );
+  if(source){
+    const clone = source.cloneNode(true);
+    clone.hidden = false;
+    clone.removeAttribute("data-boss-card");
+    clone.dataset.searchModalBossId = bossId;
+    clone.querySelectorAll("button,input").forEach(control=>{
+      control.disabled = true;
+      control.tabIndex = -1;
+    });
+    $("bossSearchModalCard").replaceChildren(clone);
+  }
+}
+
+function closeBossSearchModal(){
+  if(!$("bossSearchModal")?.classList.contains("is-open")) return;
+  closeBackPopup("bossSearchModal");
+  $("bossSearchModal").classList.remove("is-open");
+  $("bossSearchModal").style.display = "none";
+}
+
+const bossSearchInput = $("bossSearchInput");
+if(bossSearchInput){
+  bossSearchInput.addEventListener("input",renderBossSearchResults);
+  bossSearchInput.addEventListener("keydown",event=>{
+    if(event.key==="Enter"){
+      event.preventDefault();
+      const exact = findBossByName(bossSearchInput.value);
+      const first = $("bossSearchResults")?.querySelector("[data-search-boss]");
+      const bossId = exact?.id || first?.dataset.searchBoss;
+      if(bossId) openBossSearchModal(bossId);
+      else renderBossSearchResults();
+    }
+  });
+}
+$("bossSearchBtn")?.addEventListener("click",()=>{
+  const exact = findBossByName($("bossSearchInput").value);
+  const first = $("bossSearchResults")?.querySelector("[data-search-boss]");
+  const bossId = exact?.id || first?.dataset.searchBoss;
+  if(bossId) openBossSearchModal(bossId);
+  else renderBossSearchResults();
+});
+$("bossSearchResults")?.addEventListener("click",event=>{
+  const choice = event.target.closest("[data-search-boss]");
+  if(choice) openBossSearchModal(choice.dataset.searchBoss);
+});
+$("bossSearchConfirmBtn")?.addEventListener("click",closeBossSearchModal);
+$("bossSearchModal")?.addEventListener("click",event=>{
+  if(event.target === $("bossSearchModal")) closeBossSearchModal();
+});
+
 function renderManualBossList(){
   const input = $("manualBossName");
   const list = $("manualBossList");
@@ -4705,6 +4908,7 @@ if(overdue && elapsed <= 300000){
     });
   }
   applyBossCardPagination(sorted);
+  refreshBossSearchModal();
   $("clock").textContent = new Date().toLocaleTimeString("ko-KR",{
     hour12:false
   });
