@@ -134,6 +134,7 @@ async function registerCut(bossId,cutAt){
   if(rowsError)throw rowsError;
   const old=(rows||[]).slice(3).map(x=>x.id);
   if(old.length){const deleteAt=new Date(Date.now()+600000).toISOString();const {error:pendingError}=await db.from("cut_records").update({pending_delete_at:deleteAt}).in("id",old).eq("server_id",serverId);if(pendingError)throw pendingError;}
+  const rowInput=[...$("bossList").querySelectorAll("[data-time-for]")].find(x=>x.dataset.timeFor===String(bossId));if(rowInput)rowInput.value="";
   await loadData();say(b.name+" 컷 등록 완료");
  }catch(e){say("등록 실패: "+(e.message||e));}
  finally{busy=false;render();}
