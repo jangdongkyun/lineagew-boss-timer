@@ -388,6 +388,10 @@ h3{font-size:14px;margin:0 0 10px}
 .history-time{color:var(--gold);white-space:nowrap}
 .quick-links{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 #adminSettingsBtn{display:none;background:#6d5428;border-color:#b58b43;color:#ffe2a0}
+/* 관리자 설정에서는 개인별 음성/푸시 알림 설정을 노출하지 않습니다.
+   기존 저장 로직과 호환되도록 DOM은 유지하고 화면에서만 숨깁니다. */
+#adminVoiceSettings,
+#adminPushSettings{display:none !important;}
 /* 관리자 설정 팝업 배경 */
 #adminTools{
   display:none;
@@ -5565,7 +5569,7 @@ function ensurePersonalAlertUI(){
 
       <hr>
 
-      <h3>음성 알림</h3>
+      <h3>① 음성 설정</h3>
       <label><input type="checkbox" id="personalVoiceEnabled"> 음성 알림 사용</label>
 
       <div id="personalVoiceOptions">
@@ -5608,10 +5612,23 @@ function ensurePersonalAlertUI(){
         </div>
       </div>
 
-      <hr>
+      <div style="padding:12px;margin:12px 0;background:#172438;border:1px solid #806b3e;border-radius:10px">
+        <h3 style="margin:0 0 10px;color:#e8c879">③ 음성 방해금지 시간</h3>
+        <label><input type="checkbox" id="personalVoiceQuiet"> 음성 안내 방해금지 사용</label>
+        <div class="row" style="margin-top:10px">
+          <div class="grow">
+            <label>시작</label>
+            <input type="time" id="personalVoiceQuietStart">
+          </div>
+          <div class="grow">
+            <label>종료</label>
+            <input type="time" id="personalVoiceQuietEnd">
+          </div>
+        </div>
+      </div>
 
       <hr>
-      <h3>휴대폰 푸시 알림</h3>
+      <h3>② 푸시 설정</h3>
       <label><input type="checkbox" id="personalPushEnabled"> 휴대폰 푸시 알림 사용</label>
       <div id="personalPushAllOptions" style="display:none">
       <div id="personalPushOptions" style="margin-top:10px">
@@ -5650,18 +5667,7 @@ function ensurePersonalAlertUI(){
       <div id="personalPushMessage" class="muted" style="margin-top:7px"></div>
       <p class="muted" style="font-size:12px">기기 등록은 개인 알림 설정창 옆의 ‘이 기기 푸시 등록하기’에서 진행합니다. 설정은 본인 계정에만 저장됩니다.</p>
       </div>
-      <h3>음성 방해금지 시간</h3>
-      <label><input type="checkbox" id="personalVoiceQuiet"> 방해금지 사용</label>
-      <div class="row" style="margin-top:10px">
-        <div class="grow">
-          <label>시작</label>
-          <input type="time" id="personalVoiceQuietStart">
-        </div>
-        <div class="grow">
-          <label>종료</label>
-          <input type="time" id="personalVoiceQuietEnd">
-        </div>
-      </div>
+
 
       <button id="savePersonalAlertBtn" class="primary"
         type="button" style="width:100%;margin-top:18px;padding:13px">
