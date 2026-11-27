@@ -11,8 +11,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="보탐봇">
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" href="./assets/pwa-icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/pwa-icon.svg">
+<link rel="icon" href="./assets/pwa-icon-512.png" type="image/png" sizes="512x512">
+<link rel="apple-touch-icon" href="./assets/pwa-icon-512.png">
 <title>해적 렌팀 스케쥴러</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -10059,7 +10059,7 @@ fixedBossUpdateHighlight();
 // PWA 실행 및 기존 푸시 알림이 같은 서비스 워커를 사용하도록 등록합니다.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=20261127-3", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=20261127-4", { updateViaCache: "none" })
       .catch(error => console.warn("서비스 워커 등록 실패:", error));
   });
 }
