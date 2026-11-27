@@ -96,10 +96,16 @@ function render(){
  const toggle=$("bossListToggle");
  toggle.style.display=list.length>5?"block":"none";
  toggle.textContent=showAllBosses?"접기":"전체 보스 펼치기 ("+list.length+"마리)";
- $("bossList").innerHTML=visibleList.map(b=>{
-  const st=state(b);
-  return '<div class="boss-row"><button class="boss-main" type="button" data-cut-now="'+esc(b.id)+'" '+(busy?'disabled':'')+'><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button><div class="row-entry"><input type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" data-form-type="other" maxlength="5" placeholder="2135" aria-label="'+esc(b.name)+' 컷 시간" data-time-for="'+esc(b.id)+'" value="'+esc(saved[b.id]||"")+'"><button class="primary" type="button" data-cut-time="'+esc(b.id)+'" '+(busy?'disabled':'')+'>등록</button></div></div>';
- }).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
+ // 입력 중인 보스 시간 입력창은 DOM에서 교체하지 않습니다.
+ // 매초 render() 및 15초 데이터 갱신이 실행되어도 모바일 키보드와 포커스를 유지합니다.
+ const activeElement=document.activeElement;
+ const isTypingBossTime=activeElement?.matches("[data-time-for]") && $("bossList").contains(activeElement);
+ if(!isTypingBossTime){
+  $("bossList").innerHTML=visibleList.map(b=>{
+   const st=state(b);
+   return '<div class="boss-row"><button class="boss-main" type="button" data-cut-now="'+esc(b.id)+'" '+(busy?'disabled':'')+'><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button><div class="row-entry"><input type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" data-form-type="other" maxlength="5" placeholder="2135" aria-label="'+esc(b.name)+' 컷 시간" data-time-for="'+esc(b.id)+'" value="'+esc(saved[b.id]||"")+'"><button class="primary" type="button" data-cut-time="'+esc(b.id)+'" '+(busy?'disabled':'')+'>등록</button></div></div>';
+  }).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
+ }
  if(selectedPopupBossId!==null){const selected=bosses.find(x=>String(x.id)===String(selectedPopupBossId));if(selected){const st=state(selected);$("modalBossTime").textContent=st.label;$("modalBossTime").className="time "+st.cls;}}
 }
 async function loadData(){
