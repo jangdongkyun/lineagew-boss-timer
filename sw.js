@@ -18,14 +18,15 @@ self.addEventListener("push", event => {
     ? `${bossName} 보스 알림`
     : (payload.title || "LINEAGE W 보스 알림");
 
+  const iconUrl = new URL("assets/pwa-icon-512.png", self.registration.scope).href;
   const options = {
     body: payload.body || "보스 출현 알림입니다.",
     tag: payload.tag || "lineagew-boss",
     renotify: true,
     requireInteraction: true,
     vibrate: [250, 100, 250],
-    icon: new URL("assets/pwa-icon.svg", self.registration.scope).href,
-    badge: new URL("assets/pwa-icon.svg", self.registration.scope).href,
+    icon: iconUrl,
+    badge: iconUrl,
     data: {
       url: payload.url || "https://jangdongkyun.github.io/lineagew-boss-timer/"
     }
