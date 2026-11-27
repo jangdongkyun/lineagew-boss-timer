@@ -5613,6 +5613,7 @@ function ensurePersonalAlertUI(){
       <hr>
       <h3>휴대폰 푸시 알림</h3>
       <label><input type="checkbox" id="personalPushEnabled"> 휴대폰 푸시 알림 사용</label>
+      <div id="personalPushAllOptions" style="display:none">
       <div id="personalPushOptions" style="margin-top:10px">
         <p>필드보스 알림 시점</p>
         <label><input type="checkbox" id="myPush3m"> 3분 전</label><br>
@@ -5648,6 +5649,7 @@ function ensurePersonalAlertUI(){
       <button id="personalPushTestBtn" class="ghost" type="button" style="width:100%;margin-top:12px">내 휴대폰으로 푸시 테스트</button>
       <div id="personalPushMessage" class="muted" style="margin-top:7px"></div>
       <p class="muted" style="font-size:12px">기기 등록은 개인 알림 설정창 옆의 ‘이 기기 푸시 등록하기’에서 진행합니다. 설정은 본인 계정에만 저장됩니다.</p>
+      </div>
       <h3>음성 방해금지 시간</h3>
       <label><input type="checkbox" id="personalVoiceQuiet"> 방해금지 사용</label>
       <div class="row" style="margin-top:10px">
@@ -5775,7 +5777,8 @@ async function openPersonalAlertSettings(){
   ).join("");
   personalPushWeeklyDraft = {...pushSettings};
   renderPersonalPushWeeklyOptions();
-  $("personalPushOptions").style.display = s.push_enabled ? "block" : "none";
+  $("personalPushAllOptions").style.display = s.push_enabled ? "block" : "none";
+  $("personalPushOptions").style.display = "block";
   $("personalWeeklyPushDetails").style.display = pushSettings.__weekly_enabled === true ? "block" : "none";
 
   const bossSettings = s.boss_settings || {};
@@ -5941,7 +5944,7 @@ function renderPersonalPushWeeklyOptions(){
 $("personalPushDayTabs")?.addEventListener("click",event=>{const btn=event.target.closest("[data-personal-push-day]");if(!btn)return;personalPushSelectedDay=Number(btn.dataset.personalPushDay);renderPersonalPushWeeklyOptions();});
 $("personalPushDayAll")?.addEventListener("change",event=>{personalPushWeeklyDraft["__weekly_day_all_"+personalPushSelectedDay]=event.target.checked;renderPersonalPushWeeklyOptions();});
 $("personalPushWeeklyBossOptions")?.addEventListener("change",event=>{const input=event.target.closest("[data-personal-push-day-boss]");if(!input)return;personalPushWeeklyDraft["weekly_day:"+personalPushSelectedDay+":"+input.dataset.personalPushDayBoss]=input.checked;});
-$("personalPushEnabled")?.addEventListener("change",()=>{$("personalPushOptions").style.display=$("personalPushEnabled").checked?"block":"none";});
+$("personalPushEnabled")?.addEventListener("change",()=>{$("personalPushAllOptions").style.display=$("personalPushEnabled").checked?"block":"none";});
 $("personalWeeklyPushEnabled")?.addEventListener("change",()=>{$("personalWeeklyPushDetails").style.display=$("personalWeeklyPushEnabled").checked?"block":"none";});
 async function sendPersonalPushTest(){
   const btn=$("personalPushTestBtn"), msg=$("personalPushMessage");
