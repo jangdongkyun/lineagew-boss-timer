@@ -5910,8 +5910,14 @@ function ensureCutHistoryUI(){
       }
       return;
     }
-    await loadHistoryCuts();
-    renderHistory();
+    try{
+      await loadHistoryCuts();
+      renderHistory();
+    }catch(error){
+      console.error("서버별 컷 히스토리 조회 실패:",error);
+      $("cutHistoryDescription").textContent = selected+"번 서버 기록을 불러오지 못했습니다.";
+      $("cutHistoryContent").innerHTML = '<div style="padding:25px;text-align:center;color:#ff9999">컷 기록 조회 실패: '+escapeHtml(error.message || String(error))+'</div>';
+    }
   });
 }
 
@@ -5993,7 +5999,7 @@ function renderHistory(){
   // ---------------------------------
   if(cutHistoryMode === "participation"){
     description.textContent =
-      "월별 혈맹원 컷 참여 순위 및 개인별 상세 기록";
+      historyServerId+"번 서버 · 월별 혈맹원 컷 참여 순위 및 개인별 상세 기록";
 
     content.innerHTML = `
          <div style="margin-bottom:15px">
@@ -6076,9 +6082,12 @@ function renderHistory(){
 
     const serverInput = $("participationServerSelect");
 
-    serverInput.value = String(currentServerId);
+    serverInput.value = String(historyServerId);
+    $("cutHistoryServerSelect").value = String(historyServerId);
 
     serverInput.addEventListener("change",()=>{
+      historyServerId = Number(serverInput.value) || 1;
+      $("cutHistoryServerSelect").value = String(historyServerId);
       renderParticipationHistory();
     });
 
