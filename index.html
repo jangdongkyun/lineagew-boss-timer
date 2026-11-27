@@ -5471,6 +5471,8 @@ modal.addEventListener("click",e=>{
 
 
 async function openPersonalAlertSettings(){
+  // 관리자와 일반 회원 모두 동일한 개인 음성 알림 설정창을 사용합니다.
+  // 설정 데이터 조회를 기다리지 않고 모달부터 즉시 표시합니다.
   ensurePersonalAlertUI();
 
   if(!user){
@@ -5478,8 +5480,14 @@ async function openPersonalAlertSettings(){
     return;
   }
 
-  // 로그인 직후 설정 데이터 로딩이 아직 끝나지 않았거나
-  // 일시적인 조회 실패로 비어 있으면 열기 시점에 다시 불러옵니다.
+  const personalModal = $("personalAlertModal");
+  personalModal.style.display = "block";
+  try {
+    openBackPopup("personalAlertModal");
+  } catch (error) {
+    console.warn("개인 알림 설정의 뒤로가기 기록 추가 실패:", error);
+  }
+
   if(!myAlertSettings){
     try{
       await loadMyAlertSettings();
@@ -5649,13 +5657,8 @@ body {
 
   updatePersonalVoiceSections();
 
- // 설정창을 먼저 표시해 PWA의 뒤로가기 기록 처리 오류가
- // 화면 표시까지 막지 않도록 합니다.
-const personalModal = $("personalAlertModal");
-personalModal.style.display = "block";
-
-try {
-  openBackPopup("personalAlertModal");
+  // 모달은 조회 시작 시 이미 표시되어 있으며, 설정값을 채운 뒤 음성 목록을 갱신합니다.
+  loadPersonalVoiceList();
 } catch (error) {
   console.warn("개인 알림 설정의 뒤로가기 기록 추가 실패:", error);
 }
