@@ -5336,21 +5336,9 @@ function speak(text){
     // 개인이 선택한 목소리 적용
     const voices = synth.getVoices();
     const selectedVoiceName = myAlertSettings?.voice_name || "";
+    const selectedVoice = kobotGetPreferredKoreanVoice(voices,selectedVoiceName);
 
-    let selectedVoice = voices.find(
-      v => v.name === selectedVoiceName
-    );
-
-    // 선택한 목소리가 없으면 한국어 목소리 사용
-    if(!selectedVoice){
-      selectedVoice = voices.find(
-        v => v.lang.toLowerCase().startsWith("ko")
-      );
-    }
-
-    if(selectedVoice){
-      utterance.voice = selectedVoice;
-    }
+    if(selectedVoice) utterance.voice = selectedVoice;
 
     utterance.onstart = ()=>{
       console.log("음성 재생 시작:", text);
@@ -5429,12 +5417,17 @@ function ensurePersonalAlertUI(){
 
         <hr>
 
-        <p>음성 목소리 선택</p>
+        <p>무료 한국어 목소리 선택</p>
         <select id="personalVoiceSelect" style="width:100%;padding:10px">
-          <option value="">기본 한국어 목소리</option>
+          <option value="">자동 선택 (한국어 기본 목소리)</option>
         </select>
-        <button id="previewPersonalVoice" class="ghost"
-          type="button" style="margin-top:8px">음성 테스트</button>
+        <div id="personalVoiceStatus" class="muted" style="margin-top:7px;line-height:1.5">
+          이 기기와 브라우저에서 제공하는 무료 한국어 목소리를 불러옵니다.
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="refreshPersonalVoices" class="ghost" type="button">목소리 목록 새로고침</button>
+          <button id="previewPersonalVoice" class="ghost" type="button">음성 테스트</button>
+        </div>
       </div>
 
       <div id="personalVoiceCategoryOptions" style="display:none;margin-top:14px">
@@ -5482,6 +5475,10 @@ $("previewPersonalVoice").addEventListener(
   "click",
   previewPersonalVoice
 );
+$("refreshPersonalVoices").addEventListener("click",()=>{
+  loadPersonalVoiceList();
+  if("speechSynthesis" in window) window.speechSynthesis.getVoices();
+});
 
 $("savePersonalAlertBtn").addEventListener(
   "click",
@@ -5697,64 +5694,109 @@ body {
 
   // 모달은 조회 시작 시 이미 표시되어 있으며, 설정값을 채운 뒤 음성 목록을 갱신합니다.
   loadPersonalVoiceList();
-  loadPersonalVoiceList();
 }
 
 
-function loadPersonalVoiceList(){
-  if(!("speechSynthesis" in window)) return;
+let personalVoiceChangeListenerReady = false;
 
+function loadPersonalVoiceList(){
   const select = $("personalVoiceSelect");
-  const selectedName = myAlertSettings?.voice_name || "";
+  const status = $("personalVoiceStatus");
+  if(!select) return;
+
+  if(!("speechSynthesis" in window)){
+    if(status) status.textContent = "이 브라우저는 음성 재생 기능을 지원하지 않습니다.";
+    return;
+  }
+
+  const synth = window.speechSynthesis;
+  const selectedName = select.value || myAlertSettings?.voice_name || "";
 
   const fillVoices = ()=>{
-    const voices = window.speechSynthesis.getVoices();
+    const voices = synth.getVoices();
+    const koreanVoices = voices
+      .filter(v => /^ko(?:-|$)/i.test(String(v.lang || "")))
+      .sort((a,b)=>
+        String(a.name || "").localeCompare(String(b.name || ""), "ko") ||
+        String(a.lang || "").localeCompare(String(b.lang || ""))
+      );
 
-    select.innerHTML =
-      '<option value="">기본 한국어 목소리</option>';
+    const uniqueVoices = [];
+    const seen = new Set();
+    koreanVoices.forEach(voice=>{
+      const key = String(voice.name || "") + "|" + String(voice.lang || "");
+      if(!seen.has(key)){
+        seen.add(key);
+        uniqueVoices.push(voice);
+      }
+    });
 
-    voices
-      .filter(v => v.lang.toLowerCase().startsWith("ko"))
-      .forEach(v=>{
-        const option = document.createElement("option");
-        option.value = v.name;
-        option.textContent = `${v.name} (${v.lang})`;
-        select.appendChild(option);
-      });
+    select.replaceChildren();
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "자동 선택 (한국어 기본 목소리)";
+    select.appendChild(defaultOption);
 
-    select.value = selectedName;
+    uniqueVoices.forEach(voice=>{
+      const option = document.createElement("option");
+      option.value = voice.name;
+      option.textContent = voice.name + " (" + voice.lang + ")";
+      select.appendChild(option);
+    });
+
+    const savedVoiceExists = uniqueVoices.some(v=>v.name === selectedName);
+    select.value = savedVoiceExists ? selectedName : "";
+
+    if(status){
+      if(!uniqueVoices.length){
+        status.textContent = "한국어 목소리를 찾지 못했습니다. 브라우저/운영체제의 한국어 음성을 설치하거나 Chrome에서 다시 시도해 주세요.";
+      }else{
+        status.textContent = "무료 한국어 목소리 " + uniqueVoices.length + "개를 찾았습니다. 목록은 기기와 브라우저에 따라 다릅니다.";
+        if(selectedName && !savedVoiceExists){
+          status.textContent += " 저장된 목소리를 이 기기에서 찾지 못해 자동 선택으로 전환했습니다.";
+        }
+      }
+    }
   };
 
   fillVoices();
-  window.speechSynthesis.onvoiceschanged = fillVoices;
+
+  if(!personalVoiceChangeListenerReady){
+    if(typeof synth.addEventListener === "function"){
+      synth.addEventListener("voiceschanged", fillVoices);
+    }else{
+      synth.onvoiceschanged = fillVoices;
+    }
+    personalVoiceChangeListenerReady = true;
+  }
 }
 
 function previewPersonalVoice(){
-  if(!("speechSynthesis" in window)){
+  if(!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined"){
     alert("이 브라우저는 음성 재생을 지원하지 않습니다.");
     return;
   }
 
-  const select = $("personalVoiceSelect");
-  const voiceName = select.value;
+  const synth = window.speechSynthesis;
+  const voiceName = $("personalVoiceSelect")?.value || "";
+  const voice = kobotGetPreferredKoreanVoice(synth.getVoices(), voiceName);
 
-  const voices = window.speechSynthesis.getVoices();
-  const voice = voices.find(v => v.name === voiceName);
+  synth.cancel();
 
-  window.speechSynthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(
-    "테스트입니다."
-  );
-
+  const utterance = new SpeechSynthesisUtterance("테스트입니다.");
   utterance.lang = "ko-KR";
   utterance.rate = 0.9;
+  utterance.pitch = 1;
 
-  if(voice){
-    utterance.voice = voice;
-  }
+  if(voice) utterance.voice = voice;
 
-  window.speechSynthesis.speak(utterance);
+  utterance.onerror = event=>{
+    console.error("무료 음성 테스트 오류:", event.error);
+    const status = $("personalVoiceStatus");
+    if(status) status.textContent = "음성 테스트에 실패했습니다. 다른 목소리를 선택해 다시 시도해 주세요.";
+  };
+
+  synth.speak(utterance);
 }
 
 
