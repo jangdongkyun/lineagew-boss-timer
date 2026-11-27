@@ -375,50 +375,6 @@ h3{font-size:14px;margin:0 0 10px}
   gap:12px;
 }
 .field{margin-bottom:10px}
-  /* 수기 컷 보스 자동 선택 목록 */
-.boss-picker{
-  position:relative;
-}
-
-.boss-options{
-  display:none;
-  position:absolute;
-  top:100%;
-  left:0;
-  right:0;
-  z-index:100;
-  max-height:180px;
-  overflow-y:auto;
-  margin-top:4px;
-  padding:5px;
-  background:#151b26;
-  border:1px solid var(--line);
-  border-radius:9px;
-  box-shadow:0 8px 20px #0009;
-}
-
-.boss-options.show{
-  display:block;
-}
-
-.boss-option{
-  padding:9px 10px;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:13px;
-}
-
-.boss-option:hover{
-  background:#29384a;
-  color:var(--gold);
-}
-
-.manual-boss-empty{
-  padding:10px;
-  color:var(--muted);
-  font-size:12px;
-}
-
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
 .history-item{
   display:flex;
@@ -1377,9 +1333,6 @@ body {
       <button class="primary" type="button" id="fixedBossOpenBtn">
         고정보스
       </button>
-      <button class="primary" type="button" id="manualCutOpenBtn">
-        ✏️ 수기 컷
-      </button>
     </div>
   </div>
 
@@ -1579,123 +1532,6 @@ body {
 
 
  
-<!-- 수기 컷 팝업 -->
-<div id="manualCutModal"
-style="
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:10000;
-  background:rgba(0,0,0,.78);
-  align-items:flex-start;
-  justify-content:center;
-  padding:10px;
-  overflow-y:auto;
-">
-
-  <div class="panel"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="manualCutTitle"
-    style="
-      width:100%;
-      max-width:480px;
-      max-height:calc(100dvh - 20px);
-      overflow-y:auto;
-      margin:auto 0;
-      overscroll-behavior:contain;
-      border:1px solid #806b3e;
-      background:#151b26;
-      box-shadow:0 10px 40px rgba(0,0,0,.7);
-    ">
-
-    <div class="row"
-      style="justify-content:space-between;align-items:center">
-
-      <h2 id="manualCutTitle">✏️ 보스명으로 컷 시간 직접 입력</h2>
-
-      <button class="ghost"
-        type="button"
-        id="manualCutCloseBtn">
-        닫기 ✕
-      </button>
-    </div>
-
-    <div class="muted" style="margin-bottom:12px">
-      보스 이름 또는 별명을 입력하고 컷 시간을 입력하세요.
-      예: 저녁 7시, 오전 5시, 2135 또는 21:35
-    </div>
-
-    <div class="section-grid">
-
-      <div class="field">
-        <label>보스 이름 / 별명</label>
-
-        <div class="boss-picker">
-          <input
-            id="manualBossName"
-            autocomplete="off"
-            placeholder="보스 이름 입력 또는 목록에서 선택"
-          >
-          <div id="manualBossList" class="boss-options"></div>
-        </div>
-      </div>
-
-      <div class="field">
-<div class="field">
-  <label>컷 시간</label>
-
-  <div style="display:flex;gap:8px;align-items:center">
-    <input
-      id="manualCutTime"
-      type="text"
-      inputmode="text"
-      autocomplete="off"
-      autocapitalize="off"
-      autocorrect="off"
-      spellcheck="false"
-      aria-label="컷 시간 또는 자연어 입력"
-      data-form-type="other"
-      placeholder="저녁 7시 / 2135 / 21:35"
-      maxlength="30"
-      style="width:50%;min-width:0;flex:1"
-    >
-
-    <button
-      class="primary"
-      id="manualCutBtn"
-      type="button"
-      style="
-        flex:1;
-        min-width:0;
-        padding:12px 8px;
-        background:#806b3e;
-        white-space:nowrap;
-      ">
-      시간 등록
-    </button>
-  </div>
-</div>
-
-</div>
-<button class="primary"
-  id="manualCutBtn"
-  type="button"
-  style="
-    width:100%;
-    margin-top:12px;
-    position:sticky;
-    bottom:0;
-    z-index:5;
-    padding:14px;
-    background:#806b3e;
-  ">
-  수기 컷 기록 등록
-</button>
-
-  </div>
-</div>
-
 <div id="adminTools">
 
   <div class="admin-modal-header">
@@ -2241,11 +2077,6 @@ window.addEventListener("popstate",()=>{
     // 설명서만 닫고 앱 종료 확인창은 띄우지 않습니다.
     if(id === "kobotManualModal") return;
 
-    // 수기 컷 팝업에서 기기/브라우저 뒤로가기를 누르면
-    // 팝업을 닫은 뒤 앱 종료 확인창을 표시합니다.
-    if(id === "manualCutModal"){
-      openExitConfirm();
-    }
     return;
   }
 
@@ -2272,14 +2103,6 @@ document.addEventListener("keydown",event=>{
   if(exitConfirmOpen){
     event.preventDefault();
     closeExitConfirm(true);
-    return;
-  }
-
-  // 수기 컷 팝업이 열린 상태의 ESC도 기기 뒤로가기와 같은 종료 확인 흐름을 따릅니다.
-  const manualModal = $("manualCutModal");
-  if(manualModal && manualModal.style.display !== "none"){
-    event.preventDefault();
-    closeBackPopup("manualCutModal");
     return;
   }
 
@@ -4019,57 +3842,6 @@ $("bossSearchModal")?.addEventListener("click",event=>{
   if(event.target === $("bossSearchModal")) closeBossSearchModal();
 });
 
-function renderManualBossList(){
-  const input = $("manualBossName");
-  const list = $("manualBossList");
-
-  const query = input.value.trim().toLocaleLowerCase();
-
-  const sorted = [...bosses].sort((a,b)=>
-    a.name.localeCompare(b.name,"ko")
-  );
-
-  const filtered = sorted.filter(b=>{
-    const names = [
-      b.name,
-      ...(Array.isArray(b.aliases)?b.aliases:[])
-    ];
-
-    return !query || names.some(n=>
-      String(n).toLocaleLowerCase().includes(query)
-    );
-  });
-
-  if(!filtered.length){
-    list.innerHTML =
-      '<div class="manual-boss-empty">일치하는 보스가 없습니다.</div>';
-    list.classList.add("show");
-    return;
-  }
-
-  list.innerHTML = filtered.map(b=>`
-    <div class="boss-option" data-manual-boss="${escapeHtml(b.id)}">
-      ${escapeHtml(b.name)}
-    </div>
-  `).join("");
-
-  list.classList.add("show");
-
-  list.querySelectorAll("[data-manual-boss]").forEach(item=>{
-    item.addEventListener("click",()=>{
-      const boss = bosses.find(b=>
-        String(b.id) === item.dataset.manualBoss
-      );
-
-      if(!boss) return;
-
-      input.value = boss.name;
-      list.classList.remove("show");
-    });
-  });
-}
-
-
 async function finalizeCutRegistration(boss){
   // 새 컷 입력이 확정되면 해당 보스의 기존 삭제 대기를 취소
   const {error:cancelError} = await db
@@ -4560,52 +4332,9 @@ async function rowCut(bossId, sourceInput=null){
   }
 }
 
-async function manualCut(){
-  const boss = findBossByName($("manualBossName").value);
-
-  if(!boss){
-    alert("등록된 보스 이름 또는 별명을 찾을 수 없습니다.");
-    return false;
-  }
-
-  try{
-    const cutAt = parseCutTime($("manualCutTime").value);
-    await registerCut(boss,cutAt);
-
-    // 등록 성공 후 이름과 시간 모두 초기화
-    $("manualBossName").value = "";
-    $("manualCutTime").value = "";
-
-    alert("저장 완료되었습니다.");
-    return true;
-  }catch(e){
-    alert(e.message);
-    return false;
-  }
-}
-
-// 코봇의 '지금/현재 시각'은 직접 등록 입력창에 숫자(HHMM)로 채운 뒤
-// 기존 수기 컷 등록 함수를 실행해 동일한 저장 경로를 사용합니다.
 async function kobotRegisterThroughManualForm(boss,cutAt){
-  const modal = $("manualCutModal");
-  const bossInput = $("manualBossName");
-  const timeInput = $("manualCutTime");
-  if(!modal || !bossInput || !timeInput){
-    throw new Error("직접 등록 입력창을 찾을 수 없습니다.");
-  }
-
-  const numericTime =
-    String(cutAt.getHours()).padStart(2,"0") +
-    String(cutAt.getMinutes()).padStart(2,"0");
-
-  modal.style.display = "flex";
-  bossInput.value = boss.name;
-  timeInput.value = numericTime;
-
-  const saved = await manualCut();
-  if(!saved) throw new Error("직접 등록 입력창을 통한 컷 저장에 실패했습니다.");
-
-  modal.style.display = "none";
+  // 코봇의 현재 시각 컷도 보스 카드 등록과 동일한 저장 경로를 사용합니다.
+  await registerCut(boss,cutAt);
 }
 
 async function loadProfile(){
@@ -8732,57 +8461,8 @@ $("logoutBtn").addEventListener("click",async()=>{
 
 
   
-// 수기 컷 팝업 열기
-$("manualCutOpenBtn").addEventListener("click",()=>{
-  openBackPopup("manualCutModal");
-  $("manualCutModal").style.display = "flex";
-  $("manualBossName").focus();
-  renderManualBossList();
-});
-
-// 수기 컷 팝업 닫기
-$("manualCutCloseBtn").addEventListener("click",()=>{
-  closeBackPopup("manualCutModal");
-});
-
-// 팝업 바깥 클릭 시 닫기
-$("manualCutModal").addEventListener("click",e=>{
-  if(e.target === $("manualCutModal")){
-    closeBackPopup("manualCutModal");
-  }
-});
-
-// 수기 컷 등록
-$("manualCutBtn").addEventListener("click",manualCut);
-
-// 컷 시간 입력 후 Enter 키로 등록
-$("manualCutTime").addEventListener("keydown",e=>{
-  if(e.key === "Enter"){
-    e.preventDefault();
-    manualCut();
-  }
-});
-
-  
-// 컷 시간 입력 후 Enter 키로 등록
-$("manualCutTime").addEventListener("keydown",e=>{
-  if(e.key === "Enter"){
-    e.preventDefault();
-    manualCut();
-  }
-});
-  
 $("openCutHistoryBtn").addEventListener("click",()=>{
   openCutHistory();
-});
-  $("manualBossName").addEventListener("focus",renderManualBossList);
-
-$("manualBossName").addEventListener("input",renderManualBossList);
-
-document.addEventListener("click",e=>{
-  if(!e.target.closest(".boss-picker")){
-    $("manualBossList").classList.remove("show");
-  }
 });
 $("addBossBtn").addEventListener("click",saveBoss);
 $("resetAllBossBtn").addEventListener("click",resetAllBossTimes);
