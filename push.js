@@ -36,12 +36,12 @@
   }
 
   function isAdminApp(app) {
-    return !!(app && app.profile &&
-      String(app.profile.role || "").toLowerCase() === "admin");
+    // 승인 여부와 본인 소유 여부는 Supabase RLS가 최종 확인합니다.
+    return !!(app && app.user && app.profile);
   }
 
   function ensureControls() {
-    // 관리자 계정에서만 개인 알림 버튼 옆에 비공개 푸시 등록 UI를 만듭니다.
+    // 로그인 회원 모두 개인 알림 버튼 옆에 본인 기기 등록 UI를 표시합니다.
     const app = getAppGlobals();
     if (!isAdminApp(app)) return;
 
@@ -114,21 +114,21 @@
 
     const app = getAppGlobals();
 
-    const adminSignedIn = !!(
+    const memberSignedIn = !!(
       app &&
       app.user &&
       isAdminApp(app) &&
       appIsVisible()
     );
 
-    // 푸시 기능의 존재와 설정 UI는 관리자에게만 노출합니다.
-    button.style.display = adminSignedIn ? "inline-block" : "none";
+    // 본인 기기의 푸시 등록 상태만 노출합니다.
+    button.style.display = memberSignedIn ? "inline-block" : "none";
 
     if (status) {
-      status.style.display = adminSignedIn ? "block" : "none";
+      status.style.display = memberSignedIn ? "block" : "none";
     }
 
-    if (!adminSignedIn) {
+    if (!memberSignedIn) {
       lastUserId = null;
       return;
     }
@@ -215,7 +215,6 @@
       !isAdminApp(app) ||
       !appIsVisible()
     ) {
-      return;
       return;
     }
 
