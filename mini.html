@@ -71,7 +71,7 @@ button:disabled{opacity:.45}
    <button id="logoutBtn" type="button">로그아웃</button>
   </div>
 </div>
-<div class="modal" id="bossModal" role="dialog" aria-modal="true" aria-label="보스 컷 등록"><div class="modal-box"><div class="modal-head"><span id="modalBossTitle">보스 컷 등록</span><button type="button" id="closeBossModal">닫기</button></div><div class="modal-card"><div class="boss-main"><span class="bossname" id="modalBossName"></span><span class="time" id="modalBossTime"></span></div><div class="row-entry"><input id="modalBossInput" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" data-form-type="other" maxlength="5" placeholder="2135" aria-label="컷 시간"><button class="primary" type="button" id="modalBossRegister">등록</button></div></div></div></div>
+<div class="modal" id="bossModal" role="dialog" aria-modal="true" aria-label="보스 컷 등록"><div class="modal-box"><div class="modal-head"><span id="modalBossTitle">보스 컷 등록</span><button type="button" id="closeBossModal">닫기</button></div><div class="modal-card"><div class="boss-main"><span class="bossname" id="modalBossName"></span><span class="time" id="modalBossTime"></span></div><div class="row-entry"><input id="modalBossInput" type="search" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" maxlength="5" aria-label="컷 시간"><button class="primary" type="button" id="modalBossRegister">등록</button></div></div></div></div>
 <div id="message"></div>
 </main>
 <script>
@@ -103,7 +103,7 @@ function render(){
  if(!isTypingBossTime){
   $("bossList").innerHTML=visibleList.map(b=>{
    const st=state(b);
-   return '<div class="boss-row"><button class="boss-main" type="button" data-cut-now="'+esc(b.id)+'" '+(busy?'disabled':'')+'><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button><div class="row-entry"><input type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" data-form-type="other" maxlength="5" placeholder="2135" aria-label="'+esc(b.name)+' 컷 시간" data-time-for="'+esc(b.id)+'" value="'+esc(saved[b.id]||"")+'"><button class="primary" type="button" data-cut-time="'+esc(b.id)+'" '+(busy?'disabled':'')+'>등록</button></div></div>';
+   return '<div class="boss-row"><button class="boss-main" type="button" data-cut-now="'+esc(b.id)+'" '+(busy?'disabled':'')+'><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button><div class="row-entry"><input type="search" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" maxlength="5" aria-label="'+esc(b.name)+' 컷 시간" data-time-for="'+esc(b.id)+'" value="'+esc(saved[b.id]||"")+'"><button class="primary" type="button" data-cut-time="'+esc(b.id)+'" '+(busy?'disabled':'')+'>등록</button></div></div>';
   }).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
  }
  if(selectedPopupBossId!==null){const selected=bosses.find(x=>String(x.id)===String(selectedPopupBossId));if(selected){const st=state(selected);$("modalBossTime").textContent=st.label;$("modalBossTime").className="time "+st.cls;}}
