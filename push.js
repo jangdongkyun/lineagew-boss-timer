@@ -239,7 +239,7 @@
         );
       }
 
-      const registration = await navigator.serviceWorker.register("./sw.js?v=20261127-3", { updateViaCache: "none" });
+      const registration = await navigator.serviceWorker.register("./sw.js?v=20261127-4", { updateViaCache: "none" });
 
       await navigator.serviceWorker.ready;
 
