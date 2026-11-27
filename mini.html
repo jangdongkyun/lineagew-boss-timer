@@ -22,6 +22,7 @@ button:disabled{opacity:.45}
 .status{font-size:6px;color:var(--muted);margin:4px 0 8px;min-height:15px}
 .search{width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text);margin-bottom:7px}
 .bosslist{display:grid;gap:3px;max-height:68vh;overflow:auto}
+.bosslist-toggle{width:100%;margin:0 0 5px;padding:5px;font-size:7px}
 .boss-row{display:flex;align-items:center;gap:4px;width:100%;min-width:0;padding:4px 5px;border:1px solid var(--line);border-radius:7px;background:#151b26}
 .boss-main{display:flex;align-items:center;justify-content:space-between;gap:4px;flex:1;min-width:0;padding:3px 2px;border:0;background:transparent;text-align:left}
 .bossname{font-weight:850;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gold)}
@@ -59,6 +60,7 @@ button:disabled{opacity:.45}
  <div class="panel">
   <div class="status" id="status">데이터를 불러오는 중...</div>
   <input class="search" id="search" type="search" placeholder="보스 이름 또는 별명 검색">
+  <button class="bosslist-toggle" id="bossListToggle" type="button" style="display:none">전체 보스 펼치기</button>
   <div class="bosslist" id="bossList"></div>
  </div>
  <div class="foot">
@@ -73,7 +75,7 @@ button:disabled{opacity:.45}
 const SUPABASE_URL="https://jswekbrsjkylrwhgvvre.supabase.co";
 const SUPABASE_KEY="sb_publishable_s4gO0UlJvICe6eQSzFA9MQ_RWxo02po";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let user=null,profile=null,bosses=[],cuts=[],serverId=1,busy=false,channel=null,selectedPopupBossId=null;
+let user=null,profile=null,bosses=[],cuts=[],serverId=1,busy=false,channel=null,selectedPopupBossId=null,showAllBosses=false;
 const $=id=>document.getElementById(id);
 const say=t=>{$("message").textContent=t||""};
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -87,7 +89,11 @@ function render(){
  const q=$("search").value.trim().toLocaleLowerCase();
  const saved={};document.querySelectorAll("[data-time-for]").forEach(x=>saved[x.dataset.timeFor]=x.value);
  const list=sorted().filter(b=>variants(b).some(n=>n.toLocaleLowerCase().includes(q)));
- $("bossList").innerHTML=list.map(b=>{
+ const visibleList=showAllBosses?list:list.slice(0,5);
+ const toggle=$("bossListToggle");
+ toggle.style.display=list.length>5?"block":"none";
+ toggle.textContent=showAllBosses?"접기":"전체 보스 펼치기 ("+list.length+"마리)";
+ $("bossList").innerHTML=visibleList.map(b=>{
   const st=state(b);
   return '<div class="boss-row"><button class="boss-main" type="button" data-cut-now="'+esc(b.id)+'" '+(busy?'disabled':'')+'><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button><div class="row-entry"><input type="text" inputmode="numeric" maxlength="5" placeholder="2135" aria-label="'+esc(b.name)+' 컷 시간" data-time-for="'+esc(b.id)+'" value="'+esc(saved[b.id]||"")+'"><button class="primary" type="button" data-cut-time="'+esc(b.id)+'" '+(busy?'disabled':'')+'>등록</button></div></div>';
  }).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
@@ -165,6 +171,7 @@ $("bossList").addEventListener("keydown",e=>{
  btn?.click();
 });
 $("search").addEventListener("input",render);
+$("bossListToggle").addEventListener("click",()=>{showAllBosses=!showAllBosses;render();});
 
 $("refreshBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
 $("reloadDataBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
