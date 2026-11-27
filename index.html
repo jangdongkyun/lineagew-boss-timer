@@ -6001,7 +6001,12 @@ async function sendPersonalPushTest(){
     btn.disabled=false;btn.textContent="내 휴대폰으로 푸시 테스트";
   }
 }
-$("personalPushTestBtn")?.addEventListener("click",sendPersonalPushTest);
+// 개인 알림 설정창은 동적으로 생성되므로 테스트 버튼도 document 위임 이벤트로 연결합니다.
+document.addEventListener("click",event=>{
+  if(event.target?.closest?.("#personalPushTestBtn")){
+    sendPersonalPushTest();
+  }
+});
 
 let personalVoiceChangeListenerReady = false;
 
