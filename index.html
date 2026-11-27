@@ -462,6 +462,90 @@ h3{font-size:14px;margin:0 0 10px}
   font-weight:800;
 }
 .quick-links a:first-child{border-color:#7b6033;color:var(--gold)}
+/* 관리자 설정 메뉴 공통 디자인: 기존 기능/입력 ID 유지 */
+#adminTools > .panel{
+  background:linear-gradient(155deg,#172438 0%,#101a29 100%);
+  border:1px solid rgba(181,139,67,.48);
+  border-radius:14px;
+  padding:16px;
+  box-shadow:0 8px 22px rgba(0,0,0,.22);
+}
+#adminTools > .panel h2,
+#adminTools > .panel h3{
+  display:flex;align-items:center;gap:8px;
+  margin:0 0 13px;padding:0 0 10px;
+  color:#f0d18a;font-size:16px;font-weight:900;
+  border-bottom:1px solid rgba(210,174,103,.25);
+}
+#adminTools > .panel h2{font-size:17px}
+#adminTools > .panel p{
+  margin:10px 0 8px;color:#d9c9a6;font-size:13px;font-weight:800
+}
+#adminTools > .panel label{
+  display:flex;align-items:center;gap:9px;min-height:40px;
+  margin:6px 0;padding:8px 10px;box-sizing:border-box;
+  color:#f0eee7;background:rgba(34,48,68,.68);
+  border:1px solid rgba(145,124,83,.34);border-radius:9px;
+  font-size:13px;line-height:1.4
+}
+#adminTools > .panel input[type="checkbox"]{
+  width:18px;height:18px;flex:0 0 18px;margin:0;accent-color:#d6ad58
+}
+#adminTools > .panel input:not([type="checkbox"]),
+#adminTools > .panel select,
+#adminTools > .panel textarea{
+  min-height:41px;padding:9px 11px;box-sizing:border-box;
+  color:#fff;background:#0d1726;border:1px solid #596047;border-radius:9px
+}
+#adminTools > .panel .field label{
+  display:block;background:none;border:0;padding:0;margin:8px 0 5px;
+  min-height:0;color:#d9c9a6;font-weight:800
+}
+#adminTools > .panel hr{
+  border:0;border-top:1px solid rgba(210,174,103,.22);margin:16px 0
+}
+#adminTools > .panel button{
+  min-height:39px;border-radius:9px;font-weight:800
+}
+#adminTools > .panel button.primary{box-shadow:0 3px 10px rgba(0,0,0,.18)}
+#adminTools #adminPushOptions,
+#adminTools #adminWeeklyPushDetails{
+  padding:11px;margin-top:10px;background:rgba(10,19,32,.55);
+  border:1px solid rgba(145,124,83,.28);border-radius:11px
+}
+#adminTools #adminPushOptions > label,
+#adminTools #adminWeeklyPushDetails > label{
+  display:inline-flex;width:calc(50% - 5px);vertical-align:top;
+  min-height:38px;margin:4px 2px;padding:7px 9px
+}
+#adminTools #adminPushBossOptions,
+#adminTools #adminWeeklyPushBossOptions,
+#adminTools #respawnBulkBossList{
+  gap:7px!important
+}
+#adminTools #adminPushBossOptions label,
+#adminTools #adminWeeklyPushBossOptions label,
+#adminTools #respawnBulkBossList label{
+  min-width:0;min-height:41px;margin:0;padding:8px 9px;
+  overflow-wrap:anywhere;background:#1c2a3d;border:1px solid #596047;
+  border-radius:9px;font-size:12px
+}
+#adminTools #adminMemberList,
+#adminTools #adminRecoveryList,
+#adminTools #adminBossList{
+  overflow-wrap:anywhere
+}
+#adminTools .muted{line-height:1.55}
+@media(max-width:600px){
+  #adminTools > .panel{padding:12px;margin-bottom:10px}
+  #adminTools > .panel h2,#adminTools > .panel h3{font-size:15px}
+  #adminTools #adminPushOptions > label,
+  #adminTools #adminWeeklyPushDetails > label{width:100%;margin:3px 0}
+  #adminTools #adminPushBossOptions,
+  #adminTools #adminWeeklyPushBossOptions,
+  #adminTools #respawnBulkBossList{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
 .admin-only{display:none}
 #message{margin:10px 0;color:var(--yellow);font-size:13px;white-space:pre-wrap}
 .badge{
