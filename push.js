@@ -50,9 +50,9 @@
 
     button = document.createElement("button");
     button.id = "bossPushBtn";
-    button.className = "ghost";
+    button.className = "alert-master-btn is-off";
     button.type = "button";
-    button.textContent = "휴대폰 알림 확인 중";
+    button.textContent = "푸시 OFF";
     button.addEventListener("click", togglePush);
 
     anchorButton.insertAdjacentElement("afterend", button);
@@ -144,7 +144,9 @@
       !("PushManager" in window)
     ) {
       button.disabled = true;
-      button.textContent = "푸시 미지원 브라우저";
+      button.textContent = "푸시 OFF";
+      button.classList.remove("is-on");
+      button.classList.add("is-off");
 
       showStatus("현재 브라우저에서는 휴대폰 푸시를 사용할 수 없습니다.");
       return;
@@ -155,7 +157,9 @@
 
       if (!subscription) {
         button.disabled = false;
-        button.textContent = "이 기기 푸시 등록하기";
+        button.textContent = "푸시 OFF";
+        button.classList.remove("is-on");
+        button.classList.add("is-off");
 
         showStatus(
           Notification.permission === "denied"
@@ -170,9 +174,9 @@
       const enabled = !!row?.enabled;
 
       button.disabled = false;
-      button.textContent = enabled
-        ? "이 기기 푸시 등록 해제"
-        : "이 기기 푸시 등록하기";
+      button.textContent = enabled ? "푸시 ON" : "푸시 OFF";
+      button.classList.toggle("is-on",enabled);
+      button.classList.toggle("is-off",!enabled);
 
       const settingsResult = await app.db
         .from("user_alert_settings")
@@ -198,7 +202,9 @@
 
     } catch (error) {
       button.disabled = false;
-      button.textContent = "휴대폰 알림 설정";
+      button.textContent = "푸시 OFF";
+      button.classList.remove("is-on");
+      button.classList.add("is-off");
 
       showStatus("푸시 상태 확인 실패: " + (error.message || error));
     }
