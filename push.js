@@ -1,5 +1,5 @@
 
-/* LINEAGE W Boss Push - 모든 로그인 회원의 개인 기기 푸시 등록 */
+/* LINEAGE W Boss Push - 관리자 전용 비공개 기기 등록 */
 (() => {
   "use strict";
 
@@ -35,8 +35,16 @@
     return output;
   }
 
+  function isAdminApp(app) {
+    return !!(app && app.profile &&
+      String(app.profile.role || "").toLowerCase() === "admin");
+  }
+
   function ensureControls() {
-    // 메인 화면의 기존 개인 알림 설정 버튼을 기준으로 푸시 등록 버튼을 배치합니다.
+    // 관리자 계정에서만 개인 알림 버튼 옆에 비공개 푸시 등록 UI를 만듭니다.
+    const app = getAppGlobals();
+    if (!isAdminApp(app)) return;
+
     const anchorButton = document.getElementById("personalAlertBtn");
     if (!anchorButton || button) return;
 
@@ -106,21 +114,21 @@
 
     const app = getAppGlobals();
 
-    const signedIn = !!(
+    const adminSignedIn = !!(
       app &&
       app.user &&
-      app.profile &&
+      isAdminApp(app) &&
       appIsVisible()
     );
 
-    // 관리자 여부와 관계없이 모든 로그인 회원에게 표시합니다.
-    button.style.display = signedIn ? "inline-block" : "none";
+    // 푸시 기능의 존재와 설정 UI는 관리자에게만 노출합니다.
+    button.style.display = adminSignedIn ? "inline-block" : "none";
 
     if (status) {
-      status.style.display = signedIn ? "block" : "none";
+      status.style.display = adminSignedIn ? "block" : "none";
     }
 
-    if (!signedIn) {
+    if (!adminSignedIn) {
       lastUserId = null;
       return;
     }
@@ -204,10 +212,10 @@
     if (
       !app ||
       !app.user ||
-      !app.profile ||
+      !isAdminApp(app) ||
       !appIsVisible()
     ) {
-      alert("로그인 후 사용할 수 있습니다.");
+      return;
       return;
     }
 
