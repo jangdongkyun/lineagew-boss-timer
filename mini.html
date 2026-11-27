@@ -24,25 +24,22 @@ button:disabled{opacity:.45}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;margin-bottom:6px}
 .status{font-size:6px;color:var(--muted);margin:4px 0 8px;min-height:15px}
 .search{width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text);margin-bottom:7px}
-.bosslist{display:grid;gap:3px;max-height:34vh;overflow:auto}
-.boss{display:flex;align-items:center;justify-content:space-between;gap:4px;text-align:left;width:100%;padding:6px}
-.boss.selected{border-color:var(--gold);background:#493817}
-.bossname{font-weight:850;min-width:0;overflow-wrap:anywhere}
-.time{font-weight:900;color:var(--green);white-space:nowrap}
+.bosslist{display:grid;gap:3px;max-height:68vh;overflow:auto}
+.boss-row{display:flex;align-items:center;gap:4px;width:100%;min-width:0;padding:4px 5px;border:1px solid var(--line);border-radius:7px;background:#151b26}
+.boss-main{display:flex;align-items:center;justify-content:space-between;gap:4px;flex:1;min-width:0;padding:3px 2px;border:0;background:transparent;text-align:left}
+.bossname{font-weight:850;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gold)}
+.time{font-weight:900;color:var(--green);white-space:nowrap;flex-shrink:0}
 .time.soon{color:#f5d45e}.time.hot{color:#ff963e}.time.spawn{color:var(--red)}
-.muted{color:var(--muted);font-size:10px}
-.selectedbox{text-align:center}
-.selectedname{font-size:9px;font-weight:900;color:var(--gold);overflow-wrap:anywhere}
-.countdown{font-size:12px;font-weight:950;line-height:1.35;margin:4px 0}
-.cutnow{width:100%;padding:8px;font-size:8px;background:#226044;border-color:#3d9c6b}
-.timeentry{display:flex;gap:3px;margin-top:5px}
-.timeentry input{min-width:0;flex:1;padding:6px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text)}
-.timeentry button{min-width:48px}
-.foot{display:flex;gap:5px;margin-top:7px}
+.row-entry{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.row-entry input{width:43px;min-width:0;padding:5px 3px;border:1px solid var(--line);border-radius:5px;background:#0d131d;color:var(--text);font-size:7px;text-align:center}
+.row-entry button{padding:5px 6px;font-size:7px;border-radius:5px}
+.row-entry button:disabled,.boss-main:disabled{opacity:.45}
+.muted{color:var(--muted);font-size:6px}
+.foot{display:flex;gap:5px;margin-top:6px}
 .foot button{flex:1;font-size:6px}
 #loginBox{display:none}
 #message{white-space:pre-wrap;line-height:1.4;color:#f5d45e}
-@media(max-height:520px){main{padding:6px}.panel{padding:7px;margin-bottom:6px}.bosslist{max-height:24vh}.countdown{font-size:10px}}
+@media(max-height:520px){main{padding:5px}.panel{padding:6px;margin-bottom:5px}.bosslist{max-height:64vh}}
 </style>
 </head>
 <body>
@@ -67,21 +64,10 @@ button:disabled{opacity:.45}
   <input class="search" id="search" type="search" placeholder="보스 이름 또는 별명 검색">
   <div class="bosslist" id="bossList"></div>
  </div>
- <div class="panel selectedbox">
-  <div class="muted">선택한 보스</div>
-  <div class="selectedname" id="selectedName">보스를 선택하세요</div>
-  <div class="countdown" id="countdown">--:--</div>
-  <div class="muted" id="expected"></div>
-  <button class="cutnow" id="cutNowBtn" type="button" disabled>현재 시각으로 컷 등록</button>
-  <div class="timeentry">
-   <input id="cutTime" inputmode="numeric" maxlength="5" placeholder="컷 시간 2135 / 21:35">
-   <button class="primary" id="cutTimeBtn" type="button" disabled>시간 등록</button>
-  </div>
-  <div class="foot">
+ <div class="foot">
    <button id="reloadDataBtn" type="button">시간표 갱신</button>
    <button id="logoutBtn" type="button">로그아웃</button>
   </div>
- </div>
 </div>
 <div id="message"></div>
 </main>
@@ -89,7 +75,7 @@ button:disabled{opacity:.45}
 const SUPABASE_URL="https://jswekbrsjkylrwhgvvre.supabase.co";
 const SUPABASE_KEY="sb_publishable_s4gO0UlJvICe6eQSzFA9MQ_RWxo02po";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let user=null,profile=null,bosses=[],cuts=[],serverId=1,selectedBossId=null,busy=false,channel=null;
+let user=null,profile=null,bosses=[],cuts=[],serverId=1,busy=false,channel=null;
 const $=id=>document.getElementById(id);
 const say=t=>{$("message").textContent=t||""};
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -101,12 +87,12 @@ function state(b){const at=nextAt(b);if(at===null)return {label:"시간 미등�
 function sorted(){return [...bosses].sort((a,b)=>(nextAt(a)??Infinity)-(nextAt(b)??Infinity));}
 function render(){
  const q=$("search").value.trim().toLocaleLowerCase();
+ const saved={};document.querySelectorAll("[data-time-for]").forEach(x=>saved[x.dataset.timeFor]=x.value);
  const list=sorted().filter(b=>variants(b).some(n=>n.toLocaleLowerCase().includes(q)));
- $("bossList").innerHTML=list.map(b=>{const st=state(b);return '<button class="boss '+(String(b.id)===String(selectedBossId)?"selected":"")+'" data-id="'+esc(b.id)+'"><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button>';}).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
- const b=bosses.find(x=>String(x.id)===String(selectedBossId));
- $("selectedName").textContent=b?b.name:"보스를 선택하세요";
- $("cutNowBtn").disabled=!b||busy;$("cutTimeBtn").disabled=!b||busy;
- if(b){const at=nextAt(b);const st=state(b);$("countdown").textContent=st.label;$("countdown").style.color=st.cls==="spawn"?"#ff6262":st.cls==="hot"?"#ff963e":st.cls==="soon"?"#f5d45e":"#edf2fa";$("expected").textContent=at?("예정 "+new Date(at).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false})):"최초 출현 시간을 관리자에게 문의하세요.";}else{$("countdown").textContent="--:--";$("expected").textContent="";}
+ $("bossList").innerHTML=list.map(b=>{
+  const st=state(b);
+  return '<div class="boss-row"><button class="boss-main" type="button" data-cut-now="'+esc(b.id)+'" '+(busy?'disabled':'')+'><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button><div class="row-entry"><input type="text" inputmode="numeric" maxlength="5" placeholder="2135" aria-label="'+esc(b.name)+' 컷 시간" data-time-for="'+esc(b.id)+'" value="'+esc(saved[b.id]||"")+'"><button class="primary" type="button" data-cut-time="'+esc(b.id)+'" '+(busy?'disabled':'')+'>등록</button></div></div>';
+ }).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
  document.querySelectorAll("[data-server]").forEach(x=>x.classList.toggle("active",Number(x.dataset.server)===serverId));
 }
 async function loadData(){
@@ -116,7 +102,6 @@ async function loadData(){
  ]);
  if(br.error)throw br.error;if(cr.error)throw cr.error;
  bosses=br.data||[];cuts=cr.data||[];
- if(!selectedBossId||!bosses.some(b=>String(b.id)===String(selectedBossId)))selectedBossId=sorted()[0]?.id??null;
  $("status").textContent="접속 중 · "+(profile.nickname||"혈맹원")+" · "+serverId+"번 서버";
  render();
 }
@@ -136,8 +121,8 @@ function parseTime(value){
  if(h<0||h>23||m<0||m>59)throw new Error("올바른 24시간 형식으로 입력하세요.");
  const d=new Date();const out=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,m,0,0);if(out.getTime()>Date.now()+60000)out.setDate(out.getDate()-1);return out.toISOString();
 }
-async function registerCut(cutAt){
- const b=bosses.find(x=>String(x.id)===String(selectedBossId));if(!b)throw new Error("보스를 먼저 선택하세요.");
+async function registerCut(bossId,cutAt){
+ const b=bosses.find(x=>String(x.id)===String(bossId));if(!b)throw new Error("보스를 찾을 수 없습니다.");
  if(busy)return;busy=true;render();say("컷 기록을 저장하고 있습니다...");
  try{
   const now=new Date().toISOString();
@@ -149,7 +134,7 @@ async function registerCut(cutAt){
   if(rowsError)throw rowsError;
   const old=(rows||[]).slice(3).map(x=>x.id);
   if(old.length){const deleteAt=new Date(Date.now()+600000).toISOString();const {error:pendingError}=await db.from("cut_records").update({pending_delete_at:deleteAt}).in("id",old).eq("server_id",serverId);if(pendingError)throw pendingError;}
-  $("cutTime").value="";await loadData();say(b.name+" 컷 등록 완료");
+  await loadData();say(b.name+" 컷 등록 완료");
  }catch(e){say("등록 실패: "+(e.message||e));}
  finally{busy=false;render();}
 }
@@ -165,12 +150,29 @@ async function start(){
  if(channel)db.removeChannel(channel);
  channel=db.channel("mini-boss-live-"+serverId).on("postgres_changes",{event:"*",schema:"public",table:"cut_records",filter:"server_id=eq."+serverId},async()=>{try{await loadData();}catch(e){say(e.message);}}).subscribe();
 }
-$("bossList").addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(!b)return;selectedBossId=b.dataset.id;render();});
+$("bossList").addEventListener("click",e=>{
+ const nowBtn=e.target.closest("[data-cut-now]");
+ if(nowBtn){
+  const b=bosses.find(x=>String(x.id)===String(nowBtn.dataset.cutNow));
+  if(b&&confirm(b.name+"\\n현재 시각으로 컷 기록을 등록할까요?"))registerCut(b.id,new Date().toISOString());
+  return;
+ }
+ const timeBtn=e.target.closest("[data-cut-time]");
+ if(timeBtn){
+  const id=timeBtn.dataset.cutTime;
+  const input=[...$("bossList").querySelectorAll("[data-time-for]")].find(x=>x.dataset.timeFor===id);
+  try{registerCut(id,parseTime(input?.value));}catch(err){say(err.message);}
+ }
+});
+$("bossList").addEventListener("keydown",e=>{
+ if(e.key!=="Enter"||!e.target.matches("[data-time-for]"))return;
+ const id=e.target.dataset.timeFor;
+ const btn=[...$("bossList").querySelectorAll("[data-cut-time]")].find(x=>x.dataset.cutTime===id);
+ btn?.click();
+});
 $("servers").addEventListener("click",async e=>{const b=e.target.closest("[data-server]");if(!b)return;try{await setServer(Number(b.dataset.server));}catch(err){say("서버 변경 실패: "+err.message);}});
 $("search").addEventListener("input",render);
-$("cutNowBtn").addEventListener("click",()=>{const b=bosses.find(x=>String(x.id)===String(selectedBossId));if(b&&confirm(b.name+"\n현재 시각으로 컷 기록을 등록할까요?"))registerCut(new Date().toISOString());});
-$("cutTimeBtn").addEventListener("click",()=>{try{registerCut(parseTime($("cutTime").value));}catch(e){say(e.message);}});
-$("cutTime").addEventListener("keydown",e=>{if(e.key==="Enter")$("cutTimeBtn").click();});
+
 $("refreshBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
 $("reloadDataBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
 $("logoutBtn").addEventListener("click",async()=>{if(confirm("보탐봇에서 로그아웃할까요?")){await db.auth.signOut();$("app").style.display="none";$("loginBox").style.display="block";}});
