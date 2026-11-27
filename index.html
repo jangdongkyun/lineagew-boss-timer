@@ -5957,7 +5957,12 @@ function updatePersonalPushVisibility(){
   panel.style.display = enabled ? "block" : "none";
   panel.setAttribute("aria-hidden", enabled ? "false" : "true");
 }
-$("personalPushEnabled")?.addEventListener("change",updatePersonalPushVisibility);
+// 설정 팝업은 나중에 동적으로 생성되므로 document 위임 이벤트로 즉시 반응시킵니다.
+document.addEventListener("change",event=>{
+  if(event.target?.id === "personalPushEnabled"){
+    updatePersonalPushVisibility();
+  }
+});
 $("personalWeeklyPushEnabled")?.addEventListener("change",()=>{$("personalWeeklyPushDetails").style.display=$("personalWeeklyPushEnabled").checked?"block":"none";});
 async function sendPersonalPushTest(){
   const btn=$("personalPushTestBtn"), msg=$("personalPushMessage");
