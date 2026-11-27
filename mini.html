@@ -89,7 +89,7 @@ function nextAt(b){const last=latestCut(b);let base=last?new Date(last.cut_at).g
 function duration(ms){if(ms<=0)return "출현";let sec=Math.floor(ms/1000),d=Math.floor(sec/86400),h=Math.floor(sec%86400/3600),m=Math.floor(sec%3600/60),s=sec%60;if(d)return d+"일 "+h+"시간 "+m+"분";if(h)return h+"시간 "+m+"분 "+s+"초";return m+"분 "+s+"초";}
 function state(b){const at=nextAt(b);if(at===null)return {label:"시간 미등록",cls:""};const ms=at-Date.now();if(ms<=0&&ms>=-300000)return {label:"출현",cls:"spawn"};if(ms>0&&ms<=600000)return {label:duration(ms),cls:"hot"};if(ms>0&&ms<=3600000)return {label:duration(ms),cls:"soon"};return {label:ms>0?duration(ms):"다음 주기",cls:""};}
 function sorted(){return [...bosses].sort((a,b)=>(nextAt(a)??Infinity)-(nextAt(b)??Infinity));}
-function normalizeBossName(value){return String(value||"").toLocaleLowerCase().replace(/[\\s.,!?~。，！？·_-]/g,"");}
+function normalizeBossName(value){return String(value||"").toLocaleLowerCase().replace(/[\s.,!?~。，！？·_-]/g,"");}
 function findBossByName(value){const q=normalizeBossName(value);if(!q)return null;return bosses.find(b=>variants(b).some(n=>normalizeBossName(n)===q))||null;}
 function renderSearchResults(){
  const input=$("search"),results=$("searchResults");if(!input||!results)return;
