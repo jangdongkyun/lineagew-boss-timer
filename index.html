@@ -5646,10 +5646,16 @@ body {
 
   updatePersonalVoiceSections();
 
- // 휴대폰 뒤로 가기 기록 추가
-openBackPopup("personalAlertModal");
+ // 설정창을 먼저 표시해 PWA의 뒤로가기 기록 처리 오류가
+ // 화면 표시까지 막지 않도록 합니다.
+const personalModal = $("personalAlertModal");
+personalModal.style.display = "block";
 
-$("personalAlertModal").style.display = "block";
+try {
+  openBackPopup("personalAlertModal");
+} catch (error) {
+  console.warn("개인 알림 설정의 뒤로가기 기록 추가 실패:", error);
+}
 
 loadPersonalVoiceList();
 }
@@ -8472,8 +8478,13 @@ $("clearBossForm").addEventListener("click",resetBossForm);
 
 
 
-$("personalAlertBtn").addEventListener("click",()=>{
-  openPersonalAlertSettings();
+$("personalAlertBtn").addEventListener("click",async()=>{
+  try {
+    await openPersonalAlertSettings();
+  } catch (error) {
+    console.error("개인 알림 설정 열기 실패:", error);
+    alert("개인 알림 설정을 여는 중 오류가 발생했습니다.\n" + (error?.message || error));
+  }
 });
 
 
