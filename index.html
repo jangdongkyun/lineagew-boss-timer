@@ -1831,18 +1831,6 @@ body {
 </div>
 
 
-<!-- 메인 화면 종료 확인 팝업 -->
-<div id="exitConfirmModal" role="dialog" aria-modal="true" aria-labelledby="exitConfirmTitle">
-  <div class="exit-confirm-box">
-    <h2 class="exit-confirm-title" id="exitConfirmTitle">종료하시겠습니까?</h2>
-    <div class="exit-confirm-message">확인을 누르면 현재 보탐봇 화면에서 나갑니다.</div>
-    <div class="exit-confirm-actions">
-      <button type="button" class="danger" id="exitConfirmYesBtn">확인</button>
-      <button type="button" class="ghost" id="exitConfirmCancelBtn">취소</button>
-    </div>
-  </div>
-</div>
-
 <!-- 고정보스 시간표 팝업 -->
 <div id="fixedBossModal"
      style="
@@ -2055,78 +2043,10 @@ const $ = id => document.getElementById(id);
 
 
 
-// 뒤로 가기 / ESC 처리: 열린 팝업을 먼저 닫고 메인 화면 종료를 확인
+// 뒤로가기 / ESC 처리: 열려 있는 팝업만 닫고, 메인 화면에서는 브라우저 기본 종료 동작 허용
 const popupBackStack = [];
-let mainExitConfirmed = false;
+// 다른 기능에서 참조하는 호환 플래그: 종료 확인 팝업은 더 이상 사용하지 않습니다.
 let exitConfirmOpen = false;
-
-// 앱 진입 시 현재 페이지를 기준 기록으로 두고 뒤로가기 방지 기록 추가
-history.replaceState(
-  { ...(history.state || {}), __appBackBase: true },
-  "",
-  location.href
-);
-
-history.pushState(
-  { ...(history.state || {}), __mainBackGuard: true },
-  "",
-  location.href
-);
-
-function openExitConfirm(){
-  if(mainExitConfirmed || exitConfirmOpen) return;
-
-  exitConfirmOpen = true;
-  const modal = $("exitConfirmModal");
-
-  if(modal){
-    modal.style.display = "flex";
-
-    // 확인창이 열린 동안에도 뒤로가기를 한 번 더 눌러 앱을 우회하지 못하게 보호
-    history.pushState(
-      { ...(history.state || {}), __exitConfirmOpen: true },
-      "",
-      location.href
-    );
-  }else{
-    // 비상 fallback: 확인 팝업이 누락된 경우에도 종료 확인은 유지
-    const shouldExit = window.confirm("종료하시겠습니까?");
-    exitConfirmOpen = false;
-
-    if(shouldExit){
-      mainExitConfirmed = true;
-      history.back();
-    }else{
-      history.pushState(
-        { ...(history.state || {}), __mainBackGuard: true },
-        "",
-        location.href
-      );
-    }
-  }
-}
-
-function closeExitConfirm(restoreGuard = true, restoreHistory = false){
-  const modal = $("exitConfirmModal");
-  if(modal) modal.style.display = "none";
-
-  exitConfirmOpen = false;
-
-  // 뒤로가기로 확인창을 닫은 경우, popstate로 빠진 보호 기록을 다시 추가합니다.
-  // 따라서 다음 뒤로가기도 앱을 벗어나지 않고 종료 확인창을 다시 표시합니다.
-  if(restoreGuard && restoreHistory && !mainExitConfirmed){
-    history.pushState(
-      { ...(history.state || {}), __mainBackGuard: true },
-      "",
-      location.href
-    );
-  }
-
-  // 종료 확인 중 잠시 멈춘 코봇은 취소 후 다시 대기
-  if(typeof kobotActive !== "undefined" && kobotActive && !document.hidden && !mainExitConfirmed){
-    kobotStartRecognition();
-  }
-}
 
 // 팝업 열기
 function openBackPopup(id){
@@ -2157,58 +2077,29 @@ function closeBackPopup(id){
   }
 }
 
-// 브라우저 뒤로가기 감지
+// 뒤로가기는 열린 팝업이 있을 때만 가로채고,
+// 메인 화면에서는 별도 확인 없이 브라우저/안드로이드의 기본 뒤로가기로 종료합니다.
 window.addEventListener("popstate",()=>{
   const id = popupBackStack[popupBackStack.length - 1];
+  if(!id) return;
 
-  // 열린 팝업이 있으면 가장 마지막 팝업만 닫음
-  if(id){
-    popupBackStack.pop();
+  popupBackStack.pop();
 
-    if(id === "adminTools"){
-      closeAdminTools(true);
-      return;
-    }
-
-    const box = $(id);
-    if(box) box.style.display = "none";
-    if(id === "bossSearchModal" && box) box.classList.remove("is-open");
-
-    // 코봇 설명서는 일반 안내 팝업이므로 뒤로가기를 누르면
-    // 설명서만 닫고 앱 종료 확인창은 띄우지 않습니다.
-    if(id === "kobotManualModal") return;
-
+  if(id === "adminTools"){
+    closeAdminTools(true);
     return;
   }
 
-  if(mainExitConfirmed) return;
-
-  // 종료 확인창에서 뒤로가기를 누르면 취소하고,
-  // 앱의 뒤로가기 방지 기록을 복구해 다음 뒤로가기도 확인창을 표시합니다.
-  if(exitConfirmOpen){
-    closeExitConfirm(true, true);
-    return;
-  }
-
-  const app = $("app");
-  if(!app || app.style.display === "none") return;
-
-  // 메인 화면에서 뒤로가기를 누르면 종료 확인창만 표시
-  openExitConfirm();
+  const box = $(id);
+  if(box) box.style.display = "none";
+  if(id === "bossSearchModal" && box) box.classList.remove("is-open");
 });
 
-// ESC 키도 브라우저 뒤로가기와 동일한 순서로 처리
+// ESC도 팝업이 열려 있을 때만 닫고, 메인 화면에서는 바로 뒤로 이동
 document.addEventListener("keydown",event=>{
   if(event.key !== "Escape" || event.defaultPrevented) return;
 
-  if(exitConfirmOpen){
-    event.preventDefault();
-    closeExitConfirm(true);
-    return;
-  }
-
   const lastPopupId = popupBackStack[popupBackStack.length - 1];
-
   if(lastPopupId){
     event.preventDefault();
     closeBackPopup(lastPopupId);
@@ -2216,44 +2107,11 @@ document.addEventListener("keydown",event=>{
   }
 
   const app = $("app");
-  if(app && app.style.display !== "none" && !mainExitConfirmed){
+  if(app && app.style.display !== "none"){
     event.preventDefault();
     history.back();
   }
 });
-
-// 종료 확인 버튼
-// 캡처 단계에서 버튼 클릭을 먼저 받아 다른 클릭 처리 코드의 영향을 방지합니다.
-document.addEventListener("click",event=>{
-  const yesButton = event.target?.closest?.("#exitConfirmYesBtn");
-  const cancelButton = event.target?.closest?.("#exitConfirmCancelBtn");
-  const modal = event.target?.id === "exitConfirmModal";
-
-  if(yesButton){
-    event.preventDefault();
-    event.stopPropagation();
-
-    // 명시적으로 '확인'을 누른 경우에만 앱 이탈을 시작합니다.
-    mainExitConfirmed = true;
-    stopKobot();
-    closeExitConfirm(false);
-
-    // 확인창 기록과 앱 뒤로가기 보호 기록을 모두 벗어납니다.
-    history.go(-2);
-    return;
-  }
-
-  if(cancelButton){
-    event.preventDefault();
-    event.stopPropagation();
-    closeExitConfirm(true);
-    return;
-  }
-
-  if(modal){
-    closeExitConfirm(true);
-  }
-}, true);
 
 
   
