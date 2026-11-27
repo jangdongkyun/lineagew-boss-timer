@@ -9,40 +9,40 @@
 <style>
 :root{color-scheme:dark;--bg:#0b0e14;--panel:#151b26;--line:#303b4d;--text:#edf2fa;--muted:#9ba9bd;--gold:#e6bd68;--green:#63d69b;--red:#ff6262}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;font-size:13px}
-main{padding:9px;max-width:520px;margin:auto}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;font-size:7px}
+main{padding:6px;max-width:520px;margin:auto}
 header{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
-.brand{font-weight:900;color:var(--gold);font-size:17px}
-.sub{font-size:10px;color:var(--muted)}
+.brand{font-weight:900;color:var(--gold);font-size:9px}
+.sub{font-size:5px;color:var(--muted)}
 button,input{font:inherit}
-button{border:1px solid var(--line);border-radius:8px;background:#263448;color:var(--text);padding:8px 9px;font-weight:800;cursor:pointer}
+button{border:1px solid var(--line);border-radius:8px;background:#263448;color:var(--text);padding:6px 7px;font-weight:800;cursor:pointer}
 button:disabled{opacity:.45}
 .primary{background:#8a672d;border-color:#b58b43}
 .serverbar{display:flex;gap:4px}
-.serverbar button{flex:1;padding:7px 4px;font-size:12px}
+.serverbar button{flex:1;padding:5px 3px;font-size:6px}
 .serverbar button.active{background:#a77b32;border-color:var(--gold)}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px;margin-bottom:8px}
-.status{font-size:11px;color:var(--muted);margin:4px 0 8px;min-height:15px}
-.search{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text);margin-bottom:7px}
-.bosslist{display:grid;gap:5px;max-height:34vh;overflow:auto}
-.boss{display:flex;align-items:center;justify-content:space-between;gap:7px;text-align:left;width:100%;padding:8px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;margin-bottom:6px}
+.status{font-size:6px;color:var(--muted);margin:4px 0 8px;min-height:15px}
+.search{width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text);margin-bottom:7px}
+.bosslist{display:grid;gap:3px;max-height:34vh;overflow:auto}
+.boss{display:flex;align-items:center;justify-content:space-between;gap:4px;text-align:left;width:100%;padding:6px}
 .boss.selected{border-color:var(--gold);background:#493817}
 .bossname{font-weight:850;min-width:0;overflow-wrap:anywhere}
 .time{font-weight:900;color:var(--green);white-space:nowrap}
 .time.soon{color:#f5d45e}.time.hot{color:#ff963e}.time.spawn{color:var(--red)}
 .muted{color:var(--muted);font-size:10px}
 .selectedbox{text-align:center}
-.selectedname{font-size:17px;font-weight:900;color:var(--gold);overflow-wrap:anywhere}
-.countdown{font-size:24px;font-weight:950;line-height:1.35;margin:4px 0}
-.cutnow{width:100%;padding:12px;font-size:15px;background:#226044;border-color:#3d9c6b}
-.timeentry{display:flex;gap:5px;margin-top:7px}
-.timeentry input{min-width:0;flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text)}
-.timeentry button{min-width:65px}
+.selectedname{font-size:9px;font-weight:900;color:var(--gold);overflow-wrap:anywhere}
+.countdown{font-size:12px;font-weight:950;line-height:1.35;margin:4px 0}
+.cutnow{width:100%;padding:8px;font-size:8px;background:#226044;border-color:#3d9c6b}
+.timeentry{display:flex;gap:3px;margin-top:5px}
+.timeentry input{min-width:0;flex:1;padding:6px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text)}
+.timeentry button{min-width:48px}
 .foot{display:flex;gap:5px;margin-top:7px}
-.foot button{flex:1;font-size:11px}
+.foot button{flex:1;font-size:6px}
 #loginBox{display:none}
 #message{white-space:pre-wrap;line-height:1.4;color:#f5d45e}
-@media(max-height:520px){main{padding:6px}.panel{padding:7px;margin-bottom:6px}.bosslist{max-height:24vh}.countdown{font-size:20px}}
+@media(max-height:520px){main{padding:6px}.panel{padding:7px;margin-bottom:6px}.bosslist{max-height:24vh}.countdown{font-size:10px}}
 </style>
 </head>
 <body>
