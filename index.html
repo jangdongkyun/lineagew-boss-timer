@@ -8730,15 +8730,15 @@ function kobotMergePanels(){
 }
 
 kobotMergePanels();
-// 접속자 정보와 오프라인 정보를 개인 설정 아래로 배치
+// 접속자 정보와 오프라인 정보를 컷 히스토리 바로 위로 배치
 (function(){
   const onlinePanel = document.querySelector(".online-panel");
   const offlinePanel = document.querySelector(".offline-panel");
-  const personalPanel = document.getElementById("welcome")?.closest(".panel");
+  const cutHistoryPanel = document.getElementById("cutHistorySection");
 
-  if(personalPanel && onlinePanel && offlinePanel){
-    personalPanel.insertAdjacentElement("afterend", onlinePanel);
-    onlinePanel.insertAdjacentElement("afterend", offlinePanel);
+  if(onlinePanel && offlinePanel && cutHistoryPanel && cutHistoryPanel.parentNode){
+    cutHistoryPanel.parentNode.insertBefore(onlinePanel, cutHistoryPanel);
+    cutHistoryPanel.parentNode.insertBefore(offlinePanel, cutHistoryPanel);
   }
 })();
 const kobotManualModal = $("kobotManualModal");
