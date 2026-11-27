@@ -48,7 +48,7 @@ button:disabled{opacity:.45}
 <body>
 <main>
 <header>
- <div><div class="brand">LINEAGE W · MINI</div><div class="sub" id="who">보탐봇 미니 팝업</div></div>
+  <div class="status" id="status" style="margin:0;min-height:0">접속 중...</div>
  <div style="display:flex;gap:5px;align-items:center">
   <button id="goMainBtn" type="button" class="primary">🏠 메인화면</button>
   <button id="refreshBtn" type="button">새로고침</button>
@@ -61,17 +61,12 @@ button:disabled{opacity:.45}
 </div>
 <div id="app" style="display:none">
  <div class="panel">
-  <div class="status" id="status">데이터를 불러오는 중...</div>
   <input class="search" id="search" type="search" placeholder="보스 이름 또는 별명 검색">
   <div class="bosslist" id="bossList"></div>
   <button class="bosslist-toggle" id="bossListToggle" type="button" style="display:none">전체 보스 펼치기</button>
  </div>
- <div class="foot">
-   <button id="reloadDataBtn" type="button">시간표 갱신</button>
-   <button id="logoutBtn" type="button">로그아웃</button>
-  </div>
-</div>
-<div class="modal" id="bossModal" role="dialog" aria-modal="true" aria-label="보스 컷 등록"><div class="modal-box"><div class="modal-head"><span id="modalBossTitle">보스 컷 등록</span><button type="button" id="closeBossModal">닫기</button></div><div class="modal-card"><div class="boss-main"><span class="bossname" id="modalBossName"></span><span class="time" id="modalBossTime"></span></div><div class="row-entry"><input id="modalBossInput" type="search" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" maxlength="5" aria-label="컷 시간"><button class="primary" type="button" id="modalBossRegister">등록</button></div></div></div></div>
+ </div>
+ <div class="modal" id="bossModal" role="dialog" aria-modal="true" aria-label="보스 컷 등록"><div class="modal-box"><div class="modal-head"><span id="modalBossTitle">보스 컷 등록</span><button type="button" id="closeBossModal">닫기</button></div><div class="modal-card"><div class="boss-main"><span class="bossname" id="modalBossName"></span><span class="time" id="modalBossTime"></span></div><div class="row-entry"><input id="modalBossInput" type="search" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" maxlength="5" aria-label="컷 시간"><button class="primary" type="button" id="modalBossRegister">등록</button></div></div></div></div>
 <div id="message"></div>
 </main>
 <script>
@@ -92,9 +87,9 @@ function render(){
  const q=$("search").value.trim().toLocaleLowerCase();
  const saved={};document.querySelectorAll("[data-time-for]").forEach(x=>saved[x.dataset.timeFor]=x.value);
  const list=sorted().filter(b=>variants(b).some(n=>n.toLocaleLowerCase().includes(q)));
- const visibleList=showAllBosses?list:list.slice(0,5);
+ const visibleList=showAllBosses?list:list.slice(0,3);
  const toggle=$("bossListToggle");
- toggle.style.display=list.length>5?"block":"none";
+ toggle.style.display=list.length>3?"block":"none";
  toggle.textContent=showAllBosses?"접기":"전체 보스 펼치기 ("+list.length+"마리)";
  // 입력 중인 보스 시간 입력창은 DOM에서 교체하지 않습니다.
  // 매초 render() 및 15초 데이터 갱신이 실행되어도 모바일 키보드와 포커스를 유지합니다.
@@ -151,7 +146,6 @@ async function start(){
  const {data:p,error:pe}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();if(pe)throw pe;if(!p)throw new Error("회원 프로필을 찾을 수 없습니다.");profile=p;
  if((profile.account_status||"active")!=="active")throw new Error("이 계정은 사용할 수 없습니다.");
  serverId=Number(profile.last_server_id)||1;
- $("who").textContent=(profile.nickname||"혈맹원")+" · 미니 컷 등록";
  $("app").style.display="block";await loadData();
  if(channel)db.removeChannel(channel);
  channel=db.channel("mini-boss-live-"+serverId).on("postgres_changes",{event:"*",schema:"public",table:"cut_records",filter:"server_id=eq."+serverId},async()=>{try{await loadData();}catch(e){say(e.message);}}).subscribe();
@@ -195,8 +189,6 @@ $("goMainBtn").addEventListener("click",()=>{
  location.href="./";
 });
 $("refreshBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
-$("reloadDataBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
-$("logoutBtn").addEventListener("click",async()=>{if(confirm("보탐봇에서 로그아웃할까요?")){await db.auth.signOut();$("app").style.display="none";$("loginBox").style.display="block";}});
 $("openMainBtn").addEventListener("click",()=>location.href="./");
 db.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"){user=null;$("app").style.display="none";$("loginBox").style.display="block";}});
 setInterval(()=>{if(user)render();},1000);
