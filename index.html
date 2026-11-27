@@ -388,6 +388,11 @@ h3{font-size:14px;margin:0 0 10px}
 .history-time{color:var(--gold);white-space:nowrap}
 .quick-links{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 #adminSettingsBtn{display:none;background:#6d5428;border-color:#b58b43;color:#ffe2a0}
+/* 메인 알림 마스터 스위치: ON은 초록 네온, OFF는 빨강 네온 */
+.alert-master-btn{min-width:104px;padding:10px 15px;border-radius:10px;font-weight:900;letter-spacing:.3px;transition:background .2s,border-color .2s,color .2s,box-shadow .2s}
+.alert-master-btn.is-on{color:#d8ffe4!important;background:#063b20!important;border:1px solid #35ff78!important;box-shadow:0 0 5px #35ff78,0 0 13px #20e85d99,inset 0 0 9px #20e85d33;text-shadow:0 0 7px #7dffa5}
+.alert-master-btn.is-off{color:#ffe0e3!important;background:#421018!important;border:1px solid #ff4055!important;box-shadow:0 0 5px #ff4055,0 0 13px #ff263d88,inset 0 0 9px #ff263d33;text-shadow:0 0 7px #ff8792}
+.alert-master-btn:disabled{opacity:.65;}
 /* 관리자 설정에서는 개인별 음성/푸시 알림 설정을 노출하지 않습니다.
    기존 저장 로직과 호환되도록 DOM은 유지하고 화면에서만 숨깁니다. */
 #adminVoiceSettings,
@@ -1270,6 +1275,7 @@ body {
       </div>
 <button class="ghost" id="adminSettingsBtn">⚙ 관리자 설정</button>
 <button class="ghost" id="personalAlertBtn">🔔 개인 알림 설정</button>
+      <button class="alert-master-btn is-on" id="voiceMasterBtn" type="button" aria-pressed="true">음성 ON</button>
       <button class="ghost" id="nickToggle">닉네임 변경</button>
       <button class="ghost" id="clanMembersBtn">혈맹원 조회</button>
       <button class="danger" id="logoutBtn">로그아웃</button>
@@ -1987,7 +1993,33 @@ let members = [];
 let offlineExpanded = false;
 let onlineExpanded = false;
 let soundOn = false;
+let voiceMasterOn = true;
 let myAlertSettings = null;
+
+function loadVoiceMasterState(){
+  let saved = null;
+  try{ saved = localStorage.getItem("boss_voice_master_" + user.id); }catch(e){}
+  voiceMasterOn = saved === null ? true : saved === "true";
+  applyVoiceMasterState();
+}
+function applyVoiceMasterState(){
+  soundOn = !!(voiceMasterOn && myAlertSettings?.voice_enabled);
+  const btn = $("voiceMasterBtn");
+  if(!btn) return;
+  btn.textContent = voiceMasterOn ? "음성 ON" : "음성 OFF";
+  btn.classList.toggle("is-on",voiceMasterOn);
+  btn.classList.toggle("is-off",!voiceMasterOn);
+  btn.setAttribute("aria-pressed",String(voiceMasterOn));
+}
+function toggleVoiceMaster(){
+  if(!user) return;
+  voiceMasterOn = !voiceMasterOn;
+  try{ localStorage.setItem("boss_voice_master_" + user.id,String(voiceMasterOn)); }catch(e){}
+  applyVoiceMasterState();
+  if(!voiceMasterOn && "speechSynthesis" in window){
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+  }
+}
 
 // KOBOT 음성 비서 상태
 let kobotRecognition = null;
@@ -2188,13 +2220,13 @@ async function loadMyAlertSettings() {
     }
 
     myAlertSettings = savedData;
-    soundOn = !!myAlertSettings.voice_enabled;
+    applyVoiceMasterState();
     return;
   }
 
   // 기존 설정이 있으면 그대로 사용
   myAlertSettings = data;
-  soundOn = !!myAlertSettings.voice_enabled;
+  applyVoiceMasterState();
 }
 // =========================================
 // 관리자 주간 룻권 푸시: 요일별 전체/개별 선택
@@ -5171,7 +5203,7 @@ function isVoiceQuietHours(settings) {
 }
 
 function checkVoice(boss, at, ms) {
-  if (!user || !soundOn || !("speechSynthesis" in window)) return;
+  if (!user || !voiceMasterOn || !soundOn || !("speechSynthesis" in window)) return;
 
   const settings = myAlertSettings;
   if (!settings || !settings.voice_enabled) return;
@@ -5222,7 +5254,7 @@ function checkVoice(boss, at, ms) {
 
 
 function checkWeeklyLootVoice(nowMs=Date.now()){
-  if(!user||!soundOn||!("speechSynthesis" in window)) return;
+  if(!user||!voiceMasterOn||!soundOn||!("speechSynthesis" in window)) return;
   const settings=myAlertSettings;
   if(!settings||!settings.voice_enabled) return;
   const bs=settings.boss_settings||{};
@@ -5265,7 +5297,7 @@ function checkWeeklyLootVoice(nowMs=Date.now()){
 }
 
 function speak(text){
-  if(!soundOn) return;
+  if(!voiceMasterOn || !soundOn) return;
 
   if(!("speechSynthesis" in window)){
     alert("이 브라우저는 음성 알림을 지원하지 않습니다.");
@@ -6051,7 +6083,7 @@ async function savePersonalAlertSettings(){
   }
 
   myAlertSettings = data;
-  soundOn = !!myAlertSettings.voice_enabled;
+  applyVoiceMasterState();
   closeBackPopup("personalAlertModal");
   $("personalAlertModal").style.display = "none";
   alert("개인 알림 설정이 저장되었습니다.");
@@ -8388,6 +8420,7 @@ function stopKobot(){
 
 async function enterApp(currentUser){
   user = currentUser;
+  loadVoiceMasterState();
   kobotLoadReplyMode();
 
   kobotReplyHistory = [];
@@ -8822,6 +8855,8 @@ $("resetAllBossBtn").addEventListener("click",resetAllBossTimes);
 $("clearBossForm").addEventListener("click",resetBossForm);
 
 
+
+$("voiceMasterBtn")?.addEventListener("click",toggleVoiceMaster);
 
 $("personalAlertBtn").addEventListener("click",async()=>{
   // 클릭 이벤트 안에서 모달 생성/표시를 동기적으로 먼저 처리합니다.
