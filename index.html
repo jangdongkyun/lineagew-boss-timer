@@ -8547,10 +8547,24 @@ $("clearBossForm").addEventListener("click",resetBossForm);
 
 
 $("personalAlertBtn").addEventListener("click",async()=>{
+  // 클릭 이벤트 안에서 모달 생성/표시를 동기적으로 먼저 처리합니다.
+  // 설정 조회나 비동기 작업이 지연되어도 버튼이 무반응처럼 보이지 않게 합니다.
+  try {
+    ensurePersonalAlertUI();
+    const modal = document.getElementById("personalAlertModal");
+    if(modal) modal.style.display = "block";
+  } catch (uiError) {
+    console.error("개인 알림 설정창 생성 실패:", uiError);
+    alert("개인 알림 설정창을 만드는 중 오류가 발생했습니다.\n" + (uiError?.message || uiError));
+    return;
+  }
+
   try {
     await openPersonalAlertSettings();
   } catch (error) {
     console.error("개인 알림 설정 열기 실패:", error);
+    const modal = document.getElementById("personalAlertModal");
+    if(modal) modal.style.display = "block";
     alert("개인 알림 설정을 여는 중 오류가 발생했습니다.\n" + (error?.message || error));
   }
 });
