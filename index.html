@@ -5457,6 +5457,44 @@ function ensurePersonalAlertUI(){
 
       <hr>
 
+      <hr>
+      <h3>휴대폰 푸시 알림</h3>
+      <label><input type="checkbox" id="personalPushEnabled"> 휴대폰 푸시 알림 사용</label>
+      <div id="personalPushOptions" style="margin-top:10px">
+        <p>필드보스 알림 시점</p>
+        <label><input type="checkbox" id="myPush3m"> 3분 전</label><br>
+        <label><input type="checkbox" id="myPush1m"> 1분 전</label><br>
+        <label><input type="checkbox" id="myPush30s"> 30초 전</label><br>
+        <label><input type="checkbox" id="myPush10s"> 10초 전</label><br>
+        <label><input type="checkbox" id="myPushSpawn"> 보스 출현</label>
+        <p style="margin-top:12px">푸시 받을 필드보스 선택</p>
+        <div id="personalPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px"></div>
+      </div>
+      <hr>
+      <h3>주간 룻권 보스 푸시 알림</h3>
+      <label><input type="checkbox" id="personalWeeklyPushEnabled"> 주간 룻권 보스 푸시 알림 사용</label>
+      <div id="personalWeeklyPushDetails" style="margin-top:10px">
+        <p>알림 시점</p>
+        <label><input type="checkbox" id="myWeeklyPush10m"> 예정 시각 10분 전</label><br>
+        <label><input type="checkbox" id="myWeeklyPush5m"> 예정 시각 5분 전</label><br>
+        <label><input type="checkbox" id="myWeeklyPush1m"> 예정 시각 1분 전</label>
+        <p style="margin-top:12px">요일별 룻권 보스 선택</p>
+        <div id="personalPushDayTabs" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0"></div>
+        <label style="display:flex;align-items:center;gap:8px;padding:9px;background:#30291b;border:1px solid #b89542;border-radius:8px">
+          <input type="checkbox" id="personalPushDayAll" checked> 해당 요일 룻권 보스 전체 알림
+        </label>
+        <div id="personalPushWeeklyBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px"></div>
+      </div>
+      <hr>
+      <h3>푸시 방해금지 시간</h3>
+      <label><input type="checkbox" id="personalPushQuiet"> 방해금지 사용</label>
+      <div class="row" style="margin-top:10px">
+        <div class="grow"><label>시작</label><input type="time" id="personalPushQuietStart"></div>
+        <div class="grow"><label>종료</label><input type="time" id="personalPushQuietEnd"></div>
+      </div>
+      <button id="personalPushTestBtn" class="ghost" type="button" style="width:100%;margin-top:12px">내 휴대폰으로 푸시 테스트</button>
+      <div id="personalPushMessage" class="muted" style="margin-top:7px"></div>
+      <p class="muted" style="font-size:12px">기기 등록은 개인 알림 설정창 옆의 ‘이 기기 푸시 등록하기’에서 진행합니다. 설정은 본인 계정에만 저장됩니다.</p>
       <h3>음성 방해금지 시간</h3>
       <label><input type="checkbox" id="personalVoiceQuiet"> 방해금지 사용</label>
       <div class="row" style="margin-top:10px">
@@ -5562,6 +5600,30 @@ async function openPersonalAlertSettings(){
     (s.voice_quiet_hours_end || "08:00").slice(0,5);
 
   $("personalVoiceSelect").value = s.voice_name || "";
+
+  const pushSettings = s.push_boss_settings || {};
+  $("personalPushEnabled").checked = !!s.push_enabled;
+  $("myPush3m").checked = s.push_alert_3m !== false;
+  $("myPush1m").checked = s.push_alert_1m !== false;
+  $("myPush30s").checked = s.push_alert_30s !== false;
+  $("myPush10s").checked = s.push_alert_10s !== false;
+  $("myPushSpawn").checked = s.push_alert_spawn !== false;
+  $("myWeeklyPush10m").checked = pushSettings.__weekly_10m !== false;
+  $("myWeeklyPush5m").checked = pushSettings.__weekly_5m !== false;
+  $("myWeeklyPush1m").checked = pushSettings.__weekly_1m !== false;
+  $("personalWeeklyPushEnabled").checked = pushSettings.__weekly_enabled === true;
+  $("personalPushQuiet").checked = !!s.push_quiet_hours_enabled;
+  $("personalPushQuietStart").value = (s.push_quiet_hours_start || "22:00").slice(0,5);
+  $("personalPushQuietEnd").value = (s.push_quiet_hours_end || "08:00").slice(0,5);
+  $("personalPushBossOptions").innerHTML = bosses.map(b =>
+    '<label style="display:flex;align-items:center;gap:7px;padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px">' +
+    '<input type="checkbox" data-personal-push-boss="' + escapeHtml(b.id) + '" ' + (pushSettings[b.id] !== false ? "checked" : "") + '>' +
+    '<span>' + escapeHtml(b.name || b.boss_name || "이름 없음") + '</span></label>'
+  ).join("");
+  personalPushWeeklyDraft = {...pushSettings};
+  renderPersonalPushWeeklyOptions();
+  $("personalPushOptions").style.display = s.push_enabled ? "block" : "none";
+  $("personalWeeklyPushDetails").style.display = pushSettings.__weekly_enabled === true ? "block" : "none";
 
   const bossSettings = s.boss_settings || {};
   $("personalFieldVoiceEnabled").checked = bossSettings.__field_voice_enabled !== false;
@@ -5705,6 +5767,39 @@ body {
 }
 
 
+let personalPushWeeklyDraft = {};
+let personalPushSelectedDay = 1;
+const personalPushDays = [{id:1,name:"월"},{id:2,name:"화"},{id:3,name:"수"},{id:4,name:"목"},{id:5,name:"금"},{id:6,name:"토"},{id:0,name:"일"}];
+function renderPersonalPushWeeklyOptions(){
+  const tabs=$("personalPushDayTabs"), master=$("personalPushDayAll"), options=$("personalPushWeeklyBossOptions");
+  if(!tabs||!master||!options) return;
+  tabs.innerHTML=personalPushDays.map(day=>'<button type="button" data-personal-push-day="'+day.id+'" style="padding:8px 2px;font-size:12px;border:1px solid '+(day.id===personalPushSelectedDay?"#e6bd68":"#46536a")+' ;background:'+(day.id===personalPushSelectedDay?"#80602c":"#202b3c")+' ;color:#fff;border-radius:7px;font-weight:800">'+day.name+'</button>').join("");
+  const allEnabled=personalPushWeeklyDraft["__weekly_day_all_"+personalPushSelectedDay]!==false;
+  master.checked=allEnabled;
+  const rows=(weeklyLootRows||[]).filter(row=>Number(row.day_of_week)===personalPushSelectedDay);
+  if(!rows.length){options.innerHTML='<div class="muted" style="grid-column:1/-1">이 요일에 등록된 룻권 보스가 없습니다.</div>';return;}
+  if(allEnabled){options.innerHTML='<div class="muted" style="grid-column:1/-1;padding:8px">전체 알림이 켜져 있어 이 요일의 룻권 보스 '+rows.length+'개가 모두 대상입니다.</div>';return;}
+  options.innerHTML=rows.map(row=>{
+    const key="weekly_day:"+personalPushSelectedDay+":"+row.id;
+    const checked=personalPushWeeklyDraft[key]!==undefined?personalPushWeeklyDraft[key]!==false:personalPushWeeklyDraft["weekly:"+row.id]!==false;
+    return '<label style="display:flex;align-items:center;gap:7px;padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px"><input type="checkbox" data-personal-push-day-boss="'+escapeHtml(row.id)+'" '+(checked?"checked":"")+'><span>'+escapeHtml(row.boss_name)+' · '+escapeHtml(row.spawn_time||"")+'</span></label>';
+  }).join("");
+}
+$("personalPushDayTabs")?.addEventListener("click",event=>{const btn=event.target.closest("[data-personal-push-day]");if(!btn)return;personalPushSelectedDay=Number(btn.dataset.personalPushDay);renderPersonalPushWeeklyOptions();});
+$("personalPushDayAll")?.addEventListener("change",event=>{personalPushWeeklyDraft["__weekly_day_all_"+personalPushSelectedDay]=event.target.checked;renderPersonalPushWeeklyOptions();});
+$("personalPushWeeklyBossOptions")?.addEventListener("change",event=>{const input=event.target.closest("[data-personal-push-day-boss]");if(!input)return;personalPushWeeklyDraft["weekly_day:"+personalPushSelectedDay+":"+input.dataset.personalPushDayBoss]=input.checked;});
+$("personalPushEnabled")?.addEventListener("change",()=>{$("personalPushOptions").style.display=$("personalPushEnabled").checked?"block":"none";});
+$("personalWeeklyPushEnabled")?.addEventListener("change",()=>{$("personalWeeklyPushDetails").style.display=$("personalWeeklyPushEnabled").checked?"block":"none";});
+async function sendPersonalPushTest(){
+  const btn=$("personalPushTestBtn"), msg=$("personalPushMessage");
+  if(!user||!btn||btn.disabled)return;
+  btn.disabled=true;btn.textContent="테스트 발송 중...";msg.textContent="본인 계정에 등록된 기기로만 테스트 알림을 보냅니다.";
+  try{const {data,error}=await db.functions.invoke("boss-push",{body:{action:"test"}});if(error)throw error;if(data?.error)throw new Error(data.error);msg.textContent=data?.sent>0?"내 기기 "+data.sent+"대에 테스트 푸시를 발송했습니다. 실제 수신 여부를 확인해 주세요.":"등록된 푸시 기기가 없습니다. 먼저 이 기기 푸시 등록을 완료해 주세요.";}
+  catch(e){console.error("개인 테스트 푸시 실패:",e);msg.textContent="테스트 발송 실패: "+(e.message||e);}
+  finally{btn.disabled=false;btn.textContent="내 휴대폰으로 푸시 테스트";}
+}
+$("personalPushTestBtn")?.addEventListener("click",sendPersonalPushTest);
+
 let personalVoiceChangeListenerReady = false;
 
 function loadPersonalVoiceList(){
@@ -5839,6 +5934,26 @@ async function savePersonalAlertSettings(){
     voice_quiet_hours_enabled: $("personalVoiceQuiet").checked,
     voice_quiet_hours_start: $("personalVoiceQuietStart").value || "22:00",
     voice_quiet_hours_end: $("personalVoiceQuietEnd").value || "08:00",
+
+    push_enabled: $("personalPushEnabled").checked,
+    push_alert_3m: $("myPush3m").checked,
+    push_alert_1m: $("myPush1m").checked,
+    push_alert_30s: $("myPush30s").checked,
+    push_alert_10s: $("myPush10s").checked,
+    push_alert_spawn: $("myPushSpawn").checked,
+    push_boss_settings: (() => {
+      const settings = {...personalPushWeeklyDraft};
+      document.querySelectorAll("[data-personal-push-boss]").forEach(el=>{settings[el.dataset.personalPushBoss]=el.checked;});
+      settings.__weekly_enabled = $("personalWeeklyPushEnabled").checked;
+      settings.__weekly_10m = $("myWeeklyPush10m").checked;
+      settings.__weekly_5m = $("myWeeklyPush5m").checked;
+      settings.__weekly_1m = $("myWeeklyPush1m").checked;
+      document.querySelectorAll("[data-personal-push-day-boss]").forEach(el=>{settings["weekly_day:"+personalPushSelectedDay+":"+el.dataset.personalPushDayBoss]=el.checked;});
+      return settings;
+    })(),
+    push_quiet_hours_enabled: $("personalPushQuiet").checked,
+    push_quiet_hours_start: $("personalPushQuietStart").value || "22:00",
+    push_quiet_hours_end: $("personalPushQuietEnd").value || "08:00",
 
     timezone: "Asia/Seoul",
 
