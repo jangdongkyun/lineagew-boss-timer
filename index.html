@@ -2183,9 +2183,10 @@ window.addEventListener("popstate",()=>{
 
   if(mainExitConfirmed) return;
 
-  // 종료 확인창이 열린 상태에서 뒤로가기를 누르면 취소와 동일하게 처리
+  // 종료 확인창에서 뒤로가기를 누르면 취소하고,
+  // 앱의 뒤로가기 방지 기록을 복구해 다음 뒤로가기도 확인창을 표시합니다.
   if(exitConfirmOpen){
-    closeExitConfirm(true);
+    closeExitConfirm(true, true);
     return;
   }
 
