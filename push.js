@@ -274,8 +274,14 @@
 
           if (error) throw error;
 
+          // 서버 수신도 끄고 브라우저의 실제 Push 구독도 해제합니다.
+          await subscription.unsubscribe().catch(unsubscribeError => {
+            console.warn("브라우저 푸시 구독 해제 확인:",unsubscribeError);
+            return false;
+          });
+
           showStatus(
-            "이 기기의 푸시 수신 등록을 해제했습니다. 다른 기기의 설정에는 영향이 없습니다."
+            "이 기기의 푸시 등록을 해제했습니다. 다른 기기의 설정에는 영향이 없습니다."
           );
 
         } else {
