@@ -34,6 +34,11 @@ button:disabled{opacity:.45}
 .row-entry input{width:43px;min-width:0;padding:5px 3px;border:1px solid var(--line);border-radius:5px;background:#0d131d;color:var(--text);font-size:7px;text-align:center}
 .row-entry button{padding:5px 6px;font-size:7px;border-radius:5px}
 .row-entry button:disabled,.boss-main:disabled{opacity:.45}
+.modal{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:12px;background:#000b}
+.modal.show{display:flex}.modal-box{width:min(100%,360px);padding:10px;border:1px solid var(--line);border-radius:11px;background:var(--panel);box-shadow:0 12px 40px #000b}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-weight:900;color:var(--gold);font-size:9px}
+.modal-card{display:flex;align-items:center;gap:4px;width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;background:#151b26}
+.modal-card .boss-main{cursor:default}.modal-card .row-entry input{width:68px;font-size:9px}.modal-card .row-entry button{font-size:9px;padding:6px 9px}
 .muted{color:var(--muted);font-size:6px}
 .foot{display:flex;gap:5px;margin-top:6px}
 .foot button{flex:1;font-size:6px}
@@ -69,13 +74,14 @@ button:disabled{opacity:.45}
    <button id="logoutBtn" type="button">로그아웃</button>
   </div>
 </div>
+<div class="modal" id="bossModal" role="dialog" aria-modal="true" aria-label="보스 컷 등록"><div class="modal-box"><div class="modal-head"><span id="modalBossTitle">보스 컷 등록</span><button type="button" id="closeBossModal">닫기</button></div><div class="modal-card"><div class="boss-main"><span class="bossname" id="modalBossName"></span><span class="time" id="modalBossTime"></span></div><div class="row-entry"><input id="modalBossInput" type="text" inputmode="numeric" maxlength="5" placeholder="2135" aria-label="컷 시간"><button class="primary" type="button" id="modalBossRegister">등록</button></div></div></div></div>
 <div id="message"></div>
 </main>
 <script>
 const SUPABASE_URL="https://jswekbrsjkylrwhgvvre.supabase.co";
 const SUPABASE_KEY="sb_publishable_s4gO0UlJvICe6eQSzFA9MQ_RWxo02po";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let user=null,profile=null,bosses=[],cuts=[],serverId=1,busy=false,channel=null;
+let user=null,profile=null,bosses=[],cuts=[],serverId=1,busy=false,channel=null,selectedPopupBossId=null;
 const $=id=>document.getElementById(id);
 const say=t=>{$("message").textContent=t||""};
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -93,6 +99,7 @@ function render(){
   const st=state(b);
   return '<div class="boss-row"><button class="boss-main" type="button" data-cut-now="'+esc(b.id)+'" '+(busy?'disabled':'')+'><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button><div class="row-entry"><input type="text" inputmode="numeric" maxlength="5" placeholder="2135" aria-label="'+esc(b.name)+' 컷 시간" data-time-for="'+esc(b.id)+'" value="'+esc(saved[b.id]||"")+'"><button class="primary" type="button" data-cut-time="'+esc(b.id)+'" '+(busy?'disabled':'')+'>등록</button></div></div>';
  }).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
+ if(selectedPopupBossId!==null){const selected=bosses.find(x=>String(x.id)===String(selectedPopupBossId));if(selected){const st=state(selected);$("modalBossTime").textContent=st.label;$("modalBossTime").className="time "+st.cls;}}
  document.querySelectorAll("[data-server]").forEach(x=>x.classList.toggle("active",Number(x.dataset.server)===serverId));
 }
 async function loadData(){
@@ -135,7 +142,7 @@ async function registerCut(bossId,cutAt){
   const old=(rows||[]).slice(3).map(x=>x.id);
   if(old.length){const deleteAt=new Date(Date.now()+600000).toISOString();const {error:pendingError}=await db.from("cut_records").update({pending_delete_at:deleteAt}).in("id",old).eq("server_id",serverId);if(pendingError)throw pendingError;}
   const rowInput=[...$("bossList").querySelectorAll("[data-time-for]")].find(x=>x.dataset.timeFor===String(bossId));if(rowInput)rowInput.value="";
-  await loadData();say(b.name+" 컷 등록 완료");
+  await loadData();if(selectedPopupBossId!==null&&String(selectedPopupBossId)===String(bossId))closeBossModal();say(b.name+" 컷 등록 완료");
  }catch(e){say("등록 실패: "+(e.message||e));}
  finally{busy=false;render();}
 }
@@ -151,13 +158,16 @@ async function start(){
  if(channel)db.removeChannel(channel);
  channel=db.channel("mini-boss-live-"+serverId).on("postgres_changes",{event:"*",schema:"public",table:"cut_records",filter:"server_id=eq."+serverId},async()=>{try{await loadData();}catch(e){say(e.message);}}).subscribe();
 }
+function openBossModal(bossId){const b=bosses.find(x=>String(x.id)===String(bossId));if(!b)return;selectedPopupBossId=b.id;$("modalBossTitle").textContent=b.name+" 컷 등록";$("modalBossName").textContent=b.name;$("modalBossInput").value="";const st=state(b);$("modalBossTime").textContent=st.label;$("modalBossTime").className="time "+st.cls;$("bossModal").classList.add("show");setTimeout(()=>$("modalBossInput").focus(),30);}
+function closeBossModal(){ $("bossModal").classList.remove("show");selectedPopupBossId=null;$("modalBossInput").value="";}
+$("closeBossModal").addEventListener("click",closeBossModal);
+$("bossModal").addEventListener("click",e=>{if(e.target===$("bossModal"))closeBossModal();});
+async function submitModalCut(){if(selectedPopupBossId===null)return;try{const id=selectedPopupBossId;const value=$("modalBossInput").value.trim();await registerCut(id,value?parseTime(value):new Date().toISOString());}catch(err){say(err.message);}}
+$("modalBossRegister").addEventListener("click",submitModalCut);
+$("modalBossInput").addEventListener("keydown",e=>{if(e.key==="Enter")submitModalCut();});
 $("bossList").addEventListener("click",e=>{
  const nowBtn=e.target.closest("[data-cut-now]");
- if(nowBtn){
-  const b=bosses.find(x=>String(x.id)===String(nowBtn.dataset.cutNow));
-  if(b&&confirm(b.name+"\\n현재 시각으로 컷 기록을 등록할까요?"))registerCut(b.id,new Date().toISOString());
-  return;
- }
+ if(nowBtn){openBossModal(nowBtn.dataset.cutNow);return; }
  const timeBtn=e.target.closest("[data-cut-time]");
  if(timeBtn){
   const id=timeBtn.dataset.cutTime;
