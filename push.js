@@ -36,8 +36,9 @@
   }
 
   function ensureControls() {
-    const soundButton = document.getElementById("soundBtn");
-    if (!soundButton || button) return;
+    // 메인 화면의 기존 개인 알림 설정 버튼을 기준으로 푸시 등록 버튼을 배치합니다.
+    const anchorButton = document.getElementById("personalAlertBtn");
+    if (!anchorButton || button) return;
 
     button = document.createElement("button");
     button.id = "bossPushBtn";
@@ -46,7 +47,7 @@
     button.textContent = "휴대폰 알림 확인 중";
     button.addEventListener("click", togglePush);
 
-    soundButton.insertAdjacentElement("afterend", button);
+    anchorButton.insertAdjacentElement("afterend", button);
 
     status = document.createElement("div");
     status.id = "bossPushStatus";
@@ -54,7 +55,7 @@
     status.style.marginTop = "7px";
     status.style.display = "none";
 
-    soundButton.parentElement.parentElement.appendChild(status);
+    anchorButton.parentElement.parentElement.appendChild(status);
   }
 
   function showStatus(message, visible = true) {
