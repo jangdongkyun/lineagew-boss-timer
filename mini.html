@@ -204,7 +204,7 @@ $("goMainBtn").addEventListener("click",()=>{
  // 독립 실행 등 원래 창을 찾을 수 없으면 현재 창에서 메인 화면을 엽니다.
  location.href="./";
 });
-$("refreshBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
+$("refreshBtn").addEventListener("click",async()=>{try{$("search").value="";$("searchResults").replaceChildren();renderSearchResults();await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
 $("openMainBtn").addEventListener("click",()=>location.href="./");
 db.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"){user=null;$("app").style.display="none";$("loginBox").style.display="block";}});
 setInterval(()=>{if(user)render();},1000);
