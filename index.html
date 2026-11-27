@@ -954,6 +954,23 @@ body {
 }
 
 
+/* 관리자 푸시 알림 체크박스가 전체 너비를 차지해 문구가 밀리는 현상 보정 */
+#adminPushOptions input[type="checkbox"],
+#adminWeeklyPushDetails > label input[type="checkbox"]{
+  width:18px !important;
+  height:18px !important;
+  min-width:18px;
+  max-width:18px;
+  padding:0 !important;
+  margin:0 !important;
+  flex:0 0 18px;
+}
+#adminPushOptions label,
+#adminWeeklyPushDetails > label{
+  justify-content:flex-start;
+  text-align:left;
+}
+
 /* 관리자 주간 룻권 푸시 알림 시점 체크박스와 문구 수평 정렬 */
 #adminWeeklyPushDetails > label{
   display:flex;
