@@ -22,6 +22,10 @@ self.addEventListener("push", event => {
     body: payload.body || "보스 출현 알림입니다.",
     tag: payload.tag || "lineagew-boss",
     renotify: true,
+    requireInteraction: true,
+    vibrate: [250, 100, 250],
+    icon: new URL("assets/pwa-icon.svg", self.registration.scope).href,
+    badge: new URL("assets/pwa-icon.svg", self.registration.scope).href,
     data: {
       url: payload.url || "https://jangdongkyun.github.io/lineagew-boss-timer/"
     }
