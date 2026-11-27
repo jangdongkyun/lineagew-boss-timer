@@ -80,7 +80,10 @@ public class FloatingWindowService extends Service {
     private Notification buildNotification() {
         Intent open=new Intent(this,MainActivity.class);
         PendingIntent pi=PendingIntent.getActivity(this,0,open,PendingIntent.FLAG_UPDATE_CURRENT|(Build.VERSION.SDK_INT>=23?PendingIntent.FLAG_IMMUTABLE:0));
-        return new Notification.Builder(this,CHANNEL_ID).setContentTitle("보탐봇 미니 창 실행 중")
+        Notification.Builder builder = Build.VERSION.SDK_INT >= 26
+            ? new Notification.Builder(this, CHANNEL_ID)
+            : new Notification.Builder(this);
+        return builder.setContentTitle("보탐봇 미니 창 실행 중")
             .setContentText("알림을 눌러 메인 보탐봇을 열 수 있습니다.")
             .setSmallIcon(android.R.drawable.ic_dialog_info).setContentIntent(pi).setOngoing(true).build();
     }
