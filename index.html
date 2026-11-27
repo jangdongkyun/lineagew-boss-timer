@@ -5405,6 +5405,41 @@ function ensurePersonalAlertUI(){
 
       <hr>
 
+      <h3>📲 휴대폰 푸시 알림</h3>
+      <label><input type="checkbox" id="personalPushEnabled"> 휴대폰 푸시 알림 사용</label>
+      <div id="personalPushOptions" style="display:none;margin-top:12px;padding:12px;background:#172438;border:1px solid #806b3e;border-radius:10px">
+        <b style="color:#e8c879">필드보스 알림 시점</b>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:8px">
+          <label><input type="checkbox" id="myPush3m"> 3분 전</label>
+          <label><input type="checkbox" id="myPush1m"> 1분 전</label>
+          <label><input type="checkbox" id="myPush30s"> 30초 전</label>
+          <label><input type="checkbox" id="myPush10s"> 10초 전</label>
+          <label><input type="checkbox" id="myPushSpawn"> 보스 출현</label>
+        </div>
+        <div style="margin-top:12px">
+          <b style="color:#e8c879">알림 받을 필드보스</b>
+          <div id="personalPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px"></div>
+        </div>
+        <hr style="border-color:#66552f;margin:14px 0">
+        <b style="color:#e8c879">주간 룻권 알림</b>
+        <label style="display:block;margin-top:8px"><input type="checkbox" id="personalWeeklyPushEnabled"> 주간 룻권 푸시 사용</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:7px">
+          <label><input type="checkbox" id="myWeeklyPush10m"> 10분 전</label>
+          <label><input type="checkbox" id="myWeeklyPush5m"> 5분 전</label>
+          <label><input type="checkbox" id="myWeeklyPush1m"> 1분 전</label>
+        </div>
+        <div id="personalPushWeeklyBossOptions" style="margin-top:8px"></div>
+        <hr style="border-color:#66552f;margin:14px 0">
+        <b style="color:#e8c879">휴대폰 푸시 방해금지 시간</b>
+        <label style="display:block;margin-top:8px"><input type="checkbox" id="personalPushQuiet"> 방해금지 사용</label>
+        <div class="row" style="margin-top:8px">
+          <div class="grow"><label>시작</label><input type="time" id="personalPushQuietStart"></div>
+          <div class="grow"><label>종료</label><input type="time" id="personalPushQuietEnd"></div>
+        </div>
+      </div>
+
+      <hr>
+
       <h3>음성 방해금지 시간</h3>
       <label><input type="checkbox" id="personalVoiceQuiet"> 방해금지 사용</label>
       <div class="row" style="margin-top:10px">
@@ -5451,6 +5486,10 @@ function updatePersonalVoiceSections(){
 $("personalVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
 $("personalFieldVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
 $("personalWeeklyVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
+$("personalPushEnabled").addEventListener("change",()=>{
+  $("personalPushOptions").style.display = $("personalPushEnabled").checked ? "block" : "none";
+});
+
 
   // 닫기 버튼으로 닫기
 $("closePersonalAlertBtn").addEventListener("click",()=>{
@@ -5490,6 +5529,36 @@ async function openPersonalAlertSettings(){
   }
 
   const s = myAlertSettings;
+  const pushBossSettings = s.push_boss_settings || {};
+
+  $("personalPushEnabled").checked = !!s.push_enabled;
+  $("personalPushOptions").style.display = s.push_enabled ? "block" : "none";
+  $("myPush3m").checked = s.push_alert_3m !== false;
+  $("myPush1m").checked = s.push_alert_1m !== false;
+  $("myPush30s").checked = s.push_alert_30s !== false;
+  $("myPush10s").checked = s.push_alert_10s !== false;
+  $("myPushSpawn").checked = s.push_alert_spawn !== false;
+  $("personalWeeklyPushEnabled").checked = pushBossSettings.__weekly_enabled === true;
+  $("myWeeklyPush10m").checked = pushBossSettings.__weekly_10m !== false;
+  $("myWeeklyPush5m").checked = pushBossSettings.__weekly_5m !== false;
+  $("myWeeklyPush1m").checked = pushBossSettings.__weekly_1m !== false;
+  $("personalPushQuiet").checked = !!s.push_quiet_hours_enabled;
+  $("personalPushQuietStart").value = (s.push_quiet_hours_start || "22:00").slice(0,5);
+  $("personalPushQuietEnd").value = (s.push_quiet_hours_end || "08:00").slice(0,5);
+
+  $("personalPushBossOptions").innerHTML = bosses.map(b=>`
+    <label style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px;background:#202b3c;border:1px solid #66552f;border-radius:7px;font-size:12px">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(b.name || "이름 없음")}</span>
+      <input type="checkbox" data-personal-push-boss="${escapeHtml(b.id)}" ${pushBossSettings[String(b.id)] !== false ? "checked" : ""}>
+    </label>`).join("");
+
+  $("personalPushWeeklyBossOptions").innerHTML = weeklyLootRows.length ? weeklyLootRows.map(r=>{
+    const day=weeklyLootDays.find(d=>d.id===Number(r.day_of_week));
+    return `<label style="display:flex;justify-content:space-between;gap:8px;padding:8px;margin:5px 0;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px">
+      <span>${escapeHtml(r.boss_name)} · ${escapeHtml(day?.name || "")} ${escapeHtml(r.spawn_time || "")}</span>
+      <input type="checkbox" data-personal-push-weekly-boss="${escapeHtml(r.id)}" ${pushBossSettings["weekly:"+r.id] !== false ? "checked" : ""}>
+    </label>`;
+  }).join("") : '<div class="muted">주간 룻권 시간표에 등록된 보스가 없습니다.</div>';
 
   $("personalVoiceEnabled").checked = !!s.voice_enabled;
   $("myVoice3m").checked = !!s.voice_alert_3m;
@@ -5727,6 +5796,18 @@ async function savePersonalAlertSettings(){
   bossSettings.__field_voice_enabled = $("personalFieldVoiceEnabled").checked;
   bossSettings.__weekly_voice_enabled = $("personalWeeklyVoiceEnabled").checked;
 
+  const pushBossSettings = {...(myAlertSettings.push_boss_settings || {})};
+  document.querySelectorAll("[data-personal-push-boss]").forEach(el=>{
+    pushBossSettings[el.dataset.personalPushBoss] = el.checked;
+  });
+  document.querySelectorAll("[data-personal-push-weekly-boss]").forEach(el=>{
+    pushBossSettings["weekly:" + el.dataset.personalPushWeeklyBoss] = el.checked;
+  });
+  pushBossSettings.__weekly_enabled = $("personalWeeklyPushEnabled").checked;
+  pushBossSettings.__weekly_10m = $("myWeeklyPush10m").checked;
+  pushBossSettings.__weekly_5m = $("myWeeklyPush5m").checked;
+  pushBossSettings.__weekly_1m = $("myWeeklyPush1m").checked;
+
   const updated = {
     ...myAlertSettings,
 
@@ -5743,6 +5824,18 @@ async function savePersonalAlertSettings(){
     voice_quiet_hours_enabled: $("personalVoiceQuiet").checked,
     voice_quiet_hours_start: $("personalVoiceQuietStart").value || "22:00",
     voice_quiet_hours_end: $("personalVoiceQuietEnd").value || "08:00",
+
+    push_enabled: $("personalPushEnabled").checked,
+    push_alert_3m: $("myPush3m").checked,
+    push_alert_1m: $("myPush1m").checked,
+    push_alert_30s: $("myPush30s").checked,
+    push_alert_10s: $("myPush10s").checked,
+    push_alert_spawn: $("myPushSpawn").checked,
+    push_boss_settings: pushBossSettings,
+    push_quiet_hours_enabled: $("personalPushQuiet").checked,
+    push_quiet_hours_start: $("personalPushQuietStart").value || "22:00",
+    push_quiet_hours_end: $("personalPushQuietEnd").value || "08:00",
+    timezone: "Asia/Seoul",
 
     updated_at: new Date().toISOString()
   };
