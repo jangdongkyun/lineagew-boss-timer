@@ -3822,18 +3822,100 @@ $("bossSearchResults")?.addEventListener("click",event=>{
 });
 $("bossSearchConfirmBtn")?.addEventListener("click",closeBossSearchModal);
 
+// 시간검색 팝업에서 등록한 컷은 확인/취소 선택 전까지 별도 보류 처리합니다.
+function showSearchCutConfirmation(boss,recordId){
+  const overlay=document.createElement("div");
+  overlay.id="searchCutConfirmOverlay";
+  overlay.style.cssText="position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px;";
+  const panel=document.createElement("div");
+  panel.style.cssText="width:100%;max-width:390px;background:linear-gradient(145deg,#202b3d,#101722);border:1px solid #b58b43;border-radius:14px;padding:20px;color:#edf2fa;box-shadow:0 12px 40px #000b;";
+  panel.innerHTML=`
+    <h3 style="margin:0 0 10px;color:#f0d58d;font-size:17px;">컷 등록 완료</h3>
+    <p style="margin:0 0 18px;line-height:1.6;">${escapeHtml(boss.name)} 컷 시간이 등록되었습니다.<br>등록을 확정할까요?</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button type="button" class="primary" id="searchCutConfirmYes">확인</button>
+      <button type="button" class="danger" id="searchCutConfirmCancel">취소</button>
+    </div>
+    <div id="searchCutConfirmError" style="margin-top:10px;color:#ff9a9a;font-size:12px;white-space:pre-wrap;"></div>
+  `;
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  const yes=panel.querySelector("#searchCutConfirmYes");
+  const cancel=panel.querySelector("#searchCutConfirmCancel");
+  const errorBox=panel.querySelector("#searchCutConfirmError");
+
+  yes.addEventListener("click",async()=>{
+    yes.disabled=true;cancel.disabled=true;
+    try{
+      await finalizeCutRegistration(boss);
+      overlay.remove();
+      closeBossSearchModal();
+    }catch(error){
+      errorBox.textContent="등록 확정 처리 실패: "+(error.message||error);
+      yes.disabled=false;cancel.disabled=false;
+    }
+  });
+
+  cancel.addEventListener("click",async()=>{
+    yes.disabled=true;cancel.disabled=true;
+    try{
+      // 방금 등록한 본인·현재 서버의 해당 컷 기록만 취소합니다.
+      const {data,error}=await db.from("cut_records")
+        .delete()
+        .eq("id",recordId)
+        .eq("server_id",currentServerId)
+        .eq("created_by",user.id)
+        .select("id");
+      if(error) throw error;
+      if(!data || data.length===0){
+        throw new Error("취소할 컷 기록이 없거나 삭제 권한이 없습니다.");
+      }
+      await loadCuts();
+      await loadMembers();
+      renderAll();
+      overlay.remove();
+      closeBossSearchModal();
+    }catch(error){
+      errorBox.textContent="컷 등록 취소 실패: "+(error.message||error);
+      yes.disabled=false;cancel.disabled=false;
+    }
+  });
+}
+
+async function registerSearchModalCut(bossId,cutAt,input=null){
+  const boss=(bosses||[]).find(b=>String(b.id)===String(bossId));
+  if(!boss) return alert("보스 정보를 찾을 수 없습니다.");
+  try{
+    const recordId=await registerCut(boss,cutAt,{deferCleanup:true});
+    if(input) input.value="";
+    renderAll();
+    refreshBossSearchModal(true);
+    showSearchCutConfirmation(boss,recordId);
+  }catch(error){
+    console.error("시간검색 컷 등록 오류:",error);
+    alert("컷 등록 실패: "+(error.message||error));
+  }
+}
+
 // 복제된 검색 팝업 카드에는 원본 이벤트가 복제되지 않으므로 이벤트 위임으로 연결합니다.
 $("bossSearchModalCard")?.addEventListener("click",event=>{
-  const card = event.target.closest("[data-search-modal-boss-id]");
+  const card=event.target.closest("[data-search-modal-boss-id]");
   if(!card) return;
-  const bossId = card.dataset.searchModalBossId;
+  const bossId=card.dataset.searchModalBossId;
 
   if(event.target.closest("[data-quick], [data-timer]")){
-    quickCut(bossId);
+    registerSearchModalCut(bossId,new Date().toISOString());
     return;
   }
   if(event.target.closest("[data-row-cut]")){
-    rowCut(bossId,card.querySelector("[data-cut-input]"));
+    const input=card.querySelector("[data-cut-input]");
+    try{
+      const cutAt=parseCutTime(input?.value);
+      registerSearchModalCut(bossId,cutAt,input);
+    }catch(error){
+      alert("컷 등록 실패: "+(error.message||error));
+    }
     return;
   }
   if(event.target.closest("[data-rollback]")){
@@ -3842,10 +3924,16 @@ $("bossSearchModalCard")?.addEventListener("click",event=>{
 });
 
 $("bossSearchModalCard")?.addEventListener("keydown",event=>{
-  if(event.key !== "Enter" || !event.target.matches("[data-cut-input]")) return;
+  if(event.key!=="Enter" || !event.target.matches("[data-cut-input]")) return;
   event.preventDefault();
-  const card = event.target.closest("[data-search-modal-boss-id]");
-  if(card) rowCut(card.dataset.searchModalBossId,event.target);
+  const card=event.target.closest("[data-search-modal-boss-id]");
+  if(!card) return;
+  try{
+    const cutAt=parseCutTime(event.target.value);
+    registerSearchModalCut(card.dataset.searchModalBossId,cutAt,event.target);
+  }catch(error){
+    alert("컷 등록 실패: "+(error.message||error));
+  }
 });
 
 $("bossSearchModal")?.addEventListener("click",event=>{
@@ -3903,72 +3991,73 @@ function renderManualBossList(){
 }
 
 
-async function registerCut(boss, cutAt){
+async function finalizeCutRegistration(boss){
+  // 새 컷 입력이 확정되면 해당 보스의 기존 삭제 대기를 취소
+  const {error:cancelError} = await db
+    .from("cut_records")
+    .update({pending_delete_at:null})
+    .eq("boss_id",boss.id)
+    .eq("server_id",currentServerId)
+    .not("pending_delete_at","is",null);
+  if(cancelError) throw cancelError;
+
+  await loadCuts();
+
+  // 삭제 대기가 아닌 기록 중 최근 3개만 유지
+  const activeBossCuts = cuts
+    .filter(c =>
+      String(c.boss_id)===String(boss.id) &&
+      Number(c.server_id)===Number(currentServerId) &&
+      !c.pending_delete_at
+    )
+    .sort((a,b)=>
+      new Date(b.updated_at || b.cut_at) -
+      new Date(a.updated_at || a.cut_at)
+    );
+
+  // 3개보다 오래된 기록은 10분 뒤 삭제 예약
+  const oldIds = activeBossCuts.slice(3).map(c=>c.id);
+  if(oldIds.length>0){
+    const deleteAt = new Date(Date.now()+10*60*1000).toISOString();
+    const {error:pendingError} = await db
+      .from("cut_records")
+      .update({pending_delete_at:deleteAt})
+      .in("id",oldIds)
+      .eq("server_id",currentServerId);
+    if(pendingError) throw pendingError;
+  }
+
+  await loadCuts();
+  await loadMembers();
+  renderAll();
+}
+
+async function registerCut(boss,cutAt,options={}){
   if(!user) throw new Error("로그인이 필요합니다.");
   if(!profile) throw new Error("회원 정보를 불러오는 중입니다.");
 
   const inputTime = new Date().toISOString();
-
-  const {error} = await db.from("cut_records").insert({
-  boss_id: boss.id,
-  server_id: currentServerId,
-  cut_at: cutAt,
-  created_by: user.id,
-  created_by_nickname: profile.nickname || "혈맹원",
-  updated_at: inputTime,
-  updated_by: user.id
-});
+  const {data:inserted,error} = await db.from("cut_records").insert({
+    boss_id:boss.id,
+    server_id:currentServerId,
+    cut_at:cutAt,
+    created_by:user.id,
+    created_by_nickname:profile.nickname || "혈맹원",
+    updated_at:inputTime,
+    updated_by:user.id
+  }).select("id").single();
 
   if(error) throw error;
+  if(!inserted?.id) throw new Error("등록된 컷 기록 번호를 확인하지 못했습니다.");
 
+  // 시간검색 팝업은 확인/취소를 선택할 때까지 후속 정리 작업을 보류합니다.
+  if(options.deferCleanup){
+    await loadCuts();
+    return inserted.id;
+  }
 
-
-// 새 컷 입력이 발생하면 해당 보스의 기존 삭제 대기를 취소
-const { error: cancelError } = await db
-  .from("cut_records")
-  .update({ pending_delete_at: null })
-  .eq("boss_id", boss.id)
-  .eq("server_id", currentServerId)
-  .not("pending_delete_at", "is", null);
-
-if(cancelError) throw cancelError;
-
-// 최신 기록 다시 불러오기
-await loadCuts();
-
-// 삭제 대기가 아닌 기록 중 최근 3개만 유지
-const activeBossCuts = cuts
-.filter(c =>
-  String(c.boss_id) === String(boss.id) &&
-  Number(c.server_id) === Number(currentServerId) &&
-  !c.pending_delete_at
-)
-  .sort((a,b) =>
-    new Date(b.updated_at || b.cut_at) -
-    new Date(a.updated_at || a.cut_at)
-  );
-
-// 3개보다 오래된 기록은 10분 뒤 삭제 예약
-const oldIds = activeBossCuts.slice(3).map(c => c.id);
-
-if(oldIds.length > 0){
-  const deleteAt = new Date(
-    Date.now() + 10 * 60 * 1000
-  ).toISOString();
-
-const {error: pendingError} = await db
-  .from("cut_records")
-  .update({ pending_delete_at: deleteAt })
-  .in("id", oldIds)
-  .eq("server_id", currentServerId);
-
-if(pendingError) throw pendingError;
-}
-
-await loadCuts();
-await loadMembers();
-renderAll();
-return true;
+  await finalizeCutRegistration(boss);
+  return inserted.id;
 }
 
 
