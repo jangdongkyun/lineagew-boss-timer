@@ -18,9 +18,6 @@ button,input{font:inherit}
 button{border:1px solid var(--line);border-radius:8px;background:#263448;color:var(--text);padding:6px 7px;font-weight:800;cursor:pointer}
 button:disabled{opacity:.45}
 .primary{background:#8a672d;border-color:#b58b43}
-.serverbar{display:flex;gap:4px}
-.serverbar button{flex:1;padding:5px 3px;font-size:6px}
-.serverbar button.active{background:#a77b32;border-color:var(--gold)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;margin-bottom:6px}
 .status{font-size:6px;color:var(--muted);margin:4px 0 8px;min-height:15px}
 .search{width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text);margin-bottom:7px}
@@ -60,11 +57,6 @@ button:disabled{opacity:.45}
 </div>
 <div id="app" style="display:none">
  <div class="panel">
-  <div class="serverbar" id="servers">
-   <button type="button" data-server="1">1번 서버</button>
-   <button type="button" data-server="2">2번 서버</button>
-   <button type="button" data-server="3">3번 서버</button>
-  </div>
   <div class="status" id="status">데이터를 불러오는 중...</div>
   <input class="search" id="search" type="search" placeholder="보스 이름 또는 별명 검색">
   <div class="bosslist" id="bossList"></div>
@@ -100,7 +92,6 @@ function render(){
   return '<div class="boss-row"><button class="boss-main" type="button" data-cut-now="'+esc(b.id)+'" '+(busy?'disabled':'')+'><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button><div class="row-entry"><input type="text" inputmode="numeric" maxlength="5" placeholder="2135" aria-label="'+esc(b.name)+' 컷 시간" data-time-for="'+esc(b.id)+'" value="'+esc(saved[b.id]||"")+'"><button class="primary" type="button" data-cut-time="'+esc(b.id)+'" '+(busy?'disabled':'')+'>등록</button></div></div>';
  }).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
  if(selectedPopupBossId!==null){const selected=bosses.find(x=>String(x.id)===String(selectedPopupBossId));if(selected){const st=state(selected);$("modalBossTime").textContent=st.label;$("modalBossTime").className="time "+st.cls;}}
- document.querySelectorAll("[data-server]").forEach(x=>x.classList.toggle("active",Number(x.dataset.server)===serverId));
 }
 async function loadData(){
  const [br,cr]=await Promise.all([
@@ -111,14 +102,6 @@ async function loadData(){
  bosses=br.data||[];cuts=cr.data||[];
  $("status").textContent="접속 중 · "+(profile.nickname||"혈맹원")+" · "+serverId+"번 서버";
  render();
-}
-async function setServer(id){
- if(![1,2,3].includes(id)||id===serverId)return;
- const {error}=await db.from("profiles").update({last_server_id:id}).eq("id",user.id);
- if(error)throw error;
- serverId=id;profile.last_server_id=id;
- try{await db.from("presence").update({server_id:id,last_seen:new Date().toISOString()}).eq("user_id",user.id);}catch(_){}
- await loadData();
 }
 function parseTime(value){
  let v=String(value||"").trim(),h,m;
@@ -181,7 +164,6 @@ $("bossList").addEventListener("keydown",e=>{
  const btn=[...$("bossList").querySelectorAll("[data-cut-time]")].find(x=>x.dataset.cutTime===id);
  btn?.click();
 });
-$("servers").addEventListener("click",async e=>{const b=e.target.closest("[data-server]");if(!b)return;try{await setServer(Number(b.dataset.server));}catch(err){say("서버 변경 실패: "+err.message);}});
 $("search").addEventListener("input",render);
 
 $("refreshBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
