@@ -1948,6 +1948,9 @@ function kobotLoadReplyMode(){
 }
 let kobotReplyHistory = [];
 let cutHistoryMode = "boss";
+let historyServerId = 1;
+let historyCuts = [];
+let historyLoadToken = 0;
 
 
 
@@ -5824,6 +5827,15 @@ function ensureCutHistoryUI(){
         </button>
       </div>
 
+      <div style="margin-bottom:12px">
+        <label for="cutHistoryServerSelect" style="display:block;color:#c5b995;font-size:12px;margin-bottom:6px">히스토리 조회 서버</label>
+        <select id="cutHistoryServerSelect" style="width:100%;box-sizing:border-box;padding:12px;border-radius:8px;background:#26364d;color:#fff;border:1px solid #806b3e;font-size:15px">
+          <option value="1">1번 서버</option>
+          <option value="2">2번 서버</option>
+          <option value="3">3번 서버</option>
+        </select>
+      </div>
+
       <div style="
         display:grid;
         grid-template-columns:repeat(3,1fr);
@@ -5885,18 +5897,60 @@ function ensureCutHistoryUI(){
     cutHistoryMode = "participation";
     renderHistory();
   });
+
+  $("cutHistoryServerSelect").addEventListener("change",async()=>{
+    const selected = Number($("cutHistoryServerSelect").value);
+    if(![1,2,3].includes(selected)) return;
+    historyServerId = selected;
+    if(cutHistoryMode === "participation"){
+      const participationSelect = $("participationServerSelect");
+      if(participationSelect){
+        participationSelect.value = String(selected);
+        renderParticipationHistory();
+      }
+      return;
+    }
+    await loadHistoryCuts();
+    renderHistory();
+  });
 }
 
   
   
-function openCutHistory(){
+async function loadHistoryCuts(){
+  const requestToken = ++historyLoadToken;
+  const serverId = historyServerId;
+  const content = $("cutHistoryContent");
+  if(content) content.innerHTML = '<div style="padding:25px;text-align:center;color:#aaa">서버별 컷 기록을 불러오는 중입니다.</div>';
+
+  const {data,error} = await db.from("cut_records")
+    .select("*")
+    .eq("server_id",serverId)
+    .order("cut_at",{ascending:false})
+    .limit(150);
+
+  if(error) throw error;
+  if(requestToken !== historyLoadToken || serverId !== historyServerId) return;
+  historyCuts = data || [];
+}
+
+async function openCutHistory(){
   ensureCutHistoryUI();
 
   cutHistoryMode = "boss";
+  historyServerId = Number(currentServerId) || 1;
+  $("cutHistoryServerSelect").value = String(historyServerId);
   openBackPopup("cutHistoryModal");
   $("cutHistoryModal").style.display = "block";
 
-  renderHistory();
+  try{
+    await loadHistoryCuts();
+    renderHistory();
+  }catch(error){
+    console.error("서버별 컷 히스토리 조회 실패:",error);
+    $("cutHistoryDescription").textContent = "선택한 서버의 기록을 불러오지 못했습니다.";
+    $("cutHistoryContent").innerHTML = '<div style="padding:25px;text-align:center;color:#ff9999">컷 기록 조회 실패: '+escapeHtml(error.message || String(error))+'</div>';
+  }
 }
 
 function closeCutHistory(){
@@ -5929,7 +5983,7 @@ function renderHistory(){
   });
 
   // 컷 시간 기준 최신순 정렬
-  const newestFirst = [...cuts].sort((a,b)=>{
+  const newestFirst = [...historyCuts].sort((a,b)=>{
     return new Date(b.cut_at).getTime() -
            new Date(a.cut_at).getTime();
   });
@@ -6040,7 +6094,7 @@ function renderHistory(){
   // ---------------------------------
   // 2. 컷 기록이 없는 경우
   // ---------------------------------
-  if(!cuts.length){
+  if(!historyCuts.length){
     description.textContent = "등록된 컷 기록이 없습니다.";
     content.innerHTML = `
       <div style="padding:30px;text-align:center;color:#aaa">
@@ -6055,7 +6109,7 @@ function renderHistory(){
   // ---------------------------------
   if(cutHistoryMode === "boss"){
     description.textContent =
-      "보스 이름 ㄱㄴㄷ 순서 · 보스별 최근 컷 기록 3개";
+      historyServerId+"번 서버 · 보스 이름 ㄱㄴㄷ 순서 · 보스별 최근 컷 기록 3개";
 
     const sortedBosses = [...bosses].sort((a,b)=>
       a.name.localeCompare(b.name,"ko")
@@ -6122,6 +6176,7 @@ function renderHistory(){
                     <td style="padding:9px 5px">
                       <button class="ghost"
                         data-history-edit="${escapeHtml(c.id)}"
+                        ${historyServerId !== Number(currentServerId) ? "disabled title='현재 선택한 서버의 기록만 수정할 수 있습니다.'" : ""}
                         style="padding:5px 8px;font-size:11px">
                         수정
                       </button>
@@ -6147,7 +6202,7 @@ function renderHistory(){
   // ---------------------------------
   else{
     description.textContent =
-      "전체 보스 컷 입력 기록 · 최근순 최대 26개";
+      historyServerId+"번 서버 · 전체 보스 컷 입력 기록 · 최근순 최대 26개";
 
     const recentCuts = newestFirst.slice(0,26);
 
@@ -6218,6 +6273,7 @@ function renderHistory(){
                 <td style="padding:11px 5px">
                   <button class="ghost"
                     data-history-edit="${escapeHtml(c.id)}"
+                    ${historyServerId !== Number(currentServerId) ? "disabled title='현재 선택한 서버의 기록만 수정할 수 있습니다.'" : ""}
                     style="padding:5px 8px;font-size:11px">
                     수정
                   </button>
