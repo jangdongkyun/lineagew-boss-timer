@@ -4990,7 +4990,7 @@ card.innerHTML = `
       <input
         data-cut-input="${b.id}"
         type="search"
-        inputmode="text"
+        inputmode="numeric"
         autocomplete="off"
         autocapitalize="off"
         autocorrect="off"
@@ -10057,7 +10057,7 @@ fixedBossUpdateHighlight();
 // PWA 실행 및 기존 푸시 알림이 같은 서비스 워커를 사용하도록 등록합니다.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=20261127-2", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=20261127-3", { updateViaCache: "none" })
       .catch(error => console.warn("서비스 워커 등록 실패:", error));
   });
 }
