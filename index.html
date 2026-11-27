@@ -1149,6 +1149,154 @@ body {
   
 <div id="app">
 
+    <div class="panel">
+    <div class="row">
+      <div class="grow">
+        <b id="welcome">혈맹원</b>
+        <div class="sub" id="roleText">회원</div>
+      </div>
+<button class="ghost" id="adminSettingsBtn">⚙ 관리자 설정</button>
+<button class="ghost" id="personalAlertBtn">🔔 개인 알림 설정</button>
+      <button class="ghost" id="nickToggle">닉네임 변경</button>
+      <button class="ghost" id="clanMembersBtn">혈맹원 조회</button>
+      <button class="danger" id="logoutBtn">로그아웃</button>
+    </div>
+
+
+
+<!-- 혈맹원 조회 영역 -->
+
+<!-- 혈맹원 금색 팝업 -->
+<div id="clanMembersBox" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  background:rgba(0,0,0,0.85);
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+">
+  <div style="
+    width:100%;
+    max-width:480px;
+    max-height:85vh;
+    overflow:hidden;
+    background:linear-gradient(145deg,#211a0d,#100e0a);
+    border:2px solid #c49a43;
+    border-radius:18px;
+    box-shadow:0 0 28px rgba(218,170,65,0.35);
+    color:#fff;
+  ">
+
+    <!-- 리니지W 캐릭터 이미지 -->
+    <div style="
+      position:relative;
+      height:155px;
+      background:
+        linear-gradient(to bottom,rgba(0,0,0,0.05),rgba(15,12,7,0.95)),
+        url('assets/lineagew-logo.jpg') center 35% / cover no-repeat;
+      border-bottom:2px solid #b58a35;
+    ">
+      <div style="
+        position:absolute;
+        left:0;
+        right:0;
+        bottom:12px;
+        text-align:center;
+        color:#f4d58a;
+        text-shadow:0 2px 8px #000;
+      ">
+        <div style="font-size:11px;letter-spacing:4px;">LINEAGE W</div>
+        <div style="font-size:25px;font-weight:bold;letter-spacing:3px;">
+          혈맹원 명단
+        </div>
+      </div>
+      <button class="ghost" id="closeClanMembersBtn" style="
+        position:absolute;
+        top:10px;
+        right:10px;
+        color:#f4d58a;
+        border:1px solid #c49a43;
+        background:rgba(0,0,0,0.65);
+      ">✕</button>
+    </div>
+
+    <!-- 회원 목록 -->
+    <div id="clanMembersList" style="
+      padding:14px 16px;
+      max-height:55vh;
+      overflow-y:auto;
+    ">
+      불러오는 중...
+    </div>
+
+    <div style="
+      text-align:center;
+      padding:10px;
+      color:#c9a75e;
+      font-size:11px;
+      border-top:1px solid #725525;
+      letter-spacing:2px;
+    ">
+      ✦ CLAN MEMBERS ✦
+    </div>
+
+  </div>
+</div>
+
+
+  
+    <div id="nickBox" role="dialog" aria-modal="true" aria-labelledby="nickModalTitle" style="
+      display:none;position:fixed;inset:0;z-index:2147483646;
+      background:rgba(0,0,0,.88);padding:16px;box-sizing:border-box;
+      align-items:center;justify-content:center;overflow-y:auto">
+  <div style="width:100%;max-width:460px;background:#101a2b;border:1px solid #b58b43;
+    border-radius:14px;padding:20px;box-sizing:border-box;color:#fff">
+  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+    <b id="nickModalTitle" style="font-size:19px;color:#e8c879">닉네임 설정</b>
+    <button type="button" class="danger" id="cancelNickTopBtn">닫기 ✕</button>
+  </div>
+  <div style="margin-bottom:12px;padding:10px;border-radius:8px;background:#202b3c">
+    <span class="muted">현재 닉네임</span>
+    <b id="currentNickDisplay" style="display:block;margin-top:4px"></b>
+  </div>
+  <div style="margin-bottom:10px">
+    <label for="newNick">새 닉네임</label>
+    <input id="newNick" class="grow" placeholder="새 닉네임">
+  </div>
+
+  <div style="margin-bottom:10px">
+    <label for="newClass">클래스 선택 (선택 사항)</label>
+    <select id="newClass" class="grow">
+  <option value="">클래스 선택 안 함</option>
+  <option value="군주">군주</option>
+  <option value="기사">기사</option>
+  <option value="마법사">마법사</option>
+  <option value="요정">요정</option>
+  <option value="다크엘프">다크엘프</option>
+  <option value="수라">수라</option>
+  <option value="전사">전사</option>
+  <option value="총사">총사</option>
+  <option value="마격사">마격사</option>
+  <option value="성기사">성기사</option>
+  <option value="나찰">나찰</option>
+  <option value="귀검사">귀검사</option>
+  <option value="혈법사">혈법사</option>
+  <option value="무희">무희</option>
+</select>
+  </div>
+
+  <div class="row" style="gap:8px;">
+   <button type="button" class="primary" id="saveNickBtn">저장</button>
+   <button type="button" class="ghost" id="cancelNickBtn">취소</button>
+ </div>
+ </div>
+</div>
+
+
+
+
 <div class="panel">
   <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
     <h2>필드 보스 현황</h2>
@@ -1309,152 +1457,6 @@ body {
   </div>
   
   
-    <div class="panel">
-    <div class="row">
-      <div class="grow">
-        <b id="welcome">혈맹원</b>
-        <div class="sub" id="roleText">회원</div>
-      </div>
-<button class="ghost" id="adminSettingsBtn">⚙ 관리자 설정</button>
-<button class="ghost" id="personalAlertBtn">🔔 개인 알림 설정</button>
-      <button class="ghost" id="nickToggle">닉네임 변경</button>
-      <button class="ghost" id="clanMembersBtn">혈맹원 조회</button>
-      <button class="danger" id="logoutBtn">로그아웃</button>
-    </div>
-
-
-
-<!-- 혈맹원 조회 영역 -->
-
-<!-- 혈맹원 금색 팝업 -->
-<div id="clanMembersBox" style="
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:9999;
-  background:rgba(0,0,0,0.85);
-  align-items:center;
-  justify-content:center;
-  padding:16px;
-">
-  <div style="
-    width:100%;
-    max-width:480px;
-    max-height:85vh;
-    overflow:hidden;
-    background:linear-gradient(145deg,#211a0d,#100e0a);
-    border:2px solid #c49a43;
-    border-radius:18px;
-    box-shadow:0 0 28px rgba(218,170,65,0.35);
-    color:#fff;
-  ">
-
-    <!-- 리니지W 캐릭터 이미지 -->
-    <div style="
-      position:relative;
-      height:155px;
-      background:
-        linear-gradient(to bottom,rgba(0,0,0,0.05),rgba(15,12,7,0.95)),
-        url('assets/lineagew-logo.jpg') center 35% / cover no-repeat;
-      border-bottom:2px solid #b58a35;
-    ">
-      <div style="
-        position:absolute;
-        left:0;
-        right:0;
-        bottom:12px;
-        text-align:center;
-        color:#f4d58a;
-        text-shadow:0 2px 8px #000;
-      ">
-        <div style="font-size:11px;letter-spacing:4px;">LINEAGE W</div>
-        <div style="font-size:25px;font-weight:bold;letter-spacing:3px;">
-          혈맹원 명단
-        </div>
-      </div>
-      <button class="ghost" id="closeClanMembersBtn" style="
-        position:absolute;
-        top:10px;
-        right:10px;
-        color:#f4d58a;
-        border:1px solid #c49a43;
-        background:rgba(0,0,0,0.65);
-      ">✕</button>
-    </div>
-
-    <!-- 회원 목록 -->
-    <div id="clanMembersList" style="
-      padding:14px 16px;
-      max-height:55vh;
-      overflow-y:auto;
-    ">
-      불러오는 중...
-    </div>
-
-    <div style="
-      text-align:center;
-      padding:10px;
-      color:#c9a75e;
-      font-size:11px;
-      border-top:1px solid #725525;
-      letter-spacing:2px;
-    ">
-      ✦ CLAN MEMBERS ✦
-    </div>
-
-  </div>
-</div>
-
-
-  
-    <div id="nickBox" role="dialog" aria-modal="true" aria-labelledby="nickModalTitle" style="
-      display:none;position:fixed;inset:0;z-index:2147483646;
-      background:rgba(0,0,0,.88);padding:16px;box-sizing:border-box;
-      align-items:center;justify-content:center;overflow-y:auto">
-  <div style="width:100%;max-width:460px;background:#101a2b;border:1px solid #b58b43;
-    border-radius:14px;padding:20px;box-sizing:border-box;color:#fff">
-  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
-    <b id="nickModalTitle" style="font-size:19px;color:#e8c879">닉네임 설정</b>
-    <button type="button" class="danger" id="cancelNickTopBtn">닫기 ✕</button>
-  </div>
-  <div style="margin-bottom:12px;padding:10px;border-radius:8px;background:#202b3c">
-    <span class="muted">현재 닉네임</span>
-    <b id="currentNickDisplay" style="display:block;margin-top:4px"></b>
-  </div>
-  <div style="margin-bottom:10px">
-    <label for="newNick">새 닉네임</label>
-    <input id="newNick" class="grow" placeholder="새 닉네임">
-  </div>
-
-  <div style="margin-bottom:10px">
-    <label for="newClass">클래스 선택 (선택 사항)</label>
-    <select id="newClass" class="grow">
-  <option value="">클래스 선택 안 함</option>
-  <option value="군주">군주</option>
-  <option value="기사">기사</option>
-  <option value="마법사">마법사</option>
-  <option value="요정">요정</option>
-  <option value="다크엘프">다크엘프</option>
-  <option value="수라">수라</option>
-  <option value="전사">전사</option>
-  <option value="총사">총사</option>
-  <option value="마격사">마격사</option>
-  <option value="성기사">성기사</option>
-  <option value="나찰">나찰</option>
-  <option value="귀검사">귀검사</option>
-  <option value="혈법사">혈법사</option>
-  <option value="무희">무희</option>
-</select>
-  </div>
-
-  <div class="row" style="gap:8px;">
-   <button type="button" class="primary" id="saveNickBtn">저장</button>
-   <button type="button" class="ghost" id="cancelNickBtn">취소</button>
- </div>
- </div>
-</div>
-
-
 <!-- 온라인 접속 정보 -->
 <div class="panel online-panel">
   <div class="row" style="justify-content:space-between;margin-bottom:6px">
