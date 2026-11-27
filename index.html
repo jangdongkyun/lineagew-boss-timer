@@ -5332,6 +5332,16 @@ function speak(text){
 }
 
 
+function updatePersonalVoiceSections(){
+  const enabled = $("personalVoiceEnabled").checked;
+  $("personalVoiceOptions").style.display = enabled ? "block" : "none";
+  $("personalVoiceCategoryOptions").style.display = enabled ? "block" : "none";
+  $("personalBossOptions").style.display =
+    enabled && $("personalFieldVoiceEnabled").checked ? "block" : "none";
+  $("personalWeeklyBossOptions").style.display =
+    enabled && $("personalWeeklyVoiceEnabled").checked ? "block" : "none";
+}
+
 function ensurePersonalAlertUI(){
   if($("personalAlertModal")) return;
 
@@ -5440,17 +5450,7 @@ $("savePersonalAlertBtn").addEventListener(
   savePersonalAlertSettings
 );
 
-// 음성 알림 사용 여부에 따라 세부 설정을 표시
-function updatePersonalVoiceSections(){
-  const enabled = $("personalVoiceEnabled").checked;
-  $("personalVoiceOptions").style.display = enabled ? "block" : "none";
-  $("personalVoiceCategoryOptions").style.display = enabled ? "block" : "none";
-  $("personalBossOptions").style.display =
-    enabled && $("personalFieldVoiceEnabled").checked ? "block" : "none";
-  $("personalWeeklyBossOptions").style.display =
-    enabled && $("personalWeeklyVoiceEnabled").checked ? "block" : "none";
-}
-
+// 음성 알림 표시 상태 이벤트 연결
 $("personalVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
 $("personalFieldVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
 $("personalWeeklyVoiceEnabled").addEventListener("change",updatePersonalVoiceSections);
@@ -5659,11 +5659,7 @@ body {
 
   // 모달은 조회 시작 시 이미 표시되어 있으며, 설정값을 채운 뒤 음성 목록을 갱신합니다.
   loadPersonalVoiceList();
-} catch (error) {
-  console.warn("개인 알림 설정의 뒤로가기 기록 추가 실패:", error);
-}
-
-loadPersonalVoiceList();
+  loadPersonalVoiceList();
 }
 
 
