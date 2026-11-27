@@ -1031,11 +1031,14 @@ body {
     <div class="sub">해적 렌팀 스케쥴러</div>
   </div>
 
-  <div id="serverSelector" style="display:none;gap:6px;align-items:center;flex-wrap:wrap">
-    <span class="muted">서버</span>
-    <button type="button" class="server-btn active" data-server="1">1번</button>
-    <button type="button" class="server-btn" data-server="2">2번</button>
-    <button type="button" class="server-btn" data-server="3">3번</button>
+  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end">
+    <div id="serverSelector" style="display:none;gap:6px;align-items:center;flex-wrap:wrap">
+      <span class="muted">서버</span>
+      <button type="button" class="server-btn active" data-server="1">1번</button>
+      <button type="button" class="server-btn" data-server="2">2번</button>
+      <button type="button" class="server-btn" data-server="3">3번</button>
+    </div>
+    <button type="button" class="primary" id="miniPopupBtn" style="display:none;padding:8px 10px;font-size:12px">작은 팝업 열기</button>
   </div>
 </header>
 
@@ -8295,6 +8298,8 @@ async function enterApp(currentUser){
   
   $("auth").style.display = "none";
   $("app").style.display = "block";
+  const miniPopupButton = $("miniPopupBtn");
+  if(miniPopupButton) miniPopupButton.style.display = "inline-flex";
 
 
 try{
@@ -8338,6 +8343,7 @@ async function leaveApp(){
   $("app").style.display = "none";
   $("auth").style.display = "block";
   $("serverSelector").style.display = "none";
+  if($("miniPopupBtn")) $("miniPopupBtn").style.display = "none";
 }
 
 $("loginBtn").addEventListener("click",async()=>{
@@ -10604,6 +10610,15 @@ document.addEventListener("click",event=>{
   }
 }, true);
 
+</script>
+<script>
+/* 별도 미니 보탐봇 창 열기: 기존 메인 화면과 데이터는 그대로 유지 */
+document.getElementById("miniPopupBtn")?.addEventListener("click",()=>{
+  const popup=window.open("./mini.html","lineagewBossMini","popup=yes,width=380,height=680,resizable=yes,scrollbars=yes");
+  if(!popup){
+    alert("팝업이 차단되었습니다. 브라우저의 팝업 허용 설정을 확인해 주세요.");
+  }
+});
 </script>
 </body>
 </html>
