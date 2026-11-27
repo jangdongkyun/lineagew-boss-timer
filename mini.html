@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0b0e14">
+<title>보탐봇 미니 팝업</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#0b0e14;--panel:#151b26;--line:#303b4d;--text:#edf2fa;--muted:#9ba9bd;--gold:#e6bd68;--green:#63d69b;--red:#ff6262}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;font-size:13px}
+main{padding:9px;max-width:520px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
+.brand{font-weight:900;color:var(--gold);font-size:17px}
+.sub{font-size:10px;color:var(--muted)}
+button,input{font:inherit}
+button{border:1px solid var(--line);border-radius:8px;background:#263448;color:var(--text);padding:8px 9px;font-weight:800;cursor:pointer}
+button:disabled{opacity:.45}
+.primary{background:#8a672d;border-color:#b58b43}
+.serverbar{display:flex;gap:4px}
+.serverbar button{flex:1;padding:7px 4px;font-size:12px}
+.serverbar button.active{background:#a77b32;border-color:var(--gold)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px;margin-bottom:8px}
+.status{font-size:11px;color:var(--muted);margin:4px 0 8px;min-height:15px}
+.search{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text);margin-bottom:7px}
+.bosslist{display:grid;gap:5px;max-height:34vh;overflow:auto}
+.boss{display:flex;align-items:center;justify-content:space-between;gap:7px;text-align:left;width:100%;padding:8px}
+.boss.selected{border-color:var(--gold);background:#493817}
+.bossname{font-weight:850;min-width:0;overflow-wrap:anywhere}
+.time{font-weight:900;color:var(--green);white-space:nowrap}
+.time.soon{color:#f5d45e}.time.hot{color:#ff963e}.time.spawn{color:var(--red)}
+.muted{color:var(--muted);font-size:10px}
+.selectedbox{text-align:center}
+.selectedname{font-size:17px;font-weight:900;color:var(--gold);overflow-wrap:anywhere}
+.countdown{font-size:24px;font-weight:950;line-height:1.35;margin:4px 0}
+.cutnow{width:100%;padding:12px;font-size:15px;background:#226044;border-color:#3d9c6b}
+.timeentry{display:flex;gap:5px;margin-top:7px}
+.timeentry input{min-width:0;flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;background:#0d131d;color:var(--text)}
+.timeentry button{min-width:65px}
+.foot{display:flex;gap:5px;margin-top:7px}
+.foot button{flex:1;font-size:11px}
+#loginBox{display:none}
+#message{white-space:pre-wrap;line-height:1.4;color:#f5d45e}
+@media(max-height:520px){main{padding:6px}.panel{padding:7px;margin-bottom:6px}.bosslist{max-height:24vh}.countdown{font-size:20px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <div><div class="brand">LINEAGE W · MINI</div><div class="sub" id="who">보탐봇 미니 팝업</div></div>
+ <button id="refreshBtn" type="button">새로고침</button>
+</header>
+<div class="panel" id="loginBox">
+ <b>로그인이 필요합니다</b>
+ <div class="status">기존 보탐봇과 같은 브라우저에서 먼저 로그인해 주세요.</div>
+ <button class="primary" id="openMainBtn" type="button" style="width:100%">기존 보탐봇 열기</button>
+</div>
+<div id="app" style="display:none">
+ <div class="panel">
+  <div class="serverbar" id="servers">
+   <button type="button" data-server="1">1번 서버</button>
+   <button type="button" data-server="2">2번 서버</button>
+   <button type="button" data-server="3">3번 서버</button>
+  </div>
+  <div class="status" id="status">데이터를 불러오는 중...</div>
+  <input class="search" id="search" type="search" placeholder="보스 이름 또는 별명 검색">
+  <div class="bosslist" id="bossList"></div>
+ </div>
+ <div class="panel selectedbox">
+  <div class="muted">선택한 보스</div>
+  <div class="selectedname" id="selectedName">보스를 선택하세요</div>
+  <div class="countdown" id="countdown">--:--</div>
+  <div class="muted" id="expected"></div>
+  <button class="cutnow" id="cutNowBtn" type="button" disabled>현재 시각으로 컷 등록</button>
+  <div class="timeentry">
+   <input id="cutTime" inputmode="numeric" maxlength="5" placeholder="컷 시간 2135 / 21:35">
+   <button class="primary" id="cutTimeBtn" type="button" disabled>시간 등록</button>
+  </div>
+  <div class="foot">
+   <button id="reloadDataBtn" type="button">시간표 갱신</button>
+   <button id="logoutBtn" type="button">로그아웃</button>
+  </div>
+ </div>
+</div>
+<div id="message"></div>
+</main>
+<script>
+const SUPABASE_URL="https://jswekbrsjkylrwhgvvre.supabase.co";
+const SUPABASE_KEY="sb_publishable_s4gO0UlJvICe6eQSzFA9MQ_RWxo02po";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let user=null,profile=null,bosses=[],cuts=[],serverId=1,selectedBossId=null,busy=false,channel=null;
+const $=id=>document.getElementById(id);
+const say=t=>{$("message").textContent=t||""};
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function variants(b){const a=Array.isArray(b.aliases)?b.aliases:String(b.aliases||"").split(/[,;\/、\n]+/);return [b.name,...a].map(x=>String(x||"").trim()).filter(Boolean);}
+function latestCut(b){const reset=b.timer_reset_at?new Date(b.timer_reset_at).getTime():0;return cuts.filter(c=>String(c.boss_id)===String(b.id)&&Number(c.server_id)===serverId&&new Date(c.cut_at).getTime()>reset&&!c.pending_delete_at).sort((a,b)=>new Date(b.cut_at)-new Date(a.cut_at))[0]||null;}
+function nextAt(b){const last=latestCut(b);let base=last?new Date(last.cut_at).getTime():b.initial_spawn_at?new Date(b.initial_spawn_at).getTime():NaN;if(!Number.isFinite(base))return null;const interval=Number(b.respawn_hours)*3600000;if(!Number.isFinite(interval)||interval<=0)return null;let next=base+interval;const now=Date.now();while(next<now-300000)next+=interval;return next;}
+function duration(ms){if(ms<=0)return "출현";let sec=Math.floor(ms/1000),d=Math.floor(sec/86400),h=Math.floor(sec%86400/3600),m=Math.floor(sec%3600/60),s=sec%60;if(d)return d+"일 "+h+"시간 "+m+"분";if(h)return h+"시간 "+m+"분 "+s+"초";return m+"분 "+s+"초";}
+function state(b){const at=nextAt(b);if(at===null)return {label:"시간 미등록",cls:""};const ms=at-Date.now();if(ms<=0&&ms>=-300000)return {label:"출현",cls:"spawn"};if(ms>0&&ms<=600000)return {label:duration(ms),cls:"hot"};if(ms>0&&ms<=3600000)return {label:duration(ms),cls:"soon"};return {label:ms>0?duration(ms):"다음 주기",cls:""};}
+function sorted(){return [...bosses].sort((a,b)=>(nextAt(a)??Infinity)-(nextAt(b)??Infinity));}
+function render(){
+ const q=$("search").value.trim().toLocaleLowerCase();
+ const list=sorted().filter(b=>variants(b).some(n=>n.toLocaleLowerCase().includes(q)));
+ $("bossList").innerHTML=list.map(b=>{const st=state(b);return '<button class="boss '+(String(b.id)===String(selectedBossId)?"selected":"")+'" data-id="'+esc(b.id)+'"><span class="bossname">'+esc(b.name)+'</span><span class="time '+st.cls+'">'+esc(st.label)+'</span></button>';}).join("")||'<div class="muted">검색 결과가 없습니다.</div>';
+ const b=bosses.find(x=>String(x.id)===String(selectedBossId));
+ $("selectedName").textContent=b?b.name:"보스를 선택하세요";
+ $("cutNowBtn").disabled=!b||busy;$("cutTimeBtn").disabled=!b||busy;
+ if(b){const at=nextAt(b);const st=state(b);$("countdown").textContent=st.label;$("countdown").style.color=st.cls==="spawn"?"#ff6262":st.cls==="hot"?"#ff963e":st.cls==="soon"?"#f5d45e":"#edf2fa";$("expected").textContent=at?("예정 "+new Date(at).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false})):"최초 출현 시간을 관리자에게 문의하세요.";}else{$("countdown").textContent="--:--";$("expected").textContent="";}
+ document.querySelectorAll("[data-server]").forEach(x=>x.classList.toggle("active",Number(x.dataset.server)===serverId));
+}
+async function loadData(){
+ const [br,cr]=await Promise.all([
+  db.from("bosses").select("*").or("is_active.is.null,is_active.eq.true").order("name"),
+  db.from("cut_records").select("*").eq("server_id",serverId).order("cut_at",{ascending:false}).limit(150)
+ ]);
+ if(br.error)throw br.error;if(cr.error)throw cr.error;
+ bosses=br.data||[];cuts=cr.data||[];
+ if(!selectedBossId||!bosses.some(b=>String(b.id)===String(selectedBossId)))selectedBossId=sorted()[0]?.id??null;
+ $("status").textContent="접속 중 · "+(profile.nickname||"혈맹원")+" · "+serverId+"번 서버";
+ render();
+}
+async function setServer(id){
+ if(![1,2,3].includes(id)||id===serverId)return;
+ const {error}=await db.from("profiles").update({last_server_id:id}).eq("id",user.id);
+ if(error)throw error;
+ serverId=id;profile.last_server_id=id;
+ try{await db.from("presence").update({server_id:id,last_seen:new Date().toISOString()}).eq("user_id",user.id);}catch(_){}
+ await loadData();
+}
+function parseTime(value){
+ let v=String(value||"").trim(),h,m;
+ if(/^\d{4}$/.test(v)){h=Number(v.slice(0,2));m=Number(v.slice(2));}
+ else if(/^\d{1,2}:\d{2}$/.test(v)){[h,m]=v.split(":").map(Number);}
+ else throw new Error("2135 또는 21:35 형식으로 입력하세요.");
+ if(h<0||h>23||m<0||m>59)throw new Error("올바른 24시간 형식으로 입력하세요.");
+ const d=new Date();const out=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,m,0,0);if(out.getTime()>Date.now()+60000)out.setDate(out.getDate()-1);return out.toISOString();
+}
+async function registerCut(cutAt){
+ const b=bosses.find(x=>String(x.id)===String(selectedBossId));if(!b)throw new Error("보스를 먼저 선택하세요.");
+ if(busy)return;busy=true;render();say("컷 기록을 저장하고 있습니다...");
+ try{
+  const now=new Date().toISOString();
+  const {data,error}=await db.from("cut_records").insert({boss_id:b.id,server_id:serverId,cut_at:cutAt,created_by:user.id,created_by_nickname:profile.nickname||"혈맹원",updated_at:now,updated_by:user.id}).select("id").single();
+  if(error)throw error;if(!data?.id)throw new Error("등록된 기록 번호를 확인하지 못했습니다.");
+  const {error:cancelError}=await db.from("cut_records").update({pending_delete_at:null}).eq("boss_id",b.id).eq("server_id",serverId).not("pending_delete_at","is",null);
+  if(cancelError)throw cancelError;
+  const {data:rows,error:rowsError}=await db.from("cut_records").select("id,cut_at,updated_at").eq("boss_id",b.id).eq("server_id",serverId).is("pending_delete_at",null).order("updated_at",{ascending:false});
+  if(rowsError)throw rowsError;
+  const old=(rows||[]).slice(3).map(x=>x.id);
+  if(old.length){const deleteAt=new Date(Date.now()+600000).toISOString();const {error:pendingError}=await db.from("cut_records").update({pending_delete_at:deleteAt}).in("id",old).eq("server_id",serverId);if(pendingError)throw pendingError;}
+  $("cutTime").value="";await loadData();say(b.name+" 컷 등록 완료");
+ }catch(e){say("등록 실패: "+(e.message||e));}
+ finally{busy=false;render();}
+}
+async function start(){
+ const {data,error}=await db.auth.getSession();if(error)throw error;
+ if(!data.session?.user){$("loginBox").style.display="block";return;}
+ user=data.session.user;
+ const {data:p,error:pe}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();if(pe)throw pe;if(!p)throw new Error("회원 프로필을 찾을 수 없습니다.");profile=p;
+ if((profile.account_status||"active")!=="active")throw new Error("이 계정은 사용할 수 없습니다.");
+ serverId=Number(profile.last_server_id)||1;
+ $("who").textContent=(profile.nickname||"혈맹원")+" · 미니 컷 등록";
+ $("app").style.display="block";await loadData();
+ if(channel)db.removeChannel(channel);
+ channel=db.channel("mini-boss-live-"+serverId).on("postgres_changes",{event:"*",schema:"public",table:"cut_records",filter:"server_id=eq."+serverId},async()=>{try{await loadData();}catch(e){say(e.message);}}).subscribe();
+}
+$("bossList").addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(!b)return;selectedBossId=b.dataset.id;render();});
+$("servers").addEventListener("click",async e=>{const b=e.target.closest("[data-server]");if(!b)return;try{await setServer(Number(b.dataset.server));}catch(err){say("서버 변경 실패: "+err.message);}});
+$("search").addEventListener("input",render);
+$("cutNowBtn").addEventListener("click",()=>{const b=bosses.find(x=>String(x.id)===String(selectedBossId));if(b&&confirm(b.name+"\n현재 시각으로 컷 기록을 등록할까요?"))registerCut(new Date().toISOString());});
+$("cutTimeBtn").addEventListener("click",()=>{try{registerCut(parseTime($("cutTime").value));}catch(e){say(e.message);}});
+$("cutTime").addEventListener("keydown",e=>{if(e.key==="Enter")$("cutTimeBtn").click();});
+$("refreshBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
+$("reloadDataBtn").addEventListener("click",async()=>{try{await loadData();say("갱신 완료");}catch(e){say("갱신 실패: "+e.message);}});
+$("logoutBtn").addEventListener("click",async()=>{if(confirm("보탐봇에서 로그아웃할까요?")){await db.auth.signOut();$("app").style.display="none";$("loginBox").style.display="block";}});
+$("openMainBtn").addEventListener("click",()=>location.href="./");
+db.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"){user=null;$("app").style.display="none";$("loginBox").style.display="block";}});
+setInterval(()=>{if(user)render();},1000);
+setInterval(async()=>{if(user){try{await loadData();}catch(e){console.warn(e);}}},15000);
+start().catch(e=>{console.error(e);say("초기화 실패: "+e.message);$("loginBox").style.display="block";});
+</script>
+</body>
+</html>
