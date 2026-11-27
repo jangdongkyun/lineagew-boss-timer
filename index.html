@@ -2183,14 +2183,9 @@ window.addEventListener("popstate",()=>{
 
   if(mainExitConfirmed) return;
 
-  // 종료 확인창이 열린 상태에서 뒤로가기를 다시 눌러도
-  // 확인창을 닫거나 앱을 종료하지 않고, 확인창 상태를 그대로 유지합니다.
+  // 종료 확인창이 열린 상태에서 뒤로가기를 누르면 취소와 동일하게 처리
   if(exitConfirmOpen){
-    history.pushState(
-      { ...(history.state || {}), __exitConfirmOpen: true },
-      "",
-      location.href
-    );
+    closeExitConfirm(true);
     return;
   }
 
