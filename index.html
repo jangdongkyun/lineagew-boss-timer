@@ -10291,8 +10291,13 @@ function weeklyLootAdd(dayId){
   weeklyLootRender();
 }
 $("weeklyLootGrid").addEventListener("click",event=>{
-  const add=event.target.closest("[data-weekly-add]");
-  const del=event.target.closest("[data-weekly-delete]");
+  const target = event.target instanceof Element
+    ? event.target
+    : event.target?.parentElement;
+  if(!target) return;
+
+  const add=target.closest("[data-weekly-add]");
+  const del=target.closest("[data-weekly-delete]");
   if(add){weeklyLootAdd(Number(add.dataset.weeklyAdd));return;}
   if(del){
     weeklyLootCollectInputs();
@@ -10371,10 +10376,15 @@ async function weeklyLootOpen(){
 $("weeklyLootOpenBtn").addEventListener("click",weeklyLootOpen);
 $("weeklyLootCloseBtn").addEventListener("click",()=>closeBackPopup("weeklyLootModal"));
 $("weeklyLootGrid").addEventListener("click",event=>{
-  if(event.target.closest("#weeklyOpenVoiceSettingsBtn")){
+  const target = event.target instanceof Element
+    ? event.target
+    : event.target?.parentElement;
+  if(!target) return;
+
+  if(target.closest("#weeklyOpenVoiceSettingsBtn")){
     openPersonalAlertSettings();return;
   }
-  if(event.target.closest("#weeklyOpenPushSettingsBtn")){
+  if(target.closest("#weeklyOpenPushSettingsBtn")){
     if(!isAdmin()) return alert("관리자만 설정할 수 있습니다.");
     $("adminSettingsBtn").click();
   }
