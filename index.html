@@ -1648,6 +1648,11 @@ style="
   <div style="display:flex;gap:8px;align-items:center">
     <input
       id="manualCutTime"
+      type="text"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      data-form-type="other"
       placeholder="저녁 7시 / 2135 / 21:35"
       maxlength="30"
       style="width:50%;min-width:0;flex:1"
@@ -5252,6 +5257,11 @@ card.innerHTML = `
     <div class="cut-time">
       <input
         data-cut-input="${b.id}"
+        type="text"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        data-form-type="other"
         placeholder="저녁 7시 / 2135"
         maxlength="30"
       >
