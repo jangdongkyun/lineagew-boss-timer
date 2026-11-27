@@ -2018,14 +2018,21 @@ function openExitConfirm(){
   }
 }
 
-function closeExitConfirm(restoreGuard = true){
+function closeExitConfirm(restoreGuard = true, restoreHistory = false){
   const modal = $("exitConfirmModal");
   if(modal) modal.style.display = "none";
 
   exitConfirmOpen = false;
 
-  // 종료 확인창이 열릴 때 이미 뒤로가기 방지 기록을 추가했으므로
-  // 취소할 때는 추가 기록을 만들지 않고 현재 메인 화면을 유지
+  // 뒤로가기로 확인창을 닫은 경우, popstate로 빠진 보호 기록을 다시 추가합니다.
+  // 따라서 다음 뒤로가기도 앱을 벗어나지 않고 종료 확인창을 다시 표시합니다.
+  if(restoreGuard && restoreHistory && !mainExitConfirmed){
+    history.pushState(
+      { ...(history.state || {}), __mainBackGuard: true },
+      "",
+      location.href
+    );
+  }
 
   // 종료 확인 중 잠시 멈춘 코봇은 취소 후 다시 대기
   if(typeof kobotActive !== "undefined" && kobotActive && !document.hidden && !mainExitConfirmed){
@@ -2091,7 +2098,8 @@ window.addEventListener("popstate",()=>{
   // 종료 확인창이 이미 열린 상태에서 뒤로가기를 한 번 더 누르면
   // 확인창을 유지하고 방지 기록만 다시 등록
   if(exitConfirmOpen){
-    closeExitConfirm(true);
+    // 팝업 상태에서 뒤로가기를 누른 것은 '취소'와 동일하게 처리
+    closeExitConfirm(true, true);
     return;
   }
 
