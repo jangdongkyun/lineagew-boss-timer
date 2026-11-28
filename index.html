@@ -2243,6 +2243,28 @@ async function loadMyAlertSettings() {
 
   if (error) {
     console.error("개인 알림 설정 불러오기 실패:", error);
+    // 조회 오류가 있어도 설정창 진입을 막거나 확인 팝업을 띄우지 않습니다.
+    // 기본값을 화면에 표시하고 저장 시 서버에 다시 반영합니다.
+    myAlertSettings = {
+      user_id: user.id,
+      voice_enabled: true,
+      voice_alert_5m: true, voice_alert_3m: true,
+      voice_alert_1m: true, voice_alert_30s: true,
+      voice_alert_10s: true, voice_alert_spawn: true,
+      push_enabled: false,
+      push_alert_5m: false, push_alert_3m: false,
+      push_alert_1m: false, push_alert_30s: false,
+      push_alert_10s: false, push_alert_spawn: false,
+      boss_settings: {}, push_boss_settings: {},
+      voice_quiet_hours_enabled: false,
+      voice_quiet_hours_start: "22:00:00",
+      voice_quiet_hours_end: "08:00:00",
+      push_quiet_hours_enabled: false,
+      push_quiet_hours_start: "22:00:00",
+      push_quiet_hours_end: "08:00:00",
+      timezone: "Asia/Seoul", voice_name: ""
+    };
+    window.personalAlertLoadWarning = "기존 개인 알림 설정을 불러오지 못했습니다. 기본값으로 표시합니다. 저장을 누르면 다시 저장을 시도합니다.";
     return;
   }
 
@@ -2290,7 +2312,12 @@ async function loadMyAlertSettings() {
 
     if (saveError) {
       console.error("개인 알림 기본 설정 저장 실패:", saveError);
-      alert("개인 알림 설정을 저장하지 못했습니다. 관리자에게 문의하세요.");
+      // 기본 설정 생성 실패는 화면 진입을 막지 않습니다.
+      // 메모리 기본값으로 화면을 열고, 사용자가 저장할 때 다시 서버 저장을 시도합니다.
+      myAlertSettings = defaultSettings;
+      window.personalAlertLoadWarning = "개인 알림 기본 설정을 서버에 처음 저장하지 못했습니다. 화면에서 설정한 뒤 ‘개인설정 저장’을 눌러 다시 시도해 주세요.";
+      applyVoiceMasterState();
+      applyPushMasterState();
       return;
     }
 
@@ -5787,7 +5814,7 @@ function ensurePersonalAlertUI(){
     };
     const addButtons=(row,items)=>items.forEach(item=>{const b=document.createElement("button");b.type="button";b.className="ghost";b.textContent=item.label;b.dataset.alertPopupOpen=item.id;b.style.cssText="min-width:0;padding:11px 4px;font-size:12px";row.appendChild(b);});
     const voiceRow=makeRow("personalVoiceCategoryButtons");
-    addButtons(voiceRow,[{id:"personalVoiceFieldPopup",label:"필드보스"},{id:"personalVoiceFixedPopup",label:"고정보스"},{id:"personalVoiceWeeklyPopup",label:"주간 룻권보스"}]);
+    addButtons(voiceRow,[{id:"personalVoiceFieldPopup",label:"필드보스"},{id:"personalVoiceFixedPopup",label:"고정보스"},{id:"personalVoiceWeeklyPopup",label:"룻권보스"}]);
     $("personalVoiceEnabled").insertAdjacentElement("afterend",voiceRow);
     const makeTimingCard=(id,title,ids)=>{
       const card=document.createElement("section");card.id=id;
@@ -5805,7 +5832,7 @@ function ensurePersonalAlertUI(){
     if(voiceQuietCard) voiceQuietCard.id="personalVoiceQuietCard";
     const vf=makePopup("personalVoiceFieldPopup","필드보스 음성 설정");
     const vx=makePopup("personalVoiceFixedPopup","고정보스 음성 설정");
-    const vw=makePopup("personalVoiceWeeklyPopup","주간 룻권보스 음성 설정");
+    const vw=makePopup("personalVoiceWeeklyPopup","룻권보스 음성 설정");
     vf.appendChild($("personalVoiceOptions"));
     const voiceCards=Array.from($("personalVoiceCategoryOptions").children).filter(n=>n.tagName==="DIV");
     if(voiceCards[0])vf.appendChild(voiceCards[0]);
@@ -5946,6 +5973,19 @@ async function openPersonalAlertSettings(){
   // 설정 조회가 실패해도 개인설정 화면 자체는 열리도록 합니다.
   // 저장된 값이 없거나 일시적으로 조회에 실패한 경우 기본값으로 화면을 구성합니다.
   const s = myAlertSettings || {};
+  // 조회/초기 생성 실패 안내는 팝업 대신 설정창 안에 표시합니다.
+  let loadNotice = $("personalAlertLoadNotice");
+  if (window.personalAlertLoadWarning) {
+    if (!loadNotice) {
+      loadNotice = document.createElement("div");
+      loadNotice.id = "personalAlertLoadNotice";
+      loadNotice.style.cssText = "margin:10px 0;padding:10px 12px;border:1px solid #8a6b32;border-radius:9px;background:#302719;color:#f4d99a;font-size:12px;line-height:1.5";
+      personalModal.querySelector("hr")?.insertAdjacentElement("afterend", loadNotice);
+    }
+    loadNotice.textContent = window.personalAlertLoadWarning;
+  } else if (loadNotice) {
+    loadNotice.remove();
+  }
   $("personalVoiceEnabled").checked = !!s.voice_enabled;
   $("myVoice5m").checked = s.voice_alert_5m !== false;
   $("myVoice3m").checked = !!s.voice_alert_3m;
