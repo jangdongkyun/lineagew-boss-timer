@@ -5502,6 +5502,46 @@ function getFixedBossAlertItems(){
   });
   return items;
 }
+
+// 요일을 먼저 고른 뒤 해당 요일의 시간대/보스만 표시하는 개인 알림 선택 UI.
+// 항목 자체는 DOM에 모두 유지해 다른 요일의 저장값이 누락되지 않게 합니다.
+function installPersonalDayFilter(containerId, itemSelector, getDay){
+  const container=$(containerId);
+  if(!container || container.dataset.dayFilterReady==="1") return;
+  const items=Array.from(container.querySelectorAll(itemSelector));
+  if(!items.length) return;
+  container.dataset.dayFilterReady="1";
+  const names=["월","화","수","목","금","토","일"];
+  const tabs=document.createElement("div");
+  tabs.className="personal-day-tabs";
+  tabs.style.cssText="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0 12px";
+  const content=document.createElement("div");
+  content.className="personal-day-items";
+  items.forEach(item=>content.appendChild(item));
+  container.insertBefore(tabs,content);
+  container.appendChild(content);
+  let selected=0;
+  const render=()=>{
+    tabs.innerHTML=names.map((name,index)=>
+      '<button type="button" data-personal-day-index="'+index+'" style="min-width:0;padding:9px 2px;border:1px solid '+(index===selected?"#e6bd68":"#46566d")+';border-radius:8px;background:'+(index===selected?"#80602c":"#1b293c")+';color:#fff;font-size:12px;font-weight:900">'+name+'</button>'
+    ).join("");
+    items.forEach(item=>{
+      item.style.display=Number(item.dataset.personalDayIndex)===selected?"":"none";
+    });
+  };
+  items.forEach(item=>{
+    const day=Number(getDay(item));
+    item.dataset.personalDayIndex=String(day);
+  });
+  tabs.addEventListener("click",event=>{
+    const button=event.target.closest("[data-personal-day-index]");
+    if(!button) return;
+    selected=Number(button.dataset.personalDayIndex);
+    render();
+  });
+  render();
+}
+
 function getFixedAlertTimingOptions(){
   return [{key:"5m",label:"5분 전"},{key:"3m",label:"3분 전"},{key:"1m",label:"1분 전"},{key:"30s",label:"30초 전"},{key:"10s",label:"10초 전"},{key:"spawn",label:"출현"}];
 }
@@ -5912,6 +5952,10 @@ async function openPersonalAlertSettings(){
   const fixedPushItems=getFixedBossAlertItems();
   $("personalFixedPushEnabled").checked = pushSettings.__fixed_enabled === true;
   $("personalFixedPushOptions").style.display = pushSettings.__fixed_enabled === true ? "block" : "none";
+  installPersonalDayFilter("personalFixedPushBossOptions",":scope > div",item=>{
+    const key=item.querySelector("[data-personal-fixed-push]")?.dataset.personalFixedPush||"";
+    return Number(key.split(":")[2]||0);
+  });
   const pushTimingFallbacks={"5m":$("myPush5m").checked,"3m":$("myPush3m").checked,"1m":$("myPush1m").checked,"30s":$("myPush30s").checked,"spawn":$("myPushSpawn").checked};
   $("personalFixedPushBossOptions").innerHTML = fixedPushItems.length
     ? fixedPushItems.map(item=>'<div style="padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;margin:6px 0"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-push="'+escapeHtml(item.key)+'" '+(pushSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>'+renderFixedAlertTimingDetails(item,"push",pushSettings,pushTimingFallbacks)+'</div>').join("")
@@ -6052,6 +6096,10 @@ body {
   $("personalFixedVoiceBossOptions").innerHTML = fixedItems.length
     ? fixedItems.map(item=>'<div style="padding:8px;margin:6px 0;background:#202b3c;border:1px solid #66552f;border-radius:8px"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-voice="'+escapeHtml(item.key)+'" '+(bossSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>'+renderFixedAlertTimingDetails(item,"voice",bossSettings,voiceTimingFallbacks)+'</div>').join("")
     : '<div class="muted">고정보스 시간표에 등록된 항목이 없습니다.</div>';
+  installPersonalDayFilter("personalFixedVoiceBossOptions",":scope > div",item=>{
+    const key=item.querySelector("[data-personal-fixed-voice]")?.dataset.personalFixedVoice||"";
+    return Number(key.split(":")[2]||0);
+  });
   $("personalWeeklyBossOptions").innerHTML = weeklyLootRows.length
     ? weeklyLootRows.map(r => {
         const key = "weekly:" + r.id;
@@ -6062,6 +6110,11 @@ body {
           (bossSettings[key] !== false ? 'checked' : '') + '></label>';
       }).join("")
     : '<div class="muted">주간 룻권 시간표에 등록된 보스가 없습니다.</div>';
+  installPersonalDayFilter("personalWeeklyBossOptions",":scope > label",item=>{
+    const id=item.querySelector("[data-personal-weekly-boss]")?.dataset.personalWeeklyBoss;
+    const row=(weeklyLootRows||[]).find(r=>String(r.id)===String(id));
+    return row ? (Number(row.day_of_week)+6)%7 : 0;
+  });
 
   // 주간 룻권 보스는 카테고리 전체 사용 스위치 없이 보스 카드별로 선택합니다.
   $("personalWeeklyVoiceEnabled").checked = true;
