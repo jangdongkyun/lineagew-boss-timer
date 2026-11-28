@@ -9004,7 +9004,7 @@ function ensureGameChatBridgeUI(){
 }
 
 function normalizeGameChatNickname(value){
-  return String(value||"").normalize("NFKC").trim().replace(/\\s+/gu,"").toLocaleLowerCase("ko-KR");
+  return String(value||"").normalize("NFKC").trim().replace(/\s+/gu,"").toLocaleLowerCase("ko-KR");
 }
 
 async function loadGameChatBridgeData(){
