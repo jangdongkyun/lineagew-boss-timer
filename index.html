@@ -9556,17 +9556,15 @@ function fixedBossUpdateHighlight(){
 
   const now = new Date();
   const today = (now.getDay() + 6) % 7;
-
   const nowSeconds =
     now.getHours() * 3600 +
     now.getMinutes() * 60 +
     now.getSeconds();
 
   const WEEK_SECONDS = 7 * 24 * 60 * 60;
-  const BLINK_SECONDS = 20 * 60; // 출현 후 기존 20분 강조 유지
-  const PRE_BLINK_SECONDS = 5 * 60; // 출현 5분 전부터 강조 시작
+  const POST_SPAWN_SECONDS = 5 * 60; // 리스폰 시각부터 5분간 강조 후 점진적으로 종료
 
-  // 기존 강조 효과 초기화
+  // 이전 갱신에서 적용한 강조 스타일을 먼저 원래 상태로 복구합니다.
   tbody.querySelectorAll(
     ".fixed-boss-active, .fixed-boss-blink, .fixed-boss-next"
   ).forEach(el=>{
@@ -9576,13 +9574,13 @@ function fixedBossUpdateHighlight(){
       "fixed-boss-next"
     );
 
-    el.style.boxShadow = "";
-    el.style.border = "";
-    el.style.backgroundColor = "";
-    el.style.transform = "";
-    el.style.zIndex = "";
-    el.style.borderRadius = "";
-    el.style.position = "";
+    [
+      "boxShadow","border","backgroundColor","transform","zIndex",
+      "borderRadius","position","fontSize","fontWeight","color",
+      "textShadow","padding"
+    ].forEach(property=>{
+      el.style[property] = "";
+    });
   });
 
   const events = [];
@@ -9599,20 +9597,16 @@ function fixedBossUpdateHighlight(){
 
       const hour = Number(match[1]);
       const minute = Number(match[2]);
-
       if(hour > 23 || minute > 59) continue;
 
-      let seconds;
-
-      if(hour === 0 && minute === 0){
-        seconds = 23 * 3600 + 59 * 60 + 59;
-      }else{
-        seconds = hour * 3600 + minute * 60;
-      }
+      // 기존 시간표의 자정(00:00) 처리 규칙을 유지합니다.
+      const seconds = hour === 0 && minute === 0
+        ? 23 * 3600 + 59 * 60 + 59
+        : hour * 3600 + minute * 60;
 
       events.push({
         rowIndex:index,
-        day:day,
+        day,
         weekSeconds:day * 86400 + seconds
       });
     }
@@ -9620,128 +9614,142 @@ function fixedBossUpdateHighlight(){
 
   if(!events.length) return;
 
-  const currentWeekSeconds =
-    today * 86400 + nowSeconds;
-
+  const currentWeekSeconds = today * 86400 + nowSeconds;
   const candidates = [];
 
   [-1,0,1].forEach(weekOffset=>{
     events.forEach(event=>{
       candidates.push({
         ...event,
-        absoluteSeconds:
-          event.weekSeconds + weekOffset * WEEK_SECONDS
+        absoluteSeconds:event.weekSeconds + weekOffset * WEEK_SECONDS
       });
     });
   });
 
-  candidates.sort((a,b)=>
-    a.absoluteSeconds - b.absoluteSeconds
-  );
+  candidates.sort((a,b)=>a.absoluteSeconds-b.absoluteSeconds);
 
   const previous = [...candidates].reverse().find(event=>
     event.absoluteSeconds <= currentWeekSeconds
   );
-
   const next = candidates.find(event=>
     event.absoluteSeconds > currentWeekSeconds
   );
 
   let target = null;
-  let blink = false;
+  let isPostSpawn = false;
+  let fadeProgress = 0;
 
-  // 우선순위 1: 다음 보스가 5분 이내라면
-  // 직전 보스의 출현 후 강조보다 다음 보스를 먼저 강조합니다.
-  if(next){
-    const remaining =
-      next.absoluteSeconds - currentWeekSeconds;
-
-    if(remaining > 0 && remaining <= PRE_BLINK_SECONDS){
-      target = next;
-      blink = true;
-    }
-  }
-
-  // 우선순위 2: 다음 보스가 아직 5분 이상 남았다면
-  // 직전에 출현한 보스를 기존처럼 20분 동안 강조합니다.
-  if(!target && previous){
-    const elapsed =
-      currentWeekSeconds - previous.absoluteSeconds;
-
-    if(elapsed >= 0 && elapsed < BLINK_SECONDS){
+  // 출현 직후 5분 동안은 방금 출현한 보스를 우선 강조합니다.
+  if(previous){
+    const elapsed = currentWeekSeconds - previous.absoluteSeconds;
+    if(elapsed >= 0 && elapsed < POST_SPAWN_SECONDS){
       target = previous;
-      blink = true;
+      isPostSpawn = true;
+      fadeProgress = Math.min(1, elapsed / POST_SPAWN_SECONDS);
     }
   }
 
-  // 스폰 5분 전 또는 직전 출현 후 강조 구간이 아니면 종료합니다.
+  // 출현 후 5분 강조가 끝나면 현재 시각 이후 가장 가까운 다음 보스를 강조합니다.
+  // 다음 보스는 출현 5분 전부터가 아니라, 이전 보스의 강조가 끝난 직후부터 표시합니다.
+  if(!target && next){
+    target = next;
+  }
+
   if(!target) return;
 
   const tr = tbody.querySelector(
     `tr[data-fixed-boss-row="${target.rowIndex}"]`
   );
-
   if(!tr) return;
 
+  const strength = isPostSpawn ? (1 - fadeProgress) : 0.42;
   const cells = tr.querySelectorAll("[data-fixed-boss-days]");
 
+  const mix = (from,to,amount)=>{
+    const a = from.match(/\d+/g)?.map(Number);
+    const b = to.match(/\d+/g)?.map(Number);
+    if(!a || !b || a.length < 3 || b.length < 3) return to;
+    return "rgb(" + a.slice(0,3).map((v,i)=>
+      Math.round(v + (b[i]-v)*amount)
+    ).join(",") + ")";
+  };
+
   cells.forEach(td=>{
-    const range = td.dataset.fixedBossDays
-      .split("-")
-      .map(Number);
+    const range = td.dataset.fixedBossDays.split("-").map(Number);
+    if(target.day < range[0] || target.day > range[1]) return;
 
-    if(
-      target.day < range[0] ||
-      target.day > range[1]
-    ) return;
+    td.classList.add(isPostSpawn ? "fixed-boss-blink" : "fixed-boss-next");
 
-    const className =
-      blink ? "fixed-boss-blink" : "fixed-boss-next";
+    const baseTransform = "scale(1)";
+    const scale = isPostSpawn
+      ? 1 + 0.30 * strength
+      : 1.06;
 
-    // 해당 요일 칸 강조
-    td.classList.add(className);
-
-    td.style.backgroundColor =
-      blink
-        ? "rgba(255,174,48,.30)"
-        : "rgba(255,215,100,.20)";
-
-    td.style.border = "2px solid #ffd36a";
-    td.style.borderRadius = "8px";
-
-    td.style.boxShadow =
-      "0 0 8px rgba(255,190,65,.75), inset 0 0 8px rgba(255,210,100,.25)";
-
+    td.style.transform = `scale(${scale})`;
+    td.style.transformOrigin = "center center";
     td.style.position = "relative";
-    td.style.zIndex = "2";
+    td.style.zIndex = "20";
+    td.style.borderRadius = "8px";
+    td.style.setProperty(
+      "background-color",
+      isPostSpawn
+        ? `rgba(255,174,48,${0.30 * strength})`
+        : "rgba(255,215,100,.13)",
+      "important"
+    );
+    td.style.setProperty(
+      "border",
+      `2px solid rgba(255,211,106,${isPostSpawn ? strength : .55})`,
+      "important"
+    );
+    td.style.setProperty(
+      "box-shadow",
+      `0 0 ${Math.round(18 * strength + (isPostSpawn ? 0 : 3))}px rgba(255,190,65,${0.75 * strength + (isPostSpawn ? 0 : .18)}), inset 0 0 8px rgba(255,210,100,${0.25 * strength})`,
+      "important"
+    );
 
-    // 보스 이름 확대
     td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
-      line.style.fontSize = "28.5px"; // 기존 강조 글씨보다 50% 확대
+      const baseSize = parseFloat(getComputedStyle(line).fontSize) || 19;
+      const targetSize = isPostSpawn
+        ? baseSize + (28.5 - baseSize) * strength
+        : baseSize + 2;
+      const baseColor = getComputedStyle(line).color || "rgb(237,242,250)";
+      const targetColor = mix(baseColor,"rgb(255,224,138)",isPostSpawn ? strength : .45);
+
+      line.style.fontSize = `${targetSize.toFixed(2)}px`;
       line.style.fontWeight = "900";
-      line.style.color = "#ffe08a";
-      line.style.textShadow = "0 0 8px rgba(255,210,80,.9)";
+      line.style.color = targetColor;
+      line.style.textShadow = isPostSpawn
+        ? `0 0 ${Math.round(8 * strength)}px rgba(255,210,80,${0.9 * strength})`
+        : "0 0 4px rgba(255,210,80,.25)";
       line.style.padding = "3px 0";
+      line.style.transition = "font-size 1s linear, color 1s linear, text-shadow 1s linear";
     });
   });
 
-  // 출현 시간 칸 강조
+  // 출현 시각 칸도 보스 이름과 같은 시간 흐름으로 강조를 줄입니다.
   const timeCell = tr.querySelector("[data-fixed-boss-time]");
-
   if(timeCell){
-    timeCell.classList.add(
-      blink ? "fixed-boss-blink" : "fixed-boss-next"
-    );
+    timeCell.classList.add(isPostSpawn ? "fixed-boss-blink" : "fixed-boss-next");
 
-    timeCell.style.border = "2px solid #ffd36a";
-    timeCell.style.boxShadow =
-      "0 0 8px rgba(255,190,65,.65)";
-
-    timeCell.style.fontSize = "25.5px"; // 기존 강조 글씨보다 50% 확대
+    const baseSize = parseFloat(getComputedStyle(timeCell).fontSize) || 17;
+    timeCell.style.fontSize = isPostSpawn
+      ? `${(baseSize + (25.5 - baseSize) * strength).toFixed(2)}px`
+      : `${(baseSize + 2).toFixed(2)}px`;
     timeCell.style.fontWeight = "900";
+    timeCell.style.setProperty(
+      "border",
+      `2px solid rgba(255,211,106,${isPostSpawn ? strength : .55})`,
+      "important"
+    );
+    timeCell.style.setProperty(
+      "box-shadow",
+      `0 0 8px rgba(255,190,65,${isPostSpawn ? .65 * strength : .2})`,
+      "important"
+    );
+    timeCell.style.transition = "font-size 1s linear";
   }
 }
-
 
 
   
