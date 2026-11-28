@@ -5843,12 +5843,30 @@ function ensurePersonalAlertUI(){
     const oldVoiceTest=$("previewPersonalVoice");if(oldVoiceTest)oldVoiceTest.remove();
     const oldPushTest=$("personalPushTestBtn");if(oldPushTest)oldPushTest.remove();
     const oldPushMessage=$("personalPushMessage");if(oldPushMessage)oldPushMessage.remove();
+    // 세부 설정창도 독립된 화면 이력으로 관리합니다.
+    // 휴대폰 뒤로가기/상단 닫기 모두 직전 개인설정 화면으로 복귀합니다.
     modal.addEventListener("click",event=>{
       const open=event.target.closest("[data-alert-popup-open]");
       const close=event.target.closest("[data-alert-popup-close]");
-      if(open){const target=$(open.dataset.alertPopupOpen);if(target)target.style.display="block";}
-      if(close){const box=close.closest(".personal-alert-submodal");if(box)box.style.display="none";}
-      if(event.target.classList?.contains("personal-alert-submodal"))event.target.style.display="none";
+      if(open){
+        event.preventDefault();
+        const target=$(open.dataset.alertPopupOpen);
+        if(target){
+          openBackPopup(target.id);
+          target.style.display="block";
+          target.scrollTop=0;
+        }
+        return;
+      }
+      if(close){
+        event.preventDefault();
+        const box=close.closest(".personal-alert-submodal");
+        if(box)closeBackPopup(box.id);
+        return;
+      }
+      if(event.target.classList?.contains("personal-alert-submodal")){
+        closeBackPopup(event.target.id);
+      }
     });
   })();
 // 개인 알림 설정 버튼 이벤트 연결
