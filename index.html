@@ -11198,6 +11198,58 @@ document.getElementById("miniPopupBtn")?.addEventListener("click",()=>{
     if(!modal || modal.dataset.unifiedDesign==="1") return;
     modal.dataset.unifiedDesign="1";
 
+    // 알림 시각 선택을 각 카테고리 팝업 안에서 푸시 카드와 동일하게 표시합니다.
+    // 저장은 기존 원본 체크박스를 사용하므로 기존 DB 설정과 호환됩니다.
+    const addTimingMirror=(sourceId,popupIds,prefix,title)=>{
+      const source=document.getElementById(sourceId);
+      if(!source) return;
+      source.style.display="none";
+      popupIds.forEach(popupId=>{
+        const popup=document.getElementById(popupId);
+        const content=popup?.querySelector("[data-alert-popup-content]");
+        if(!content || content.querySelector('[data-timing-mirror="'+prefix+'"]')) return;
+        const card=source.cloneNode(true);
+        card.removeAttribute("id");
+        card.dataset.timingMirror=prefix;
+        card.style.display="block";
+        card.querySelectorAll("[id]").forEach(el=>el.removeAttribute("id"));
+        const heading=card.querySelector("h3");
+        if(heading) heading.textContent=title;
+        card.querySelectorAll('input[type="checkbox"]').forEach(input=>{
+          const originalId=input.getAttribute("id");
+          const sourceInput=source.querySelector("#"+CSS.escape(originalId||""));
+          if(!sourceInput) return;
+          input.checked=sourceInput.checked;
+          input.dataset.timingMirrorFor=originalId;
+        });
+        content.insertBefore(card,content.firstChild);
+      });
+    };
+    addTimingMirror("personalVoiceTimingCard",["personalVoiceFieldPopup","personalVoiceFixedPopup","personalVoiceWeeklyPopup"],"voice","음성 알림 시각");
+    addTimingMirror("personalPushTimingCard",["personalPushFieldPopup","personalPushFixedPopup","personalPushWeeklyPopup"],"push","푸시 알림 시각");
+    modal.addEventListener("change",event=>{
+      const mirror=event.target.closest("[data-timing-mirror-for]");
+      if(!mirror) return;
+      const original=document.getElementById(mirror.dataset.timingMirrorFor);
+      if(original){
+        original.checked=mirror.checked;
+        original.dispatchEvent(new Event("change",{bubbles:true}));
+        modal.querySelectorAll('[data-timing-mirror-for="'+mirror.dataset.timingMirrorFor+'"]').forEach(other=>{
+          if(other!==mirror) other.checked=mirror.checked;
+        });
+      }
+    });
+    // 팝업을 열 때마다 원본 저장값과 각 카테고리의 표시값을 동기화합니다.
+    modal.addEventListener("click",event=>{
+      const opener=event.target.closest("[data-alert-popup-open]");
+      if(!opener) return;
+      const popup=document.getElementById(opener.dataset.alertPopupOpen);
+      popup?.querySelectorAll("[data-timing-mirror-for]").forEach(mirror=>{
+        const original=document.getElementById(mirror.dataset.timingMirrorFor);
+        if(original) mirror.checked=original.checked;
+      });
+    });
+
     const style=document.createElement("style");
     style.textContent=`
       #personalAlertModal{background:rgba(3,7,13,.96)!important;backdrop-filter:blur(5px)}
@@ -11293,6 +11345,41 @@ document.getElementById("miniPopupBtn")?.addEventListener("click",()=>{
       #personalAlertModal #personalPushQuietCard{
         padding:12px!important;border:1px solid #806b3e!important;border-radius:12px!important;
         background:linear-gradient(145deg,#202e42,#141e2d)!important
+      }
+      #personalAlertModal .personal-alert-submodal [data-timing-mirror]{
+        display:block!important;padding:12px!important;margin:0 0 12px!important;
+        border:1px solid #806b3e!important;border-radius:12px!important;
+        background:linear-gradient(145deg,#202e42,#141e2d)!important;
+      }
+      #personalAlertModal .personal-alert-submodal [data-timing-mirror] h3{
+        margin:0 0 10px!important;padding-bottom:8px!important;
+      }
+      #personalAlertModal .personal-alert-submodal [data-timing-mirror] > div{
+        display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;
+      }
+      #personalAlertModal .personal-alert-submodal [data-timing-mirror] label{
+        display:flex!important;align-items:center!important;justify-content:flex-start!important;
+        min-height:46px!important;margin:0!important;padding:9px 10px!important;
+        border:1px solid #53627a!important;border-radius:10px!important;
+        background:linear-gradient(145deg,#27364b,#151f30)!important;
+        color:#fff0c8!important;font-size:13px!important;
+      }
+      #personalAlertModal .personal-alert-submodal [data-timing-mirror] input[type=checkbox]{
+        width:19px!important;height:19px!important;flex:0 0 19px!important;accent-color:#e2b95f!important;
+      }
+      #personalAlertModal #personalFixedVoiceBossOptions>div,
+      #personalAlertModal #personalFixedPushBossOptions>div{
+        min-height:54px!important;display:flex!important;align-items:center!important;
+      }
+      #personalAlertModal #personalWeeklyBossOptions>label,
+      #personalAlertModal #personalPushWeeklyBossOptions>label{
+        min-height:54px!important;display:flex!important;align-items:center!important;
+      }
+      #personalAlertModal #personalFixedVoiceBossOptions input,
+      #personalAlertModal #personalFixedPushBossOptions input,
+      #personalAlertModal #personalWeeklyBossOptions input,
+      #personalAlertModal #personalPushWeeklyBossOptions input{
+        flex:0 0 19px!important;width:19px!important;height:19px!important;
       }
       #personalAlertModal #personalVoiceTimingCard label,
       #personalAlertModal #personalPushTimingCard label{
