@@ -5310,7 +5310,7 @@ function checkVoice(boss, at, ms) {
 
     if (ms > 0 && ms <= t.ms && !alerted.has(key)) {
       alerted.add(key);
-      speak(`${boss.name}, ${t.text}입니다.`);
+      speak(`${boss.name}, ${t.text}입니다.`,2);
     }
   });
 
@@ -5323,7 +5323,7 @@ function checkVoice(boss, at, ms) {
     !alerted.has(spawnKey)
   ) {
     alerted.add(spawnKey);
-    speak(`${boss.name}, 출현 시간입니다.`);
+    speak(`${boss.name}, 출현 시간입니다.`,2);
   }
 }
 
@@ -5366,11 +5366,11 @@ function checkWeeklyLootVoice(nowMs=Date.now()){
       if(!t.enabled||ms<=0||ms>t.ms) return;
       const key=user.id+"-weekly-"+r.id+"-"+at+"-"+t.ms;
       if(alerted.has(key)) return;
-      alerted.add(key); speak("주간 룻권 보스 "+r.boss_name+", "+t.text+"입니다.");
+      alerted.add(key); speak("주간 룻권 보스 "+r.boss_name+", "+t.text+"입니다.",3);
     });
     if(settings.voice_alert_spawn&&ms<=0&&ms>=-5000){
       const key=user.id+"-weekly-"+r.id+"-"+at+"-spawn";
-      if(!alerted.has(key)){alerted.add(key);speak("주간 룻권 보스 "+r.boss_name+", 출현 시간입니다.");}
+      if(!alerted.has(key)){alerted.add(key);speak("주간 룻권 보스 "+r.boss_name+", 출현 시간입니다.",3);}
     }
   });
 }
@@ -5402,68 +5402,72 @@ function checkFixedBossVoice(nowMs=Date.now()){
       const enabled=typeof saved==="boolean"?saved:t.fallback;
       if(!enabled||ms<=0||ms>t.ms)return;
       const alertKey=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-"+t.key;
-      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", "+t.text+"입니다.");}
+      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", "+t.text+"입니다.",1);}
     });
     const spawnSaved=bs[fixedKey+":voice:spawn"];
     const spawnEnabled=typeof spawnSaved==="boolean"?spawnSaved:settings.voice_alert_spawn!==false;
     if(spawnEnabled&&ms<=0&&ms>=-5000){
       const alertKey=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-spawn";
-      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", 출현 시간입니다.");}
+      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", 출현 시간입니다.",1);}
     }
   });
 }
-function speak(text){
+function speak(text, priority=0){
   if(!voiceMasterOn || !soundOn) return;
-
   if(!("speechSynthesis" in window)){
     alert("이 브라우저는 음성 알림을 지원하지 않습니다.");
     return;
   }
 
+  // 같은 검사 주기 안에 여러 종류가 겹치면 주간 룻권 > 필드 > 고정 순으로 묶어 재생
+  const batch=window.__bossSpeechBatch||(window.__bossSpeechBatch={priority:-1,texts:[],timer:null});
+  if(priority>batch.priority){
+    batch.priority=priority;
+    batch.texts=[text];
+  }else if(priority===batch.priority&&!batch.texts.includes(text)){
+    batch.texts.push(text);
+  }else if(priority<batch.priority){
+    return;
+  }
+  if(batch.timer) clearTimeout(batch.timer);
+  batch.timer=setTimeout(()=>{
+    const selectedText=batch.texts.join(" / ");
+    batch.priority=-1;
+    batch.texts=[];
+    batch.timer=null;
+    playBossSpeech(selectedText);
+  },180);
+}
+
+function playBossSpeech(text){
   try{
     const synth = window.speechSynthesis;
-
-    // 보스 음성 알림이 나오는 동안 코봇 마이크가 스피커 소리를
-    // 명령으로 오인하지 않도록 잠시 듣기를 멈춥니다.
     const resumeKobot = kobotActive && !kobotPauseRecognition;
     if(resumeKobot){
       kobotPauseRecognition = true;
-      if(kobotRecognition){
-        try{kobotRecognition.stop();}catch(error){}
-      }
+      if(kobotRecognition){try{kobotRecognition.stop();}catch(error){}}
     }
-
     const resumeListening = ()=>{
       if(resumeKobot && kobotActive){
         kobotPauseRecognition = false;
         kobotScheduleRestart();
       }
     };
-
     synth.cancel();
-
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "ko-KR";
     utterance.rate = 0.9;
     utterance.pitch = 1;
-
-    // 개인이 선택한 목소리 적용
     const voices = synth.getVoices();
     const selectedVoiceName = myAlertSettings?.voice_name || "";
     const selectedVoice = kobotGetPreferredKoreanVoice(voices,selectedVoiceName);
-
     if(selectedVoice) utterance.voice = selectedVoice;
-
-    utterance.onstart = ()=>{
-      console.log("음성 재생 시작:", text);
-    };
-
+    utterance.onstart = ()=>console.log("음성 재생 시작:", text);
     utterance.onend = resumeListening;
     utterance.onerror = (e)=>{
       console.error("음성 재생 오류:", e.error);
       resumeListening();
     };
-
     synth.speak(utterance);
   }catch(e){
     console.error("음성 알림 오류",e);
