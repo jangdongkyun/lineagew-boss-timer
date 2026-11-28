@@ -5387,17 +5387,28 @@ function checkFixedBossVoice(nowMs=Date.now()){
     // 24:00은 입력된 요일의 다음 날 00:00으로 처리
     const scheduleDayIndex=h===24?(todayIndex+6)%7:todayIndex;
     const names=String(row.days?.[scheduleDayIndex]||"").split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
-    if(!names.length||bs["fixed:"+rowIndex+":"+scheduleDayIndex]===false) return;
+    const fixedKey="fixed:"+rowIndex+":"+scheduleDayIndex;
+    if(!names.length||bs[fixedKey]===false) return;
     const atDate=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h===24?0:h,min,0,0);
     const at=atDate.getTime(),ms=at-nowMs;
-    [{ms:300000,text:"5분 전",enabled:settings.voice_alert_5m!==false},{ms:180000,text:"3분 전",enabled:settings.voice_alert_3m},{ms:60000,text:"1분 전",enabled:settings.voice_alert_1m},{ms:30000,text:"30초 전",enabled:settings.voice_alert_30s},{ms:10000,text:"10초 전",enabled:settings.voice_alert_10s}].forEach(t=>{
-      if(!t.enabled||ms<=0||ms>t.ms)return;
-      const key=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-"+t.ms;
-      if(!alerted.has(key)){alerted.add(key);speak("고정보스 "+names.join(", ")+", "+t.text+"입니다.");}
+    [
+      {key:"5m",ms:300000,text:"5분 전",fallback:settings.voice_alert_5m!==false},
+      {key:"3m",ms:180000,text:"3분 전",fallback:settings.voice_alert_3m!==false},
+      {key:"1m",ms:60000,text:"1분 전",fallback:settings.voice_alert_1m!==false},
+      {key:"30s",ms:30000,text:"30초 전",fallback:settings.voice_alert_30s!==false},
+      {key:"10s",ms:10000,text:"10초 전",fallback:settings.voice_alert_10s!==false}
+    ].forEach(t=>{
+      const saved=bs[fixedKey+":voice:"+t.key];
+      const enabled=typeof saved==="boolean"?saved:t.fallback;
+      if(!enabled||ms<=0||ms>t.ms)return;
+      const alertKey=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-"+t.key;
+      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", "+t.text+"입니다.");}
     });
-    if(settings.voice_alert_spawn&&ms<=0&&ms>=-5000){
-      const key=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-spawn";
-      if(!alerted.has(key)){alerted.add(key);speak("고정보스 "+names.join(", ")+", 출현 시간입니다.");}
+    const spawnSaved=bs[fixedKey+":voice:spawn"];
+    const spawnEnabled=typeof spawnSaved==="boolean"?spawnSaved:settings.voice_alert_spawn!==false;
+    if(spawnEnabled&&ms<=0&&ms>=-5000){
+      const alertKey=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-spawn";
+      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", 출현 시간입니다.");}
     }
   });
 }
@@ -5484,6 +5495,20 @@ function getFixedBossAlertItems(){
     }
   });
   return items;
+}
+function getFixedAlertTimingOptions(){
+  return [{key:"5m",label:"5분 전"},{key:"3m",label:"3분 전"},{key:"1m",label:"1분 전"},{key:"30s",label:"30초 전"},{key:"10s",label:"10초 전"},{key:"spawn",label:"출현"}];
+}
+function renderFixedAlertTimingDetails(item,channel,settings,fallbackSettings){
+  const title=channel==="voice"?"음성 시점":"푸시 시점";
+  const attr=channel==="voice"?"data-personal-fixed-voice-timing":"data-personal-fixed-push-timing";
+  const checks=getFixedAlertTimingOptions().map(option=>{
+    const key=item.key+":"+channel+":"+option.key;
+    const saved=settings[key],fallback=fallbackSettings[option.key]!==false;
+    const checked=typeof saved==="boolean"?saved:fallback;
+    return '<label style="display:inline-flex;align-items:center;gap:5px;margin:3px 5px 3px 0;padding:5px 7px;background:#101a29;border:1px solid #46536a;border-radius:7px;font-size:11px"><input type="checkbox" '+attr+'="'+escapeHtml(key)+'" '+(checked?"checked":"")+'><span>'+option.label+'</span></label>';
+  }).join("");
+  return '<details style="margin:5px 0 9px 25px;padding:7px;background:#121d2c;border:1px solid #3b4a60;border-radius:8px"><summary style="cursor:pointer;color:#e8c879;font-size:11px;font-weight:700">'+title+' 개별 설정</summary><div style="margin-top:7px">'+checks+'</div></details>';
 }
 
 function ensurePersonalAlertUI(){
@@ -5825,8 +5850,9 @@ async function openPersonalAlertSettings(){
   const fixedPushItems=getFixedBossAlertItems();
   $("personalFixedPushEnabled").checked = pushSettings.__fixed_enabled === true;
   $("personalFixedPushOptions").style.display = pushSettings.__fixed_enabled === true ? "block" : "none";
+  const pushTimingFallbacks={"5m":$("myPush5m").checked,"3m":$("myPush3m").checked,"1m":$("myPush1m").checked,"30s":$("myPush30s").checked,"10s":$("myPush10s").checked,"spawn":$("myPushSpawn").checked};
   $("personalFixedPushBossOptions").innerHTML = fixedPushItems.length
-    ? fixedPushItems.map(item=>'<label style="display:flex;align-items:center;gap:7px;padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px"><input type="checkbox" data-personal-fixed-push="'+escapeHtml(item.key)+'" '+(pushSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>').join("")
+    ? fixedPushItems.map(item=>'<div style="padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;margin:6px 0"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-push="'+escapeHtml(item.key)+'" '+(pushSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>'+renderFixedAlertTimingDetails(item,"push",pushSettings,pushTimingFallbacks)+'</div>').join("")
     : '<div class="muted">고정보스 시간표에 등록된 항목이 없습니다.</div>';
   personalPushWeeklyDraft = {...pushSettings};
   renderPersonalPushWeeklyOptions();
@@ -5960,8 +5986,9 @@ body {
 
 
   const fixedItems=getFixedBossAlertItems();
+  const voiceTimingFallbacks={"5m":$("myVoice5m").checked,"3m":$("myVoice3m").checked,"1m":$("myVoice1m").checked,"30s":$("myVoice30s").checked,"10s":$("myVoice10s").checked,"spawn":$("myVoiceSpawn").checked};
   $("personalFixedVoiceBossOptions").innerHTML = fixedItems.length
-    ? fixedItems.map(item=>'<label style="display:flex;align-items:center;gap:7px;padding:8px;margin:5px 0;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px"><input type="checkbox" data-personal-fixed-voice="'+escapeHtml(item.key)+'" '+(bossSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>').join("")
+    ? fixedItems.map(item=>'<div style="padding:8px;margin:6px 0;background:#202b3c;border:1px solid #66552f;border-radius:8px"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-voice="'+escapeHtml(item.key)+'" '+(bossSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>'+renderFixedAlertTimingDetails(item,"voice",bossSettings,voiceTimingFallbacks)+'</div>').join("")
     : '<div class="muted">고정보스 시간표에 등록된 항목이 없습니다.</div>';
   $("personalWeeklyBossOptions").innerHTML = weeklyLootRows.length
     ? weeklyLootRows.map(r => {
@@ -6178,6 +6205,7 @@ async function savePersonalAlertSettings(){
   bossSettings.__weekly_voice_enabled = $("personalWeeklyVoiceEnabled").checked;
   bossSettings.__fixed_voice_enabled = $("personalFixedVoiceEnabled").checked;
   document.querySelectorAll("[data-personal-fixed-voice]").forEach(el=>{bossSettings[el.dataset.personalFixedVoice]=el.checked;});
+  document.querySelectorAll("[data-personal-fixed-voice-timing]").forEach(el=>{bossSettings[el.dataset.personalFixedVoiceTiming]=el.checked;});
 
   const updated = {
     ...myAlertSettings,
@@ -6210,6 +6238,7 @@ async function savePersonalAlertSettings(){
       settings.__weekly_enabled = $("personalWeeklyPushEnabled").checked;
       settings.__fixed_enabled = $("personalFixedPushEnabled").checked;
       document.querySelectorAll("[data-personal-fixed-push]").forEach(el=>{settings[el.dataset.personalFixedPush]=el.checked;});
+      document.querySelectorAll("[data-personal-fixed-push-timing]").forEach(el=>{settings[el.dataset.personalFixedPushTiming]=el.checked;});
       settings.__weekly_10m = $("myWeeklyPush10m").checked;
       settings.__weekly_5m = $("myWeeklyPush5m").checked;
       settings.__weekly_1m = $("myWeeklyPush1m").checked;
