@@ -5633,7 +5633,6 @@ function ensurePersonalAlertUI(){
         <label><input type="checkbox" id="myVoice3m"> 3분 전</label><br>
         <label><input type="checkbox" id="myVoice1m"> 1분 전</label><br>
         <label><input type="checkbox" id="myVoice30s"> 30초 전</label><br>
-        <label><input type="checkbox" id="myVoice10s"> 10초 전</label><br>
         <label><input type="checkbox" id="myVoiceSpawn"> 보스 출현</label>
 
         <hr>
@@ -5700,7 +5699,6 @@ function ensurePersonalAlertUI(){
         <label><input type="checkbox" id="myPush3m"> 3분 전</label><br>
         <label><input type="checkbox" id="myPush1m"> 1분 전</label><br>
         <label><input type="checkbox" id="myPush30s"> 30초 전</label><br>
-        <label><input type="checkbox" id="myPush10s"> 10초 전</label><br>
         <label><input type="checkbox" id="myPushSpawn"> 보스 출현</label>
         <p style="margin-top:12px">푸시 받을 필드보스 선택</p>
         <div id="personalPushBossOptions" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px"></div>
@@ -5716,10 +5714,6 @@ function ensurePersonalAlertUI(){
       <h3>주간 룻권 보스 푸시 알림</h3>
       <label><input type="checkbox" id="personalWeeklyPushEnabled"> 주간 룻권 보스 푸시 알림 사용</label>
       <div id="personalWeeklyPushDetails" style="margin-top:10px">
-        <p>알림 시점</p>
-        <label><input type="checkbox" id="myWeeklyPush10m"> 예정 시각 10분 전</label><br>
-        <label><input type="checkbox" id="myWeeklyPush5m"> 예정 시각 5분 전</label><br>
-        <label><input type="checkbox" id="myWeeklyPush1m"> 예정 시각 1분 전</label>
         <p style="margin-top:12px">요일별 룻권 보스 선택</p>
         <div id="personalPushDayTabs" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0"></div>
         <label style="display:flex;align-items:center;gap:8px;padding:9px;background:#30291b;border:1px solid #b89542;border-radius:8px">
@@ -5762,6 +5756,17 @@ function ensurePersonalAlertUI(){
     const voiceRow=makeRow("personalVoiceCategoryButtons");
     addButtons(voiceRow,[{id:"personalVoiceFieldPopup",label:"필드보스"},{id:"personalVoiceFixedPopup",label:"고정보스"},{id:"personalVoiceWeeklyPopup",label:"주간 룻권보스"}]);
     $("personalVoiceEnabled").insertAdjacentElement("afterend",voiceRow);
+    const makeTimingCard=(id,title,ids)=>{
+      const card=document.createElement("section");card.id=id;
+      card.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
+      const heading=document.createElement("h3");heading.textContent=title;heading.style.cssText="margin:0 0 9px;color:#e8c879";
+      const row=document.createElement("div");row.style.cssText="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px";
+      card.append(heading,row);
+      ids.forEach(id=>{const label=$(id)?.closest("label");if(label){label.style.cssText="margin:0;min-height:36px;padding:7px 8px";row.appendChild(label);}});
+      return card;
+    };
+    const voiceTimingCard=makeTimingCard("personalVoiceTimingCard","알림 시각 설정",["myVoice5m","myVoice3m","myVoice1m","myVoice30s","myVoiceSpawn"]);
+    voiceRow.insertAdjacentElement("afterend",voiceTimingCard);
     const voiceQuietCard=$("personalVoiceQuiet").closest("div");
     if(voiceQuietCard) voiceQuietCard.id="personalVoiceQuietCard";
     const vf=makePopup("personalVoiceFieldPopup","필드보스 음성 설정");
@@ -5777,6 +5782,8 @@ function ensurePersonalAlertUI(){
     const pushRow=makeRow("personalPushCategoryButtons");
     addButtons(pushRow,[{id:"personalPushFieldPopup",label:"필드보스"},{id:"personalPushFixedPopup",label:"고정보스"},{id:"personalPushWeeklyPopup",label:"주간 룻권보스"}]);
     $("personalPushAllOptions").insertBefore(pushRow,$("personalPushAllOptions").firstChild);
+    const pushTimingCard=makeTimingCard("personalPushTimingCard","알림 시각 설정",["myPush5m","myPush3m","myPush1m","myPush30s","myPushSpawn"]);
+    pushRow.insertAdjacentElement("afterend",pushTimingCard);
     const pf=makePopup("personalPushFieldPopup","필드보스 푸시 설정");
     const px=makePopup("personalPushFixedPopup","고정보스 푸시 설정");
     const pw=makePopup("personalPushWeeklyPopup","주간 룻권보스 푸시 설정");
@@ -5788,6 +5795,8 @@ function ensurePersonalAlertUI(){
     weeklyCard.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
     weeklyCard.append($("personalWeeklyPushEnabled"),$("personalWeeklyPushDetails"));pw.appendChild(weeklyCard);
     Array.from($("personalPushAllOptions").querySelectorAll("h3")).filter(h=>/고정보스 푸시 알림|주간 룻권 보스 푸시 알림/.test(h.textContent)).forEach(h=>{if(h.previousElementSibling?.tagName==="HR")h.previousElementSibling.remove();h.remove();});
+    const pushQuiet=$("personalPushQuiet").closest("div").parentElement;
+    if(pushQuiet){pushQuiet.id="personalPushQuietCard";pushTimingCard.insertAdjacentElement("afterend",pushQuiet);}
     const test=$("personalPushTestBtn");if(test)pf.append(test,$("personalPushMessage"));
     modal.addEventListener("click",event=>{
       const open=event.target.closest("[data-alert-popup-open]");
@@ -5870,7 +5879,7 @@ async function openPersonalAlertSettings(){
   $("myVoice3m").checked = !!s.voice_alert_3m;
   $("myVoice1m").checked = !!s.voice_alert_1m;
   $("myVoice30s").checked = !!s.voice_alert_30s;
-  $("myVoice10s").checked = !!s.voice_alert_10s;
+  $("myVoice10s").checked = false;
   $("myVoiceSpawn").checked = !!s.voice_alert_spawn;
 
   $("personalVoiceQuiet").checked =
@@ -5891,11 +5900,8 @@ async function openPersonalAlertSettings(){
   $("myPush3m").checked = s.push_alert_3m !== false;
   $("myPush1m").checked = s.push_alert_1m !== false;
   $("myPush30s").checked = s.push_alert_30s !== false;
-  $("myPush10s").checked = s.push_alert_10s !== false;
+  $("myPush10s").checked = false;
   $("myPushSpawn").checked = s.push_alert_spawn !== false;
-  $("myWeeklyPush10m").checked = pushSettings.__weekly_10m !== false;
-  $("myWeeklyPush5m").checked = pushSettings.__weekly_5m !== false;
-  $("myWeeklyPush1m").checked = pushSettings.__weekly_1m !== false;
   $("personalWeeklyPushEnabled").checked = pushSettings.__weekly_enabled === true;
   $("personalPushQuiet").checked = !!s.push_quiet_hours_enabled;
   $("personalPushQuietStart").value = (s.push_quiet_hours_start || "22:00").slice(0,5);
@@ -6275,7 +6281,7 @@ async function savePersonalAlertSettings(){
     voice_alert_3m: $("myVoice3m").checked,
     voice_alert_1m: $("myVoice1m").checked,
     voice_alert_30s: $("myVoice30s").checked,
-    voice_alert_10s: $("myVoice10s").checked,
+    voice_alert_10s: false,
     voice_alert_spawn: $("myVoiceSpawn").checked,
 
     voice_name: $("personalVoiceSelect").value,
@@ -6290,7 +6296,7 @@ async function savePersonalAlertSettings(){
     push_alert_3m: $("myPush3m").checked,
     push_alert_1m: $("myPush1m").checked,
     push_alert_30s: $("myPush30s").checked,
-    push_alert_10s: $("myPush10s").checked,
+    push_alert_10s: false,
     push_alert_spawn: $("myPushSpawn").checked,
     push_boss_settings: (() => {
       const settings = {...personalPushWeeklyDraft};
@@ -6299,9 +6305,6 @@ async function savePersonalAlertSettings(){
       settings.__fixed_enabled = $("personalFixedPushEnabled").checked;
       document.querySelectorAll("[data-personal-fixed-push]").forEach(el=>{settings[el.dataset.personalFixedPush]=el.checked;});
       document.querySelectorAll("[data-personal-fixed-push-timing]").forEach(el=>{settings[el.dataset.personalFixedPushTiming]=el.checked;});
-      settings.__weekly_10m = $("myWeeklyPush10m").checked;
-      settings.__weekly_5m = $("myWeeklyPush5m").checked;
-      settings.__weekly_1m = $("myWeeklyPush1m").checked;
       document.querySelectorAll("[data-personal-push-day-boss]").forEach(el=>{settings["weekly_day:"+personalPushSelectedDay+":"+el.dataset.personalPushDayBoss]=el.checked;});
       return settings;
     })(),
