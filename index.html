@@ -5386,8 +5386,13 @@ function checkFixedBossVoice(nowMs=Date.now()){
     // 24:00은 입력된 요일의 다음 날 00:00으로 처리
     const scheduleDayIndex=h===24?(todayIndex+6)%7:todayIndex;
     const names=String(row.days?.[scheduleDayIndex]||"").split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
-    const fixedKey="fixed:"+rowIndex+":"+scheduleDayIndex;
-    if(!names.length||bs[fixedKey]===false) return;
+    const legacyFixedKey="fixed:"+rowIndex+":"+scheduleDayIndex;
+    if(!names.length) return;
+    const selectedNames=names.filter(name=>{
+      const key="fixed:"+rowIndex+":"+scheduleDayIndex+":"+encodeURIComponent(name);
+      return bs[key]!==false && (bs[key]!==undefined || bs[legacyFixedKey]!==false);
+    });
+    if(!selectedNames.length) return;
     const atDate=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h===24?0:h,min,0,0);
     const at=atDate.getTime(),ms=at-nowMs;
     [
@@ -5396,15 +5401,14 @@ function checkFixedBossVoice(nowMs=Date.now()){
       {key:"1m",ms:60000,text:"1분 전",fallback:settings.voice_alert_1m!==false},
       {key:"30s",ms:30000,text:"30초 전",fallback:settings.voice_alert_30s!==false},
     ].forEach(t=>{
-      const enabled=t.fallback;
-      if(!enabled||ms<=0||ms>t.ms)return;
+      if(!t.fallback||ms<=0||ms>t.ms)return;
       const alertKey=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-"+t.key;
-      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", "+t.text+"입니다.",1);}
+      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+selectedNames.join(", ")+", "+t.text+"입니다.",1);}
     });
     const spawnEnabled=settings.voice_alert_spawn!==false;
     if(spawnEnabled&&ms<=0&&ms>=-5000){
       const alertKey=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-spawn";
-      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", 출현 시간입니다.",1);}
+      if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+selectedNames.join(", ")+", 출현 시간입니다.",1);}
     }
   });
 }
@@ -5497,7 +5501,11 @@ function getFixedBossAlertItems(){
     if(!/^\d{1,2}:\d{2}$/.test(time)) return;
     for(let dayIndex=0;dayIndex<7;dayIndex++){
       const names=String(row.days?.[dayIndex]||"").split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
-      if(names.length) items.push({key:"fixed:"+rowIndex+":"+dayIndex,label:dayNames[dayIndex]+"요일 "+time+" · "+names.join(", ")});
+      names.forEach(name=>items.push({
+        key:"fixed:"+rowIndex+":"+dayIndex+":"+encodeURIComponent(name),
+        legacyKey:"fixed:"+rowIndex+":"+dayIndex,
+        label:dayNames[dayIndex]+"요일 "+time+" · "+name
+      }));
     }
   });
   return items;
@@ -5514,35 +5522,40 @@ function installPersonalDayFilter(containerId, itemSelector, getDay){
   const names=["월","화","수","목","금","토","일"];
   const tabs=document.createElement("div");
   tabs.className="personal-day-tabs";
-  tabs.style.cssText="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0 12px";
+  tabs.style.cssText="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0 8px";
+  const timeSelect=document.createElement("select");
+  timeSelect.className="personal-day-time-select";
+  timeSelect.setAttribute("aria-label","출현 시간 선택");
+  timeSelect.style.cssText="width:100%;margin:0 0 10px;padding:10px;background:#0b1421;color:#fff;border:1px solid #806b3e;border-radius:9px";
   const content=document.createElement("div");
   content.className="personal-day-items";
   content.style.cssText="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px";
-  items.forEach(item=>{
-    item.style.margin="0";
-    content.appendChild(item);
-  });
+  items.forEach(item=>{item.style.margin="0";content.appendChild(item);});
   container.insertBefore(tabs,content);
+  container.insertBefore(timeSelect,content);
   container.appendChild(content);
-  let selected=0;
+  let selected=0,selectedTime="all";
+  items.forEach(item=>{
+    item.dataset.personalDayIndex=String(Number(getDay(item)));
+    const match=(item.textContent||"").match(/(?:^|\s)(\d{1,2}:\d{2})(?:\s|$)/);
+    item.dataset.personalTime=match?match[1]:"";
+  });
   const render=()=>{
     tabs.innerHTML=names.map((name,index)=>
       '<button type="button" data-personal-day-index="'+index+'" style="min-width:0;padding:9px 2px;border:1px solid '+(index===selected?"#e6bd68":"#46566d")+';border-radius:8px;background:'+(index===selected?"#80602c":"#1b293c")+';color:#fff;font-size:12px;font-weight:900">'+name+'</button>'
     ).join("");
-    items.forEach(item=>{
-      item.style.display=Number(item.dataset.personalDayIndex)===selected?"":"none";
-    });
+    const dayTimes=[...new Set(items.filter(item=>Number(item.dataset.personalDayIndex)===selected).map(item=>item.dataset.personalTime).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    if(!dayTimes.includes(selectedTime)) selectedTime="all";
+    timeSelect.innerHTML='<option value="all">모든 시간</option>'+dayTimes.map(t=>'<option value="'+t+'">'+t+'</option>').join("");
+    timeSelect.value=selectedTime;
+    items.forEach(item=>item.style.display=Number(item.dataset.personalDayIndex)===selected&&(selectedTime==="all"||item.dataset.personalTime===selectedTime)?"":"none");
   };
-  items.forEach(item=>{
-    const day=Number(getDay(item));
-    item.dataset.personalDayIndex=String(day);
-  });
   tabs.addEventListener("click",event=>{
     const button=event.target.closest("[data-personal-day-index]");
-    if(!button) return;
-    selected=Number(button.dataset.personalDayIndex);
-    render();
+    if(!button)return;
+    selected=Number(button.dataset.personalDayIndex);selectedTime="all";render();
   });
+  timeSelect.addEventListener("change",()=>{selectedTime=timeSelect.value;render();});
   render();
 }
 
@@ -5973,7 +5986,7 @@ async function openPersonalAlertSettings(){
   $("personalFixedPushOptions").style.display = pushSettings.__fixed_enabled === true ? "block" : "none";
   const pushTimingFallbacks={"5m":$("myPush5m").checked,"3m":$("myPush3m").checked,"1m":$("myPush1m").checked,"30s":$("myPush30s").checked,"spawn":$("myPushSpawn").checked};
   $("personalFixedPushBossOptions").innerHTML = fixedPushItems.length
-    ? fixedPushItems.map(item=>'<div style="padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;margin:6px 0"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-push="'+escapeHtml(item.key)+'" '+(pushSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>'+renderFixedAlertTimingDetails(item,"push",pushSettings,pushTimingFallbacks)+'</div>').join("")
+    ? fixedPushItems.map(item=>'<div style="padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;margin:6px 0"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-push="'+escapeHtml(item.key)+'" '+((pushSettings[item.key]!==undefined?pushSettings[item.key]:pushSettings[item.legacyKey])!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label></div>').join("")
     : '<div class="muted">고정보스 시간표에 등록된 항목이 없습니다.</div>';
   installPersonalDayFilter("personalFixedPushBossOptions",":scope > div",item=>{
     const key=item.querySelector("[data-personal-fixed-push]")?.dataset.personalFixedPush||"";
@@ -6113,7 +6126,7 @@ body {
   const fixedItems=getFixedBossAlertItems();
   const voiceTimingFallbacks={"5m":$("myVoice5m").checked,"3m":$("myVoice3m").checked,"1m":$("myVoice1m").checked,"30s":$("myVoice30s").checked,"spawn":$("myVoiceSpawn").checked};
   $("personalFixedVoiceBossOptions").innerHTML = fixedItems.length
-    ? fixedItems.map(item=>'<div style="padding:8px;margin:6px 0;background:#202b3c;border:1px solid #66552f;border-radius:8px"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-voice="'+escapeHtml(item.key)+'" '+(bossSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>'+renderFixedAlertTimingDetails(item,"voice",bossSettings,voiceTimingFallbacks)+'</div>').join("")
+    ? fixedItems.map(item=>'<div style="padding:8px;margin:6px 0;background:#202b3c;border:1px solid #66552f;border-radius:8px"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-voice="'+escapeHtml(item.key)+'" '+((bossSettings[item.key]!==undefined?bossSettings[item.key]:bossSettings[item.legacyKey])!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label></div>').join("")
     : '<div class="muted">고정보스 시간표에 등록된 항목이 없습니다.</div>';
   installPersonalDayFilter("personalFixedVoiceBossOptions",":scope > div",item=>{
     const key=item.querySelector("[data-personal-fixed-voice]")?.dataset.personalFixedVoice||"";
@@ -6148,23 +6161,34 @@ body {
 
 let personalPushWeeklyDraft = {};
 let personalPushSelectedDay = 1;
+let personalPushSelectedTime = "all";
 const personalPushDays = [{id:1,name:"월"},{id:2,name:"화"},{id:3,name:"수"},{id:4,name:"목"},{id:5,name:"금"},{id:6,name:"토"},{id:0,name:"일"}];
 function renderPersonalPushWeeklyOptions(){
   const tabs=$("personalPushDayTabs"), master=$("personalPushDayAll"), options=$("personalPushWeeklyBossOptions");
   if(!tabs||!master||!options) return;
   tabs.innerHTML=personalPushDays.map(day=>'<button type="button" data-personal-push-day="'+day.id+'" style="padding:8px 2px;font-size:12px;border:1px solid '+(day.id===personalPushSelectedDay?"#e6bd68":"#46536a")+' ;background:'+(day.id===personalPushSelectedDay?"#80602c":"#202b3c")+' ;color:#fff;border-radius:7px;font-weight:800">'+day.name+'</button>').join("");
-  const allEnabled=false; // 보스별 선택을 항상 표시하고 요일 전체 사용 체크는 사용하지 않습니다.
-  master.checked=allEnabled;
+  master.checked=false;
   const rows=(weeklyLootRows||[]).filter(row=>Number(row.day_of_week)===personalPushSelectedDay);
-  if(!rows.length){options.innerHTML='<div class="muted" style="grid-column:1/-1">이 요일에 등록된 룻권 보스가 없습니다.</div>';return;}
-  if(allEnabled){options.innerHTML='<div class="muted" style="grid-column:1/-1;padding:8px">전체 알림이 켜져 있어 이 요일의 룻권 보스 '+rows.length+'개가 모두 대상입니다.</div>';return;}
-  options.innerHTML=rows.map(row=>{
+  const times=[...new Set(rows.map(row=>String(row.spawn_time||"").slice(0,5)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  if(!times.includes(personalPushSelectedTime)) personalPushSelectedTime="all";
+  let timeSelect=$("personalPushWeeklyTime");
+  if(!timeSelect){
+    timeSelect=document.createElement("select");timeSelect.id="personalPushWeeklyTime";
+    timeSelect.style.cssText="width:100%;margin:8px 0;padding:10px;background:#0b1421;color:#fff;border:1px solid #806b3e;border-radius:9px";
+    options.parentElement.insertBefore(timeSelect,options);
+    timeSelect.addEventListener("change",()=>{personalPushSelectedTime=timeSelect.value;renderPersonalPushWeeklyOptions();});
+  }
+  timeSelect.innerHTML='<option value="all">모든 시간</option>'+times.map(t=>'<option value="'+t+'">'+t+'</option>').join("");
+  timeSelect.value=personalPushSelectedTime;
+  const visibleRows=personalPushSelectedTime==="all"?rows:rows.filter(row=>String(row.spawn_time||"").slice(0,5)===personalPushSelectedTime);
+  if(!visibleRows.length){options.innerHTML='<div class="muted" style="grid-column:1/-1">선택한 시간에 등록된 룻권 보스가 없습니다.</div>';return;}
+  options.innerHTML=visibleRows.map(row=>{
     const key="weekly_day:"+personalPushSelectedDay+":"+row.id;
     const checked=personalPushWeeklyDraft[key]!==undefined?personalPushWeeklyDraft[key]!==false:personalPushWeeklyDraft["weekly:"+row.id]!==false;
     return '<label style="display:flex;align-items:center;gap:7px;padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px"><input type="checkbox" data-personal-push-day-boss="'+escapeHtml(row.id)+'" '+(checked?"checked":"")+'><span>'+escapeHtml(row.boss_name)+' · '+escapeHtml(row.spawn_time||"")+'</span></label>';
   }).join("");
 }
-$("personalPushDayTabs")?.addEventListener("click",event=>{const btn=event.target.closest("[data-personal-push-day]");if(!btn)return;personalPushSelectedDay=Number(btn.dataset.personalPushDay);renderPersonalPushWeeklyOptions();});
+$("personalPushDayTabs")?.addEventListener("click",event=>{const btn=event.target.closest("[data-personal-push-day]");if(!btn)return;personalPushSelectedDay=Number(btn.dataset.personalPushDay);personalPushSelectedTime="all";renderPersonalPushWeeklyOptions();});
 $("personalPushDayAll")?.addEventListener("change",event=>{personalPushWeeklyDraft["__weekly_day_all_"+personalPushSelectedDay]=event.target.checked;renderPersonalPushWeeklyOptions();});
 $("personalPushWeeklyBossOptions")?.addEventListener("change",event=>{const input=event.target.closest("[data-personal-push-day-boss]");if(!input)return;personalPushWeeklyDraft["weekly_day:"+personalPushSelectedDay+":"+input.dataset.personalPushDayBoss]=input.checked;});
 /* 주간 룻권 팝업은 동적으로 생성되므로 document 위임으로 보스별 선택을 저장합니다. */
