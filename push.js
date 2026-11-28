@@ -41,29 +41,24 @@
   }
 
   function ensureControls() {
-    // 로그인 회원 모두 개인 알림 버튼 옆에 본인 기기 등록 UI를 표시합니다.
+    // 별도 버튼을 만들지 않고 개인 메뉴의 푸시 ON/OFF 버튼 하나를 사용합니다.
     const app = getAppGlobals();
     if (!isAdminApp(app)) return;
 
-    const anchorButton = document.getElementById("personalAlertBtn");
-    if (!anchorButton || button) return;
+    button = document.getElementById("pushMasterBtn");
+    if (!button) return;
 
-    button = document.createElement("button");
-    button.id = "bossPushBtn";
-    button.className = "alert-master-btn is-off";
-    button.type = "button";
-    button.textContent = "푸시 OFF";
-    button.addEventListener("click", togglePush);
-
-    anchorButton.insertAdjacentElement("afterend", button);
-
-    status = document.createElement("div");
-    status.id = "bossPushStatus";
-    status.className = "sub";
-    status.style.marginTop = "7px";
-    status.style.display = "none";
-
-    anchorButton.parentElement.parentElement.appendChild(status);
+    if (!status) {
+      status = document.getElementById("bossPushStatus");
+      if (!status) {
+        status = document.createElement("div");
+        status.id = "bossPushStatus";
+        status.className = "sub";
+        status.style.marginTop = "7px";
+        status.style.display = "none";
+        button.parentElement.parentElement.appendChild(status);
+      }
+    }
   }
 
   function showStatus(message, visible = true) {
@@ -343,6 +338,10 @@
       await refreshButton();
     }
   }
+
+  // index.html의 단일 푸시 버튼에서 호출하는 공용 동작입니다.
+  window.bossPushToggleDevice = togglePush;
+  window.bossPushRefresh = refreshButton;
 
   ensureControls();
   refreshButton();
