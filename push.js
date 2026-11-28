@@ -205,59 +205,22 @@
     }
   }
 
-  async function togglePush() {
-    if (busy) return;
+  async function togglePush(desiredEnabled) {
+    if (busy) return false;
 
     const app = getAppGlobals();
-
-    if (
-      !app ||
-      !app.user ||
-      !isAdminApp(app) ||
-      !appIsVisible()
-    ) {
-      return;
+    if (!app || !app.user || !isAdminApp(app) || !appIsVisible()) {
+      return false;
     }
 
     busy = true;
-
     if (button) button.disabled = true;
 
     try {
-      if (!("Notification" in window)) {
-        throw new Error("이 브라우저는 알림 기능을 지원하지 않습니다.");
-      }
+      if (desiredEnabled === false) {
+        const subscription = await getCurrentSubscription();
 
-      if (
-        !("serviceWorker" in navigator) ||
-        !("PushManager" in window)
-      ) {
-        throw new Error("이 브라우저는 웹 푸시를 지원하지 않습니다.");
-      }
-
-      if (Notification.permission === "default") {
-        const permission = await Notification.requestPermission();
-
-        if (permission !== "granted") {
-          throw new Error("브라우저 알림 권한을 허용해야 합니다.");
-        }
-
-      } else if (Notification.permission === "denied") {
-        throw new Error(
-          "브라우저 설정에서 이 사이트의 알림 권한을 먼저 허용해 주세요."
-        );
-      }
-
-      const registration = await navigator.serviceWorker.register("./sw.js?v=20261127-4", { updateViaCache: "none" });
-
-      await navigator.serviceWorker.ready;
-
-      let subscription = await registration.pushManager.getSubscription();
-
-      if (subscription) {
-        const row = await getDeviceRow(app, subscription);
-
-        if (row?.enabled) {
+        if (subscription) {
           const { error } = await app.db
             .from("push_subscriptions")
             .update({
@@ -269,39 +232,44 @@
 
           if (error) throw error;
 
-          // 서버 수신도 끄고 브라우저의 실제 Push 구독도 해제합니다.
+          // 서버 수신을 끄고 이 브라우저의 Push 구독도 해제합니다.
           await subscription.unsubscribe().catch(unsubscribeError => {
-            console.warn("브라우저 푸시 구독 해제 확인:",unsubscribeError);
+            console.warn("브라우저 푸시 구독 해제 확인:", unsubscribeError);
             return false;
           });
-
-          showStatus(
-            "이 기기의 푸시 등록을 해제했습니다. 다른 기기의 설정에는 영향이 없습니다."
-          );
-
-        } else {
-          const { error } = await app.db
-            .from("push_subscriptions")
-            .upsert({
-              user_id: app.user.id,
-              endpoint: subscription.endpoint,
-              subscription: subscription.toJSON(),
-              enabled: true,
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: "endpoint"
-            });
-
-          if (error) throw error;
-
-          showStatus("이 기기의 푸시 수신 등록을 켰습니다.");
         }
 
+        showStatus("이 기기의 푸시 수신을 껐습니다.");
       } else {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: base64UrlToUint8Array(VAPID_PUBLIC_KEY)
-        });
+        if (!("Notification" in window)) {
+          throw new Error("이 브라우저는 알림 기능을 지원하지 않습니다.");
+        }
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+          throw new Error("이 브라우저는 웹 푸시를 지원하지 않습니다.");
+        }
+
+        if (Notification.permission === "default") {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") {
+            throw new Error("브라우저 알림 권한을 허용해야 합니다.");
+          }
+        } else if (Notification.permission === "denied") {
+          throw new Error("브라우저 설정에서 이 사이트의 알림 권한을 먼저 허용해 주세요.");
+        }
+
+        const registration = await navigator.serviceWorker.register(
+          "./sw.js?v=20261127-4",
+          { updateViaCache: "none" }
+        );
+        await navigator.serviceWorker.ready;
+
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: base64UrlToUint8Array(VAPID_PUBLIC_KEY)
+          });
+        }
 
         const { error } = await app.db
           .from("push_subscriptions")
@@ -320,21 +288,20 @@
           throw error;
         }
 
-        showStatus("이 기기의 푸시 등록이 완료됐습니다.");
+        showStatus("이 기기의 푸시 수신 등록을 켰습니다.");
       }
 
       await refreshButton();
+      return true;
 
     } catch (error) {
       console.error("Boss push setup error:", error);
-
       alert("휴대폰 알림 설정 실패: " + (error.message || error));
+      return false;
 
     } finally {
       busy = false;
-
       if (button) button.disabled = false;
-
       await refreshButton();
     }
   }
