@@ -798,10 +798,7 @@ body {
     text-align: center !important;
     vertical-align: middle !important;
     position: relative;
-    transition:
-        transform 0.35s ease,
-        background-color 0.35s ease,
-        box-shadow 0.35s ease;
+    transition: none !important;
 }
 
 /* 현재 시간대 요일 칸만 확대 */
@@ -2256,6 +2253,7 @@ async function loadMyAlertSettings() {
       user_id: user.id,
 
       voice_enabled: true,
+      voice_alert_5m: true,
       voice_alert_3m: true,
       voice_alert_1m: true,
       voice_alert_30s: true,
@@ -2263,6 +2261,7 @@ async function loadMyAlertSettings() {
       voice_alert_spawn: true,
 
       push_enabled: false,
+      push_alert_5m: false,
       push_alert_3m: false,
       push_alert_1m: false,
       push_alert_30s: false,
@@ -5297,6 +5296,7 @@ function checkVoice(boss, at, ms) {
   if (isVoiceQuietHours(settings)) return;
 
   const thresholds = [
+    { ms: 300000, text: "5분 전", enabled: settings.voice_alert_5m !== false },
     { ms: 180000, text: "3분 전", enabled: settings.voice_alert_3m },
     { ms: 60000, text: "1분 전", enabled: settings.voice_alert_1m },
     { ms: 30000, text: "30초 전", enabled: settings.voice_alert_30s },
@@ -5555,6 +5555,7 @@ function ensurePersonalAlertUI(){
 
       <div id="personalVoiceOptions">
         <p>알림 시점</p>
+        <label><input type="checkbox" id="myVoice5m"> 5분 전</label><br>
         <label><input type="checkbox" id="myVoice3m"> 3분 전</label><br>
         <label><input type="checkbox" id="myVoice1m"> 1분 전</label><br>
         <label><input type="checkbox" id="myVoice30s"> 30초 전</label><br>
@@ -5614,6 +5615,7 @@ function ensurePersonalAlertUI(){
       <div id="personalPushAllOptions" style="display:none">
       <div id="personalPushOptions" style="margin-top:10px">
         <p>필드보스 알림 시점</p>
+        <label><input type="checkbox" id="myPush5m"> 5분 전</label><br>
         <label><input type="checkbox" id="myPush3m"> 3분 전</label><br>
         <label><input type="checkbox" id="myPush1m"> 1분 전</label><br>
         <label><input type="checkbox" id="myPush30s"> 30초 전</label><br>
@@ -5726,6 +5728,7 @@ async function openPersonalAlertSettings(){
 
   const s = myAlertSettings;
   $("personalVoiceEnabled").checked = !!s.voice_enabled;
+  $("myVoice5m").checked = s.voice_alert_5m !== false;
   $("myVoice3m").checked = !!s.voice_alert_3m;
   $("myVoice1m").checked = !!s.voice_alert_1m;
   $("myVoice30s").checked = !!s.voice_alert_30s;
@@ -5745,6 +5748,7 @@ async function openPersonalAlertSettings(){
 
   const pushSettings = s.push_boss_settings || {};
   $("personalPushEnabled").checked = !!s.push_enabled;
+  $("myPush5m").checked = s.push_alert_5m !== false;
   $("myPush3m").checked = s.push_alert_3m !== false;
   $("myPush1m").checked = s.push_alert_1m !== false;
   $("myPush30s").checked = s.push_alert_30s !== false;
@@ -6111,6 +6115,7 @@ async function savePersonalAlertSettings(){
     ...myAlertSettings,
 
     voice_enabled: $("personalVoiceEnabled").checked,
+    voice_alert_5m: $("myVoice5m").checked,
     voice_alert_3m: $("myVoice3m").checked,
     voice_alert_1m: $("myVoice1m").checked,
     voice_alert_30s: $("myVoice30s").checked,
@@ -6125,6 +6130,7 @@ async function savePersonalAlertSettings(){
     voice_quiet_hours_end: $("personalVoiceQuietEnd").value || "08:00",
 
     push_enabled: $("personalPushEnabled").checked,
+    push_alert_5m: $("myPush5m").checked,
     push_alert_3m: $("myPush3m").checked,
     push_alert_1m: $("myPush1m").checked,
     push_alert_30s: $("myPush30s").checked,
@@ -9562,7 +9568,7 @@ function fixedBossUpdateHighlight(){
     now.getSeconds();
 
   const WEEK_SECONDS = 7 * 24 * 60 * 60;
-  const POST_SPAWN_SECONDS = 5 * 60; // 리스폰 시각부터 5분간 강조 후 점진적으로 종료
+  const POST_SPAWN_SECONDS = 5 * 60; // 리스폰 시각부터 5분간 동일한 강조 효과 유지
 
   // 이전 갱신에서 적용한 강조 스타일을 먼저 원래 상태로 복구합니다.
   tbody.querySelectorAll(
@@ -9637,7 +9643,6 @@ function fixedBossUpdateHighlight(){
 
   let target = null;
   let isPostSpawn = false;
-  let fadeProgress = 0;
 
   // 출현 직후 5분 동안은 방금 출현한 보스를 우선 강조합니다.
   if(previous){
@@ -9645,7 +9650,6 @@ function fixedBossUpdateHighlight(){
     if(elapsed >= 0 && elapsed < POST_SPAWN_SECONDS){
       target = previous;
       isPostSpawn = true;
-      fadeProgress = Math.min(1, elapsed / POST_SPAWN_SECONDS);
     }
   }
 
@@ -9662,7 +9666,8 @@ function fixedBossUpdateHighlight(){
   );
   if(!tr) return;
 
-  const strength = isPostSpawn ? (1 - fadeProgress) : 0.42;
+  // 강조 강도는 시간 경과에 따라 줄이지 않고 구간 내내 일정하게 유지합니다.
+  const strength = isPostSpawn ? 1 : 0.42;
   const cells = tr.querySelectorAll("[data-fixed-boss-days]");
 
   const mix = (from,to,amount)=>{
@@ -9686,6 +9691,7 @@ function fixedBossUpdateHighlight(){
       : 1.06;
 
     td.style.transform = `scale(${scale})`;
+    td.style.transition = "none";
     td.style.transformOrigin = "center center";
     td.style.position = "relative";
     td.style.zIndex = "20";
@@ -9723,7 +9729,7 @@ function fixedBossUpdateHighlight(){
         ? `0 0 ${Math.round(8 * strength)}px rgba(255,210,80,${0.9 * strength})`
         : "0 0 4px rgba(255,210,80,.25)";
       line.style.padding = "3px 0";
-      line.style.transition = "font-size 1s linear, color 1s linear, text-shadow 1s linear";
+      line.style.transition = "none";
     });
   });
 
@@ -9747,7 +9753,7 @@ function fixedBossUpdateHighlight(){
       `0 0 8px rgba(255,190,65,${isPostSpawn ? .65 * strength : .2})`,
       "important"
     );
-    timeCell.style.transition = "font-size 1s linear";
+    timeCell.style.transition = "none";
   }
 }
 
