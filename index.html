@@ -388,6 +388,32 @@ h3{font-size:14px;margin:0 0 10px}
 .history-time{color:var(--gold);white-space:nowrap}
 .quick-links{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 #adminSettingsBtn{display:none;background:#6d5428;border-color:#b58b43;color:#ffe2a0}
+/* 개인 메뉴: 3열 × 2행, 버튼 크기와 간격 통일 */
+.personal-menu-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  width:100%;
+  margin-top:12px;
+}
+.personal-menu-grid button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-width:0;
+  min-height:64px;
+  padding:8px 4px;
+  font-size:clamp(11px,3vw,13px);
+  line-height:1.25;
+  text-align:center;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+@media(max-width:380px){
+  .personal-menu-grid{gap:6px}
+  .personal-menu-grid button{min-height:60px;padding:6px 2px;font-size:11px}
+}
 /* 메인 알림 마스터 스위치: ON은 초록 네온, OFF는 빨강 네온 */
 .alert-master-btn{min-width:104px;padding:10px 15px;border-radius:10px;font-weight:900;letter-spacing:.3px;transition:background .2s,border-color .2s,color .2s,box-shadow .2s}
 .alert-master-btn.is-on{color:#d8ffe4!important;background:#063b20!important;border:1px solid #35ff78!important;box-shadow:0 0 5px #35ff78,0 0 13px #20e85d99,inset 0 0 9px #20e85d33;text-shadow:0 0 7px #7dffa5}
@@ -1268,17 +1294,20 @@ body {
 <div id="app">
 
     <div class="panel">
-    <div class="row">
+    <div class="row" style="justify-content:space-between">
       <div class="grow">
         <b id="welcome">혈맹원</b>
         <div class="sub" id="roleText">회원</div>
       </div>
-<button class="ghost" id="adminSettingsBtn">⚙ 관리자 설정</button>
-<button class="ghost" id="personalAlertBtn">🔔 개인 알림 설정</button>
+      <button class="ghost" id="adminSettingsBtn">⚙ 관리자 설정</button>
+    </div>
+    <div class="personal-menu-grid">
+      <button class="ghost" id="personalAlertBtn" type="button">🔔 개인설정</button>
+      <button class="ghost" id="nickToggle" type="button">닉네임</button>
       <button class="alert-master-btn is-on" id="voiceMasterBtn" type="button" aria-pressed="true">음성 ON</button>
-      <button class="ghost" id="nickToggle">닉네임 변경</button>
-      <button class="ghost" id="clanMembersBtn">혈맹원 조회</button>
-      <button class="danger" id="logoutBtn">로그아웃</button>
+      <button class="alert-master-btn is-off" id="pushMasterBtn" type="button" aria-pressed="false">푸시 OFF</button>
+      <button class="ghost" id="clanMembersBtn" type="button">혈맹원</button>
+      <button class="danger" id="logoutBtn" type="button">로그아웃</button>
     </div>
 
 
@@ -2021,6 +2050,44 @@ function toggleVoiceMaster(){
   }
 }
 
+function applyPushMasterState(){
+  const btn=$("pushMasterBtn");
+  if(!btn) return;
+  const enabled=!!myAlertSettings?.push_enabled;
+  btn.textContent=enabled ? "푸시 ON" : "푸시 OFF";
+  btn.classList.toggle("is-on",enabled);
+  btn.classList.toggle("is-off",!enabled);
+  btn.setAttribute("aria-pressed",String(enabled));
+}
+
+async function togglePushMaster(){
+  if(!user) return;
+  if(!myAlertSettings) await loadMyAlertSettings();
+  if(!myAlertSettings){
+    alert("푸시 설정을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    return;
+  }
+  const nextEnabled=!myAlertSettings.push_enabled;
+  const btn=$("pushMasterBtn");
+  if(btn) btn.disabled=true;
+  try{
+    const updated={...myAlertSettings,user_id:user.id,push_enabled:nextEnabled,updated_at:new Date().toISOString()};
+    const {data,error}=await db.from("user_alert_settings")
+      .upsert(updated,{onConflict:"user_id"}).select().single();
+    if(error) throw error;
+    myAlertSettings=data;
+    applyPushMasterState();
+    alert(nextEnabled
+      ? "푸시 알림 설정을 켰습니다. 이 기기가 푸시 등록되어 있어야 알림을 받을 수 있습니다."
+      : "푸시 알림 설정을 껐습니다.");
+  }catch(error){
+    console.error("푸시 ON/OFF 변경 실패:",error);
+    alert("푸시 설정 변경 실패: "+(error.message||"오류"));
+  }finally{
+    if(btn) btn.disabled=false;
+  }
+}
+
 // KOBOT 음성 비서 상태
 let kobotRecognition = null;
 let kobotActive = false;
@@ -2221,12 +2288,14 @@ async function loadMyAlertSettings() {
 
     myAlertSettings = savedData;
     applyVoiceMasterState();
+    applyPushMasterState();
     return;
   }
 
   // 기존 설정이 있으면 그대로 사용
   myAlertSettings = data;
   applyVoiceMasterState();
+  applyPushMasterState();
 }
 // =========================================
 // 관리자 주간 룻권 푸시: 요일별 전체/개별 선택
@@ -6084,6 +6153,7 @@ async function savePersonalAlertSettings(){
 
   myAlertSettings = data;
   applyVoiceMasterState();
+  applyPushMasterState();
   closeBackPopup("personalAlertModal");
   $("personalAlertModal").style.display = "none";
   alert("개인 알림 설정이 저장되었습니다.");
@@ -8857,6 +8927,7 @@ $("clearBossForm").addEventListener("click",resetBossForm);
 
 
 $("voiceMasterBtn")?.addEventListener("click",toggleVoiceMaster);
+$("pushMasterBtn")?.addEventListener("click",togglePushMaster);
 
 $("personalAlertBtn").addEventListener("click",async()=>{
   // 클릭 이벤트 안에서 모달 생성/표시를 동기적으로 먼저 처리합니다.
