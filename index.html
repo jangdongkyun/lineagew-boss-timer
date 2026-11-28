@@ -5300,7 +5300,6 @@ function checkVoice(boss, at, ms) {
     { ms: 180000, text: "3분 전", enabled: settings.voice_alert_3m },
     { ms: 60000, text: "1분 전", enabled: settings.voice_alert_1m },
     { ms: 30000, text: "30초 전", enabled: settings.voice_alert_30s },
-    { ms: 10000, text: "10초 전", enabled: settings.voice_alert_10s }
   ];
 
   thresholds.forEach(t => {
@@ -5357,10 +5356,10 @@ function checkWeeklyLootVoice(nowMs=Date.now()){
     const at=new Date(baseDate.getFullYear(),baseDate.getMonth(),baseDate.getDate(),p[0],p[1],0,0).getTime();
     const ms=at-nowMs;
     const points=[
+      {ms:300000,text:"5분 전",enabled:settings.voice_alert_5m!==false},
       {ms:180000,text:"3분 전",enabled:settings.voice_alert_3m},
       {ms:60000,text:"1분 전",enabled:settings.voice_alert_1m},
-      {ms:30000,text:"30초 전",enabled:settings.voice_alert_30s},
-      {ms:10000,text:"10초 전",enabled:settings.voice_alert_10s}
+      {ms:30000,text:"30초 전",enabled:settings.voice_alert_30s}
     ];
     points.forEach(t=>{
       if(!t.enabled||ms<=0||ms>t.ms) return;
@@ -5396,16 +5395,13 @@ function checkFixedBossVoice(nowMs=Date.now()){
       {key:"3m",ms:180000,text:"3분 전",fallback:settings.voice_alert_3m!==false},
       {key:"1m",ms:60000,text:"1분 전",fallback:settings.voice_alert_1m!==false},
       {key:"30s",ms:30000,text:"30초 전",fallback:settings.voice_alert_30s!==false},
-      {key:"10s",ms:10000,text:"10초 전",fallback:settings.voice_alert_10s!==false}
     ].forEach(t=>{
-      const saved=bs[fixedKey+":voice:"+t.key];
-      const enabled=typeof saved==="boolean"?saved:t.fallback;
+      const enabled=t.fallback;
       if(!enabled||ms<=0||ms>t.ms)return;
       const alertKey=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-"+t.key;
       if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", "+t.text+"입니다.",1);}
     });
-    const spawnSaved=bs[fixedKey+":voice:spawn"];
-    const spawnEnabled=typeof spawnSaved==="boolean"?spawnSaved:settings.voice_alert_spawn!==false;
+    const spawnEnabled=settings.voice_alert_spawn!==false;
     if(spawnEnabled&&ms<=0&&ms>=-5000){
       const alertKey=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-spawn";
       if(!alerted.has(alertKey)){alerted.add(alertKey);speak("고정보스 "+names.join(", ")+", 출현 시간입니다.",1);}
@@ -5482,6 +5478,8 @@ function updatePersonalVoiceSections(){
   if(buttons) buttons.style.display=enabled?"grid":"none";
   const quietCard=$("personalVoiceQuietCard");
   if(quietCard) quietCard.style.display=enabled?"block":"none";
+  const timingCard=$("personalVoiceTimingCard");
+  if(timingCard) timingCard.style.display=enabled?"block":"none";
   $("personalVoiceOptions").style.display = "block";
   $("personalVoiceCategoryOptions").style.display = "none";
   $("personalBossOptions").style.display =
@@ -5507,17 +5505,7 @@ function getFixedBossAlertItems(){
 function getFixedAlertTimingOptions(){
   return [{key:"5m",label:"5분 전"},{key:"3m",label:"3분 전"},{key:"1m",label:"1분 전"},{key:"30s",label:"30초 전"},{key:"10s",label:"10초 전"},{key:"spawn",label:"출현"}];
 }
-function renderFixedAlertTimingDetails(item,channel,settings,fallbackSettings){
-  const title=channel==="voice"?"음성 시점":"푸시 시점";
-  const attr=channel==="voice"?"data-personal-fixed-voice-timing":"data-personal-fixed-push-timing";
-  const checks=getFixedAlertTimingOptions().map(option=>{
-    const key=item.key+":"+channel+":"+option.key;
-    const saved=settings[key],fallback=fallbackSettings[option.key]!==false;
-    const checked=typeof saved==="boolean"?saved:fallback;
-    return '<label style="display:inline-flex;align-items:center;gap:5px;margin:3px 5px 3px 0;padding:5px 7px;background:#101a29;border:1px solid #46536a;border-radius:7px;font-size:11px"><input type="checkbox" '+attr+'="'+escapeHtml(key)+'" '+(checked?"checked":"")+'><span>'+option.label+'</span></label>';
-  }).join("");
-  return '<details style="margin:5px 0 9px 25px;padding:7px;background:#121d2c;border:1px solid #3b4a60;border-radius:8px"><summary style="cursor:pointer;color:#e8c879;font-size:11px;font-weight:700">'+title+' 개별 설정</summary><div style="margin-top:7px">'+checks+'</div></details>';
-}
+function renderFixedAlertTimingDetails(){ return ""; }
 
 function ensurePersonalAlertUI(){
   if($("personalAlertModal")) return;
@@ -5795,8 +5783,16 @@ function ensurePersonalAlertUI(){
     weeklyCard.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
     weeklyCard.append($("personalWeeklyPushEnabled"),$("personalWeeklyPushDetails"));pw.appendChild(weeklyCard);
     Array.from($("personalPushAllOptions").querySelectorAll("h3")).filter(h=>/고정보스 푸시 알림|주간 룻권 보스 푸시 알림/.test(h.textContent)).forEach(h=>{if(h.previousElementSibling?.tagName==="HR")h.previousElementSibling.remove();h.remove();});
-    const pushQuiet=$("personalPushQuiet").closest("div").parentElement;
-    if(pushQuiet){pushQuiet.id="personalPushQuietCard";pushTimingCard.insertAdjacentElement("afterend",pushQuiet);}
+    const pushQuietLabel=$("personalPushQuiet").closest("label");
+    const pushQuietRow=pushQuietLabel?.nextElementSibling;
+    const pushQuietCard=document.createElement("section");
+    pushQuietCard.id="personalPushQuietCard";
+    pushQuietCard.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
+    const pushQuietTitle=document.createElement("h3");pushQuietTitle.textContent="방해시간 설정";pushQuietTitle.style.cssText="margin:0 0 9px;color:#e8c879";
+    pushQuietCard.appendChild(pushQuietTitle);
+    if(pushQuietLabel)pushQuietCard.appendChild(pushQuietLabel);
+    if(pushQuietRow)pushQuietCard.appendChild(pushQuietRow);
+    pushTimingCard.insertAdjacentElement("afterend",pushQuietCard);
     const test=$("personalPushTestBtn");if(test)pf.append(test,$("personalPushMessage"));
     modal.addEventListener("click",event=>{
       const open=event.target.closest("[data-alert-popup-open]");
