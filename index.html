@@ -5379,22 +5379,24 @@ function checkFixedBossVoice(nowMs=Date.now()){
   if(!user||!voiceMasterOn||!soundOn||!("speechSynthesis" in window)) return;
   const settings=myAlertSettings,bs=settings?.boss_settings||{};
   if(!settings?.voice_enabled||bs.__fixed_voice_enabled===false||isVoiceQuietHours(settings)) return;
-  const now=new Date(nowMs),dayIndex=(now.getDay()+6)%7;
+  const now=new Date(nowMs),todayIndex=(now.getDay()+6)%7;
   (fixedBossRows||[]).forEach((row,rowIndex)=>{
-    const names=String(row.days?.[dayIndex]||"").split(/\\r?\\n/).map(v=>v.trim()).filter(Boolean);
-    if(!names.length||bs["fixed:"+rowIndex+":"+dayIndex]===false) return;
-    const m=String(row.time||"").trim().match(/^(\\d{1,2}):(\\d{2})$/);if(!m)return;
+    const time=String(row.time||"").trim();
+    const m=time.match(/^(\d{1,2}):(\d{2})$/);if(!m)return;
     const h=Number(m[1]),min=Number(m[2]);if(h>24||min>59||(h===24&&min!==0))return;
+    // 24:00은 입력된 요일의 다음 날 00:00으로 처리
+    const scheduleDayIndex=h===24?(todayIndex+6)%7:todayIndex;
+    const names=String(row.days?.[scheduleDayIndex]||"").split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
+    if(!names.length||bs["fixed:"+rowIndex+":"+scheduleDayIndex]===false) return;
     const atDate=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h===24?0:h,min,0,0);
-    if(h===24)atDate.setDate(atDate.getDate()+1);
     const at=atDate.getTime(),ms=at-nowMs;
     [{ms:300000,text:"5분 전",enabled:settings.voice_alert_5m!==false},{ms:180000,text:"3분 전",enabled:settings.voice_alert_3m},{ms:60000,text:"1분 전",enabled:settings.voice_alert_1m},{ms:30000,text:"30초 전",enabled:settings.voice_alert_30s},{ms:10000,text:"10초 전",enabled:settings.voice_alert_10s}].forEach(t=>{
       if(!t.enabled||ms<=0||ms>t.ms)return;
-      const key=user.id+"-"+rowIndex+"-"+dayIndex+"-"+at+"-"+t.ms;
+      const key=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-"+t.ms;
       if(!alerted.has(key)){alerted.add(key);speak("고정보스 "+names.join(", ")+", "+t.text+"입니다.");}
     });
     if(settings.voice_alert_spawn&&ms<=0&&ms>=-5000){
-      const key=user.id+"-"+rowIndex+"-"+dayIndex+"-"+at+"-spawn";
+      const key=user.id+"-"+rowIndex+"-"+scheduleDayIndex+"-"+at+"-spawn";
       if(!alerted.has(key)){alerted.add(key);speak("고정보스 "+names.join(", ")+", 출현 시간입니다.");}
     }
   });
@@ -5475,9 +5477,9 @@ function getFixedBossAlertItems(){
   const items=[];
   (fixedBossRows||[]).forEach((row,rowIndex)=>{
     const time=String(row.time||"").trim();
-    if(!/^\\d{1,2}:\\d{2}$/.test(time)) return;
+    if(!/^\d{1,2}:\d{2}$/.test(time)) return;
     for(let dayIndex=0;dayIndex<7;dayIndex++){
-      const names=String(row.days?.[dayIndex]||"").split(/\\r?\\n/).map(v=>v.trim()).filter(Boolean);
+      const names=String(row.days?.[dayIndex]||"").split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
       if(names.length) items.push({key:"fixed:"+rowIndex+":"+dayIndex,label:dayNames[dayIndex]+"요일 "+time+" · "+names.join(", ")});
     }
   });
