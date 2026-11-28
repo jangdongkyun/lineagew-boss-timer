@@ -9813,18 +9813,17 @@ function fixedBossUpdateHighlight(){
     );
 
     td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
-      const baseSize = parseFloat(getComputedStyle(line).fontSize) || 19;
-      const targetSize = isPostSpawn
-        ? baseSize + (28.5 - baseSize) * strength
-        : baseSize + 2;
-      const baseColor = getComputedStyle(line).color || "rgb(237,242,250)";
-      const targetColor = mix(baseColor,"rgb(255,224,138)",isPostSpawn ? strength : .45);
+      // 매초 갱신되어도 이전 강조 글씨 크기를 기준으로 삼지 않도록
+      // 원래 글씨 크기(12px)를 기준으로 정해진 크기만 적용합니다.
+      const baseColor = "rgb(237,242,250)";
+      const targetSize = isPostSpawn ? 18 : 14;
+      const targetColor = mix(baseColor,"rgb(255,224,138)",isPostSpawn ? 1 : .45);
 
-      line.style.fontSize = `${targetSize.toFixed(2)}px`;
+      line.style.fontSize = `${targetSize}px`;
       line.style.fontWeight = "900";
       line.style.color = targetColor;
       line.style.textShadow = isPostSpawn
-        ? `0 0 ${Math.round(8 * strength)}px rgba(255,210,80,${0.9 * strength})`
+        ? "0 0 8px rgba(255,210,80,.9)"
         : "0 0 4px rgba(255,210,80,.25)";
       line.style.padding = "3px 0";
       line.style.transition = "none";
@@ -9836,10 +9835,8 @@ function fixedBossUpdateHighlight(){
   if(timeCell){
     timeCell.classList.add(isPostSpawn ? "fixed-boss-blink" : "fixed-boss-next");
 
-    const baseSize = parseFloat(getComputedStyle(timeCell).fontSize) || 17;
-    timeCell.style.fontSize = isPostSpawn
-      ? `${(baseSize + (25.5 - baseSize) * strength).toFixed(2)}px`
-      : `${(baseSize + 2).toFixed(2)}px`;
+    // 시간 칸도 누적 확대되지 않도록 고정 크기를 사용합니다.
+    timeCell.style.fontSize = isPostSpawn ? "21px" : "19px";
     timeCell.style.fontWeight = "900";
     timeCell.style.setProperty(
       "border",
