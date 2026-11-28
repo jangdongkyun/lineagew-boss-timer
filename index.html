@@ -5517,7 +5517,11 @@ function installPersonalDayFilter(containerId, itemSelector, getDay){
   tabs.style.cssText="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0 12px";
   const content=document.createElement("div");
   content.className="personal-day-items";
-  items.forEach(item=>content.appendChild(item));
+  content.style.cssText="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px";
+  items.forEach(item=>{
+    item.style.margin="0";
+    content.appendChild(item);
+  });
   container.insertBefore(tabs,content);
   container.appendChild(content);
   let selected=0;
