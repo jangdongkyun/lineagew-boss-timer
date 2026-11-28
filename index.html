@@ -5623,19 +5623,7 @@ function ensurePersonalAlertUI(){
         <label><input type="checkbox" id="myVoice30s"> 30초 전</label><br>
         <label><input type="checkbox" id="myVoiceSpawn"> 출현</label>
 
-        <hr>
 
-        <p>무료 한국어 목소리 선택</p>
-        <select id="personalVoiceSelect" style="width:100%;padding:10px">
-          <option value="">자동 선택 (한국어 기본 목소리)</option>
-        </select>
-        <div id="personalVoiceStatus" class="muted" style="margin-top:7px;line-height:1.5">
-          이 기기와 브라우저에서 제공하는 무료 한국어 목소리를 불러옵니다.
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button id="refreshPersonalVoices" class="ghost" type="button">목소리 목록 새로고침</button>
-          <button id="previewPersonalVoice" class="ghost" type="button">음성 테스트</button>
-        </div>
       </div>
 
       <div id="personalVoiceCategoryOptions" style="display:none;margin-top:14px">
@@ -5902,7 +5890,7 @@ async function openPersonalAlertSettings(){
   $("personalVoiceQuietEnd").value =
     (s.voice_quiet_hours_end || "08:00").slice(0,5);
 
-  $("personalVoiceSelect").value = s.voice_name || "";
+  if($("personalVoiceSelect")) $("personalVoiceSelect").value = s.voice_name || "";
   updatePersonalVoiceSections();
 
   const pushSettings = s.push_boss_settings || {};
@@ -5936,7 +5924,7 @@ async function openPersonalAlertSettings(){
 
   const bossSettings = s.boss_settings || {};
   $("personalFieldVoiceEnabled").checked = bossSettings.__field_voice_enabled !== false;
-  $("personalWeeklyVoiceEnabled").checked = bossSettings.__weekly_voice_enabled !== false;
+  $("personalWeeklyVoiceEnabled").checked = true;
   $("personalFixedVoiceEnabled").checked = bossSettings.__fixed_voice_enabled !== false;
 
 $("personalBossOptions").innerHTML = `
@@ -6075,9 +6063,13 @@ body {
       }).join("")
     : '<div class="muted">주간 룻권 시간표에 등록된 보스가 없습니다.</div>';
 
+  // 주간 룻권 보스는 카테고리 전체 사용 스위치 없이 보스 카드별로 선택합니다.
+  $("personalWeeklyVoiceEnabled").checked = true;
+  $("personalWeeklyVoiceEnabled").closest("label")?.style.setProperty("display","none");
+  $("personalWeeklyBossOptions").style.display = "grid";
   updatePersonalVoiceSections();
 
-  // 모달은 조회 시작 시 이미 표시되어 있으며, 설정값을 채운 뒤 음성 목록을 갱신합니다.
+  // 목소리 선택 UI를 제거했으므로 기기 기본 한국어 음성을 사용합니다.
   loadPersonalVoiceList();
 }
 
@@ -6281,7 +6273,7 @@ async function savePersonalAlertSettings(){
     bossSettings["weekly:" + el.dataset.personalWeeklyBoss] = el.checked;
   });
   bossSettings.__field_voice_enabled = $("personalFieldVoiceEnabled").checked;
-  bossSettings.__weekly_voice_enabled = $("personalWeeklyVoiceEnabled").checked;
+  bossSettings.__weekly_voice_enabled = true;
   bossSettings.__fixed_voice_enabled = $("personalFixedVoiceEnabled").checked;
   document.querySelectorAll("[data-personal-fixed-voice]").forEach(el=>{bossSettings[el.dataset.personalFixedVoice]=el.checked;});
   document.querySelectorAll("[data-personal-fixed-voice-timing]").forEach(el=>{bossSettings[el.dataset.personalFixedVoiceTiming]=el.checked;});
@@ -6297,7 +6289,7 @@ async function savePersonalAlertSettings(){
     voice_alert_10s: false,
     voice_alert_spawn: $("myVoiceSpawn").checked,
 
-    voice_name: $("personalVoiceSelect").value,
+    voice_name: $("personalVoiceSelect")?.value || myAlertSettings?.voice_name || "",
     boss_settings: bossSettings,
 
     voice_quiet_hours_enabled: $("personalVoiceQuiet").checked,
