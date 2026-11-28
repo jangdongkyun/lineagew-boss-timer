@@ -6095,6 +6095,13 @@ function renderPersonalPushWeeklyOptions(){
 $("personalPushDayTabs")?.addEventListener("click",event=>{const btn=event.target.closest("[data-personal-push-day]");if(!btn)return;personalPushSelectedDay=Number(btn.dataset.personalPushDay);renderPersonalPushWeeklyOptions();});
 $("personalPushDayAll")?.addEventListener("change",event=>{personalPushWeeklyDraft["__weekly_day_all_"+personalPushSelectedDay]=event.target.checked;renderPersonalPushWeeklyOptions();});
 $("personalPushWeeklyBossOptions")?.addEventListener("change",event=>{const input=event.target.closest("[data-personal-push-day-boss]");if(!input)return;personalPushWeeklyDraft["weekly_day:"+personalPushSelectedDay+":"+input.dataset.personalPushDayBoss]=input.checked;});
+/* 주간 룻권 팝업은 동적으로 생성되므로 document 위임으로 보스별 선택을 저장합니다. */
+document.addEventListener("change",event=>{
+  const input=event.target?.closest?.("[data-personal-push-day-boss]");
+  if(input){
+    personalPushWeeklyDraft["weekly_day:"+personalPushSelectedDay+":"+input.dataset.personalPushDayBoss]=input.checked;
+  }
+});
 function updatePersonalPushVisibility(){
   const enabled = !!$("personalPushEnabled")?.checked;
   const panel = $("personalPushAllOptions");
