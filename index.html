@@ -11212,16 +11212,17 @@ document.getElementById("miniPopupBtn")?.addEventListener("click",()=>{
         card.removeAttribute("id");
         card.dataset.timingMirror=prefix;
         card.style.display="block";
-        card.querySelectorAll("[id]").forEach(el=>el.removeAttribute("id"));
         const heading=card.querySelector("h3");
         if(heading) heading.textContent=title;
         card.querySelectorAll('input[type="checkbox"]').forEach(input=>{
           const originalId=input.getAttribute("id");
-          const sourceInput=source.querySelector("#"+CSS.escape(originalId||""));
-          if(!sourceInput) return;
-          input.checked=sourceInput.checked;
-          input.dataset.timingMirrorFor=originalId;
+          const sourceInput=originalId?source.querySelector("#"+CSS.escape(originalId)):null;
+          if(sourceInput){
+            input.checked=sourceInput.checked;
+            input.dataset.timingMirrorFor=originalId;
+          }
         });
+        card.querySelectorAll("[id]").forEach(el=>el.removeAttribute("id"));
         content.insertBefore(card,content.firstChild);
       });
     };
