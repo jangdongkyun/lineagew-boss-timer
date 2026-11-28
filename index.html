@@ -2077,7 +2077,7 @@ async function togglePushMaster(){
   try{
     // 하나의 푸시 버튼에서 이 기기 등록/해제와 계정 푸시 설정을 함께 처리합니다.
     if(typeof window.bossPushToggleDevice === "function"){
-      const deviceResult = await window.bossPushToggleDevice();
+      const deviceResult = await window.bossPushToggleDevice(nextEnabled);
       if(deviceResult === false) throw new Error("이 기기의 푸시 등록 상태를 변경하지 못했습니다.");
     }
     const updated={...myAlertSettings,user_id:user.id,push_enabled:nextEnabled,updated_at:new Date().toISOString()};
