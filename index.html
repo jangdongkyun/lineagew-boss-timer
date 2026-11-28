@@ -5911,7 +5911,7 @@ async function openPersonalAlertSettings(){
   const fixedPushItems=getFixedBossAlertItems();
   $("personalFixedPushEnabled").checked = pushSettings.__fixed_enabled === true;
   $("personalFixedPushOptions").style.display = pushSettings.__fixed_enabled === true ? "block" : "none";
-  const pushTimingFallbacks={"5m":$("myPush5m").checked,"3m":$("myPush3m").checked,"1m":$("myPush1m").checked,"30s":$("myPush30s").checked,"10s":$("myPush10s").checked,"spawn":$("myPushSpawn").checked};
+  const pushTimingFallbacks={"5m":$("myPush5m").checked,"3m":$("myPush3m").checked,"1m":$("myPush1m").checked,"30s":$("myPush30s").checked,"spawn":$("myPushSpawn").checked};
   $("personalFixedPushBossOptions").innerHTML = fixedPushItems.length
     ? fixedPushItems.map(item=>'<div style="padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;margin:6px 0"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-push="'+escapeHtml(item.key)+'" '+(pushSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>'+renderFixedAlertTimingDetails(item,"push",pushSettings,pushTimingFallbacks)+'</div>').join("")
     : '<div class="muted">고정보스 시간표에 등록된 항목이 없습니다.</div>';
@@ -6047,7 +6047,7 @@ body {
 
 
   const fixedItems=getFixedBossAlertItems();
-  const voiceTimingFallbacks={"5m":$("myVoice5m").checked,"3m":$("myVoice3m").checked,"1m":$("myVoice1m").checked,"30s":$("myVoice30s").checked,"10s":$("myVoice10s").checked,"spawn":$("myVoiceSpawn").checked};
+  const voiceTimingFallbacks={"5m":$("myVoice5m").checked,"3m":$("myVoice3m").checked,"1m":$("myVoice1m").checked,"30s":$("myVoice30s").checked,"spawn":$("myVoiceSpawn").checked};
   $("personalFixedVoiceBossOptions").innerHTML = fixedItems.length
     ? fixedItems.map(item=>'<div style="padding:8px;margin:6px 0;background:#202b3c;border:1px solid #66552f;border-radius:8px"><label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" data-personal-fixed-voice="'+escapeHtml(item.key)+'" '+(bossSettings[item.key]!==false?'checked':'')+'><span>'+escapeHtml(item.label)+'</span></label>'+renderFixedAlertTimingDetails(item,"voice",bossSettings,voiceTimingFallbacks)+'</div>').join("")
     : '<div class="muted">고정보스 시간표에 등록된 항목이 없습니다.</div>';
