@@ -5855,7 +5855,7 @@ function ensurePersonalAlertUI(){
 modal.addEventListener("click",event=>{
   if(event.target.closest("[data-personal-voice-test]")) previewPersonalVoice();
 });
-$("refreshPersonalVoices").addEventListener("click",()=>{
+$("refreshPersonalVoices")?.addEventListener("click",()=>{
   loadPersonalVoiceList();
   if("speechSynthesis" in window) window.speechSynthesis.getVoices();
 });
