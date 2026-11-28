@@ -5513,8 +5513,9 @@ function updatePersonalVoiceSections(){
   if(timingCard) timingCard.style.display=enabled?"block":"none";
   $("personalVoiceOptions").style.display = "block";
   $("personalVoiceCategoryOptions").style.display = "none";
-  $("personalBossOptions").style.display =
-    $("personalFieldVoiceEnabled").checked ? "block" : "none";
+  // 필드보스 설정 팝업을 열면 보스 목록은 항상 보여 줍니다.
+  // 알림 사용 여부는 위의 체크박스로 제어하고, 보스별 선택은 목록에서 합니다.
+  $("personalBossOptions").style.display = "block";
   $("personalWeeklyBossOptions").style.display =
     $("personalWeeklyVoiceEnabled").checked ? "block" : "none";
   $("personalFixedVoiceBossOptions").style.display =
@@ -5850,6 +5851,11 @@ function ensurePersonalAlertUI(){
     const px=makePopup("personalPushFixedPopup","고정보스 푸시 설정");
     const pw=makePopup("personalPushWeeklyPopup","주간 룻권보스 푸시 설정");
     pf.appendChild($("personalPushOptions"));
+    const pushBossHeading=document.createElement("p");
+    pushBossHeading.textContent="푸시 알림을 받을 필드보스를 선택해 주세요.";
+    pushBossHeading.style.cssText="margin:12px 0 8px;color:#d8c99f;font-size:13px";
+    $("personalPushOptions").appendChild(pushBossHeading);
+    $("personalPushOptions").appendChild($("personalPushBossOptions"));
     const fixedCard=document.createElement("section");
     fixedCard.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
     fixedCard.append($("personalFixedPushEnabled"),$("personalFixedPushOptions"));px.appendChild(fixedCard);
@@ -6016,12 +6022,15 @@ async function openPersonalAlertSettings(){
   $("personalPushQuiet").checked = !!s.push_quiet_hours_enabled;
   $("personalPushQuietStart").value = (s.push_quiet_hours_start || "22:00").slice(0,5);
   $("personalPushQuietEnd").value = (s.push_quiet_hours_end || "08:00").slice(0,5);
-  $("personalPushBossOptions").innerHTML = bosses.map(b =>
+  $("personalPushBossOptions").innerHTML = bosses.length ? bosses.map(b =>
     '<label class="personal-boss-card">' +
-    '<span>' + escapeHtml(b.name || b.boss_name || "이름 없음") + '</span>' +
+    '<span style="display:block;flex:1;min-width:0;overflow-wrap:anywhere">' + escapeHtml(b.name || b.boss_name || "이름 없음") + '</span>' +
     '<input type="checkbox" data-personal-push-boss="' + escapeHtml(b.id) + '" ' + (pushSettings[b.id] !== false ? "checked" : "") + '>' +
     '</label>'
-  ).join("");
+  ).join("") : '<p class="muted">등록된 필드보스가 없습니다.</p>';
+  $("personalPushBossOptions").style.display = "grid";
+  $("personalPushBossOptions").style.gridTemplateColumns = "repeat(2,minmax(0,1fr))";
+  $("personalPushBossOptions").style.gap = "8px";
   const fixedPushItems=getFixedBossAlertItems();
   $("personalFixedPushEnabled").checked = pushSettings.__fixed_enabled === true;
   $("personalFixedPushOptions").style.display = pushSettings.__fixed_enabled === true ? "block" : "none";
