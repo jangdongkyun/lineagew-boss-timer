@@ -6089,7 +6089,7 @@ function renderPersonalPushWeeklyOptions(){
   const tabs=$("personalPushDayTabs"), master=$("personalPushDayAll"), options=$("personalPushWeeklyBossOptions");
   if(!tabs||!master||!options) return;
   tabs.innerHTML=personalPushDays.map(day=>'<button type="button" data-personal-push-day="'+day.id+'" style="padding:8px 2px;font-size:12px;border:1px solid '+(day.id===personalPushSelectedDay?"#e6bd68":"#46536a")+' ;background:'+(day.id===personalPushSelectedDay?"#80602c":"#202b3c")+' ;color:#fff;border-radius:7px;font-weight:800">'+day.name+'</button>').join("");
-  const allEnabled=personalPushWeeklyDraft["__weekly_day_all_"+personalPushSelectedDay]!==false;
+  const allEnabled=false; // 보스별 선택을 항상 표시하고 요일 전체 사용 체크는 사용하지 않습니다.
   master.checked=allEnabled;
   const rows=(weeklyLootRows||[]).filter(row=>Number(row.day_of_week)===personalPushSelectedDay);
   if(!rows.length){options.innerHTML='<div class="muted" style="grid-column:1/-1">이 요일에 등록된 룻권 보스가 없습니다.</div>';return;}
@@ -11186,5 +11186,150 @@ document.getElementById("miniPopupBtn")?.addEventListener("click",()=>{
   location.href="./mini.html";
 });
 </script>
+
+<script>
+/* 2026-11-28 개인 알림 설정 UI 통일 및 푸시 카테고리 중복 사용 체크 제거 */
+(function(){
+  const originalEnsurePersonalAlertUI = window.ensurePersonalAlertUI;
+  if(typeof originalEnsurePersonalAlertUI !== "function") return;
+
+  function enhancePersonalAlertUI(){
+    const modal=document.getElementById("personalAlertModal");
+    if(!modal || modal.dataset.unifiedDesign==="1") return;
+    modal.dataset.unifiedDesign="1";
+
+    const style=document.createElement("style");
+    style.textContent=`
+      #personalAlertModal{background:rgba(3,7,13,.96)!important;backdrop-filter:blur(5px)}
+      #personalAlertModal>.personal-settings-shell,
+      #personalAlertModal>div:not(.personal-alert-submodal){
+        background:linear-gradient(155deg,#1b2739 0%,#0d1522 100%)!important;
+        border:1px solid #a98749!important;border-radius:16px!important;
+        box-shadow:0 16px 48px rgba(0,0,0,.55),inset 0 1px rgba(255,226,165,.06)
+      }
+      #personalAlertModal h3{color:#f1d38e!important;font-size:15px!important;
+        letter-spacing:.1px;border-bottom-color:rgba(230,189,104,.3)!important}
+      #personalAlertModal .personal-alert-submodal>div{
+        background:linear-gradient(155deg,#1b2739,#0d1522)!important;
+        border:1px solid #a98749!important;border-radius:15px!important;
+        box-shadow:0 16px 48px rgba(0,0,0,.6)
+      }
+      #personalAlertModal label{
+        background:linear-gradient(145deg,#202e42,#172235)!important;
+        border:1px solid #46566d!important;border-radius:10px!important;
+        min-height:42px;color:#f1eee6!important
+      }
+      #personalAlertModal input[type=checkbox]{accent-color:#e2b95f}
+      #personalAlertModal input[type=time],#personalAlertModal select{
+        background:#0b1421!important;border:1px solid #79633b!important;border-radius:10px!important
+      }
+      #personalAlertModal .personal-boss-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+      #personalAlertModal .personal-boss-card{
+        min-height:52px!important;padding:10px!important;border:1px solid #806b3e!important;
+        border-radius:11px!important;background:linear-gradient(145deg,#27364b,#151f30)!important;
+        box-shadow:inset 0 1px rgba(255,255,255,.04)
+      }
+      #personalAlertModal .personal-boss-card:has(input:checked){
+        border-color:#e6bd68!important;box-shadow:0 0 10px #e6bd6833,inset 0 0 10px #e6bd6812
+      }
+      #personalAlertModal #personalPushBossOptions,
+      #personalAlertModal #personalPushWeeklyBossOptions,
+      #personalAlertModal #personalFixedPushBossOptions,
+      #personalAlertModal #personalWeeklyBossOptions,
+      #personalAlertModal #personalFixedVoiceBossOptions{
+        display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important
+      }
+      #personalAlertModal #personalPushBossOptions>label,
+      #personalAlertModal #personalPushWeeklyBossOptions>label,
+      #personalAlertModal #personalFixedPushBossOptions>div,
+      #personalAlertModal #personalWeeklyBossOptions>label,
+      #personalAlertModal #personalFixedVoiceBossOptions>div{
+        display:flex!important;align-items:center!important;justify-content:space-between!important;
+        gap:8px!important;min-width:0;min-height:54px!important;margin:0!important;padding:9px!important;
+        border:1px solid #806b3e!important;border-radius:11px!important;
+        background:linear-gradient(145deg,#27364b,#151f30)!important;
+        color:#fff0c8!important;font-size:12px!important;overflow-wrap:anywhere
+      }
+      #personalAlertModal #personalFixedPushBossOptions>div label,
+      #personalAlertModal #personalFixedVoiceBossOptions>div label{
+        width:100%;margin:0!important;padding:0!important;background:transparent!important;
+        border:0!important;min-height:32px!important
+      }
+      #personalAlertModal #personalFixedPushBossOptions>div:has(input:checked),
+      #personalAlertModal #personalFixedVoiceBossOptions>div:has(input:checked),
+      #personalAlertModal #personalPushWeeklyBossOptions>label:has(input:checked),
+      #personalAlertModal #personalWeeklyBossOptions>label:has(input:checked),
+      #personalAlertModal #personalPushBossOptions>label:has(input:checked){
+        border-color:#e6bd68!important;box-shadow:0 0 10px #e6bd6833
+      }
+      #personalAlertModal #personalPushDayTabs button{
+        min-height:38px;border:1px solid #53627a!important;background:#1b293c!important
+      }
+      #personalAlertModal #personalPushDayTabs button[style*="#80602c"]{
+        background:#80602c!important;border-color:#e6bd68!important
+      }
+      #personalAlertModal [data-personal-voice-test],
+      #personalAlertModal [data-personal-push-test]{
+        background:linear-gradient(135deg,#72552a,#47351c)!important;
+        border:1px solid #d0a957!important;color:#fff0c8!important;font-weight:900
+      }
+      #personalAlertModal #savePersonalAlertBtn{
+        background:linear-gradient(135deg,#b48a40,#76551f)!important;
+        border:1px solid #f0cd7a!important;color:#fff8e7!important
+      }
+      #personalAlertModal .personal-alert-submodal [data-alert-popup-close],
+      #personalAlertModal #closePersonalAlertBtn{border-radius:9px!important}
+      #personalAlertModal #personalVoiceCategoryButtons,
+      #personalAlertModal #personalPushCategoryButtons{gap:8px!important}
+      #personalAlertModal #personalVoiceCategoryButtons button,
+      #personalAlertModal #personalPushCategoryButtons button{
+        min-height:46px!important;border:1px solid #927443!important;
+        background:linear-gradient(145deg,#29384d,#172235)!important;color:#f3d99d!important;
+        border-radius:11px!important;font-weight:900!important
+      }
+      #personalAlertModal #personalVoiceTimingCard,
+      #personalAlertModal #personalPushTimingCard,
+      #personalAlertModal #personalVoiceQuietCard,
+      #personalAlertModal #personalPushQuietCard{
+        padding:12px!important;border:1px solid #806b3e!important;border-radius:12px!important;
+        background:linear-gradient(145deg,#202e42,#141e2d)!important
+      }
+      #personalAlertModal #personalVoiceTimingCard label,
+      #personalAlertModal #personalPushTimingCard label{
+        min-height:39px!important;justify-content:flex-start
+      }
+      @media(max-width:420px){
+        #personalAlertModal #personalPushBossOptions,
+        #personalAlertModal #personalPushWeeklyBossOptions,
+        #personalAlertModal #personalFixedPushBossOptions,
+        #personalAlertModal #personalWeeklyBossOptions,
+        #personalAlertModal #personalFixedVoiceBossOptions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+      }
+    `;
+    modal.appendChild(style);
+
+    // 푸시 카테고리별 '사용' 체크는 전체 푸시 ON/OFF와 중복되므로 숨기고
+    // 기존 저장 호환을 위해 내부 값은 항상 true로 유지합니다.
+    ["personalFixedPushEnabled","personalWeeklyPushEnabled"].forEach(id=>{
+      const input=document.getElementById(id);
+      if(input){input.checked=true;const label=input.closest("label");if(label)label.style.display="none";}
+    });
+    const fixedOptions=document.getElementById("personalFixedPushOptions");
+    if(fixedOptions)fixedOptions.style.display="block";
+    const weeklyDetails=document.getElementById("personalWeeklyPushDetails");
+    if(weeklyDetails)weeklyDetails.style.display="block";
+
+    // 요일별 '전체 알림' 체크는 없애고 각 룻권 보스 카드를 개별 선택하도록 합니다.
+    const dayAll=document.getElementById("personalPushDayAll");
+    if(dayAll){dayAll.checked=false;const label=dayAll.closest("label");if(label)label.style.display="none";}
+  }
+
+  window.ensurePersonalAlertUI=function(){
+    originalEnsurePersonalAlertUI.apply(this,arguments);
+    enhancePersonalAlertUI();
+  };
+})();
+</script>
+
 </body>
 </html>
