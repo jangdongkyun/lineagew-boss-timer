@@ -5663,7 +5663,7 @@ function ensurePersonalAlertUI(){
       </div>
 
       <div style="padding:12px;margin:12px 0;background:#172438;border:1px solid #806b3e;border-radius:10px">
-        <h3 style="margin:0 0 10px;color:#e8c879">③ 음성 방해금지 시간</h3>
+        <h3 style="margin:0 0 10px;color:#e8c879">방해시간 설정</h3>
         <label><input type="checkbox" id="personalVoiceQuiet"> 음성 안내 방해금지 사용</label>
         <div class="row" style="margin-top:10px">
           <div class="grow">
@@ -5755,6 +5755,7 @@ function ensurePersonalAlertUI(){
     };
     const voiceTimingCard=makeTimingCard("personalVoiceTimingCard","알림 시각 설정",["myVoice5m","myVoice3m","myVoice1m","myVoice30s","myVoiceSpawn"]);
     voiceRow.insertAdjacentElement("afterend",voiceTimingCard);
+    $("personalVoiceOptions").querySelector("p")?.remove();
     const voiceQuietCard=$("personalVoiceQuiet").closest("div");
     if(voiceQuietCard) voiceQuietCard.id="personalVoiceQuietCard";
     const vf=makePopup("personalVoiceFieldPopup","필드보스 음성 설정");
@@ -5772,6 +5773,7 @@ function ensurePersonalAlertUI(){
     $("personalPushAllOptions").insertBefore(pushRow,$("personalPushAllOptions").firstChild);
     const pushTimingCard=makeTimingCard("personalPushTimingCard","알림 시각 설정",["myPush5m","myPush3m","myPush1m","myPush30s","myPushSpawn"]);
     pushRow.insertAdjacentElement("afterend",pushTimingCard);
+    $("personalPushOptions").querySelector("p")?.remove();
     const pf=makePopup("personalPushFieldPopup","필드보스 푸시 설정");
     const px=makePopup("personalPushFixedPopup","고정보스 푸시 설정");
     const pw=makePopup("personalPushWeeklyPopup","주간 룻권보스 푸시 설정");
@@ -5783,6 +5785,7 @@ function ensurePersonalAlertUI(){
     weeklyCard.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
     weeklyCard.append($("personalWeeklyPushEnabled"),$("personalWeeklyPushDetails"));pw.appendChild(weeklyCard);
     Array.from($("personalPushAllOptions").querySelectorAll("h3")).filter(h=>/고정보스 푸시 알림|주간 룻권 보스 푸시 알림/.test(h.textContent)).forEach(h=>{if(h.previousElementSibling?.tagName==="HR")h.previousElementSibling.remove();h.remove();});
+    Array.from($("personalPushAllOptions").querySelectorAll("h3")).filter(h=>h.textContent.includes("푸시 방해금지 시간")).forEach(h=>{if(h.previousElementSibling?.tagName==="HR")h.previousElementSibling.remove();h.remove();});
     const pushQuietLabel=$("personalPushQuiet").closest("label");
     const pushQuietRow=pushQuietLabel?.nextElementSibling;
     const pushQuietCard=document.createElement("section");
@@ -5875,7 +5878,6 @@ async function openPersonalAlertSettings(){
   $("myVoice3m").checked = !!s.voice_alert_3m;
   $("myVoice1m").checked = !!s.voice_alert_1m;
   $("myVoice30s").checked = !!s.voice_alert_30s;
-  $("myVoice10s").checked = false;
   $("myVoiceSpawn").checked = !!s.voice_alert_spawn;
 
   $("personalVoiceQuiet").checked =
@@ -5896,7 +5898,6 @@ async function openPersonalAlertSettings(){
   $("myPush3m").checked = s.push_alert_3m !== false;
   $("myPush1m").checked = s.push_alert_1m !== false;
   $("myPush30s").checked = s.push_alert_30s !== false;
-  $("myPush10s").checked = false;
   $("myPushSpawn").checked = s.push_alert_spawn !== false;
   $("personalWeeklyPushEnabled").checked = pushSettings.__weekly_enabled === true;
   $("personalPushQuiet").checked = !!s.push_quiet_hours_enabled;
