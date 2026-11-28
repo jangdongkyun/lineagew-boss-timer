@@ -6017,9 +6017,10 @@ async function openPersonalAlertSettings(){
   $("personalPushQuietStart").value = (s.push_quiet_hours_start || "22:00").slice(0,5);
   $("personalPushQuietEnd").value = (s.push_quiet_hours_end || "08:00").slice(0,5);
   $("personalPushBossOptions").innerHTML = bosses.map(b =>
-    '<label style="display:flex;align-items:center;gap:7px;padding:8px;background:#202b3c;border:1px solid #66552f;border-radius:8px;font-size:12px">' +
+    '<label class="personal-boss-card">' +
+    '<span>' + escapeHtml(b.name || b.boss_name || "이름 없음") + '</span>' +
     '<input type="checkbox" data-personal-push-boss="' + escapeHtml(b.id) + '" ' + (pushSettings[b.id] !== false ? "checked" : "") + '>' +
-    '<span>' + escapeHtml(b.name || b.boss_name || "이름 없음") + '</span></label>'
+    '</label>'
   ).join("");
   const fixedPushItems=getFixedBossAlertItems();
   $("personalFixedPushEnabled").checked = pushSettings.__fixed_enabled === true;
@@ -6047,8 +6048,8 @@ $("personalBossOptions").innerHTML = `
   <style>
     .personal-boss-grid {
       display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:7px;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
     }
     .personal-boss-card {
       display:flex;
@@ -6063,35 +6064,15 @@ $("personalBossOptions").innerHTML = `
       color:#eee0bd;
       font-size:12px;
     }
-    .personal-boss-card input {
-      appearance:none;
-      flex-shrink:0;
-      width:30px;
-      height:17px;
+    .personal-boss-card input[type="checkbox"] {
+      appearance:auto;
+      -webkit-appearance:checkbox;
+      flex:0 0 19px;
+      width:19px;
+      height:19px;
       margin:0;
-      border-radius:20px;
-      background:#555;
-      position:relative;
+      accent-color:#d6ad58;
       cursor:pointer;
-      transition:.2s;
-    }
-    .personal-boss-card input:checked {
-      background:#b89542;
-    }
-    .personal-boss-card input:before {
-      content:"";
-      position:absolute;
-      width:13px;
-      height:13px;
-      left:2px;
-      top:2px;
-      border-radius:50%;
-      background:#eee;
-      transition:.2s;
-    }
-    .personal-boss-card input:checked:before {
-      transform:translateX(13px);
-      background:#fff5d8;
     }
     @media(max-width:380px) {
       .personal-boss-card {
@@ -11424,10 +11405,12 @@ document.getElementById("miniPopupBtn")?.addEventListener("click",()=>{
       #personalAlertModal #personalPushWeeklyBossOptions,
       #personalAlertModal #personalFixedPushBossOptions,
       #personalAlertModal #personalWeeklyBossOptions,
-      #personalAlertModal #personalFixedVoiceBossOptions{
+      #personalAlertModal #personalFixedVoiceBossOptions,
+      #personalAlertModal #personalBossOptions .personal-boss-grid{
         display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important
       }
       #personalAlertModal #personalPushBossOptions>label,
+      #personalAlertModal #personalBossOptions .personal-boss-card,
       #personalAlertModal #personalPushWeeklyBossOptions>label,
       #personalAlertModal #personalFixedPushBossOptions>div,
       #personalAlertModal #personalWeeklyBossOptions>label,
@@ -11446,6 +11429,8 @@ document.getElementById("miniPopupBtn")?.addEventListener("click",()=>{
       #personalAlertModal #personalFixedPushBossOptions>div:has(input:checked),
       #personalAlertModal #personalFixedVoiceBossOptions>div:has(input:checked),
       #personalAlertModal #personalPushWeeklyBossOptions>label:has(input:checked),
+      #personalAlertModal #personalBossOptions .personal-boss-card:has(input:checked),
+      #personalAlertModal #personalPushBossOptions>label:has(input:checked),
       #personalAlertModal #personalWeeklyBossOptions>label:has(input:checked),
       #personalAlertModal #personalPushBossOptions>label:has(input:checked){
         border-color:#e6bd68!important;box-shadow:0 0 10px #e6bd6833
