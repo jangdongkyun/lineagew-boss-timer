@@ -5474,14 +5474,16 @@ function speak(text){
 
 function updatePersonalVoiceSections(){
   const enabled = $("personalVoiceEnabled").checked;
-  $("personalVoiceOptions").style.display = enabled ? "block" : "none";
-  $("personalVoiceCategoryOptions").style.display = enabled ? "block" : "none";
+  const buttons=$("personalVoiceCategoryButtons");
+  if(buttons) buttons.style.display=enabled?"grid":"none";
+  $("personalVoiceOptions").style.display = "block";
+  $("personalVoiceCategoryOptions").style.display = "none";
   $("personalBossOptions").style.display =
-    enabled && $("personalFieldVoiceEnabled").checked ? "block" : "none";
+    $("personalFieldVoiceEnabled").checked ? "block" : "none";
   $("personalWeeklyBossOptions").style.display =
-    enabled && $("personalWeeklyVoiceEnabled").checked ? "block" : "none";
+    $("personalWeeklyVoiceEnabled").checked ? "block" : "none";
   $("personalFixedVoiceBossOptions").style.display =
-    enabled && $("personalFixedVoiceEnabled").checked ? "block" : "none";
+    $("personalFixedVoiceEnabled").checked ? "block" : "none";
 }
 function getFixedBossAlertItems(){
   const dayNames=["월","화","수","목","금","토","일"];
@@ -5740,6 +5742,52 @@ function ensurePersonalAlertUI(){
   `;
 
   document.body.appendChild(modal);
+
+  // 짧은 개인설정 화면과 종류별 세부 팝업 구성
+  (function setupPersonalAlertCompactUI(){
+    const makeRow=id=>{const el=document.createElement("div");el.id=id;el.className="row";el.style.cssText="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 12px";return el;};
+    const makePopup=(id,title)=>{
+      const box=document.createElement("div");box.id=id;box.className="personal-alert-submodal";
+      box.style.cssText="display:none;position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.94);padding:12px;overflow-y:auto;box-sizing:border-box";
+      box.innerHTML='<div style="max-width:600px;margin:12px auto;padding:15px;background:#101a2b;border:1px solid #806b3e;border-radius:13px;color:#fff"><div class="row" style="justify-content:space-between;margin-bottom:12px"><b style="color:#e8c879;font-size:17px">'+title+'</b><button type="button" class="danger" data-alert-popup-close>닫기 ✕</button></div><div data-alert-popup-content></div></div>';
+      modal.appendChild(box);return box.querySelector("[data-alert-popup-content]");
+    };
+    const addButtons=(row,items)=>items.forEach(item=>{const b=document.createElement("button");b.type="button";b.className="ghost";b.textContent=item.label;b.dataset.alertPopupOpen=item.id;b.style.cssText="min-width:0;padding:11px 4px;font-size:12px";row.appendChild(b);});
+    const voiceRow=makeRow("personalVoiceCategoryButtons");
+    addButtons(voiceRow,[{id:"personalVoiceFieldPopup",label:"필드보스"},{id:"personalVoiceFixedPopup",label:"고정보스"},{id:"personalVoiceWeeklyPopup",label:"주간 룻권보스"}]);
+    $("personalVoiceEnabled").insertAdjacentElement("afterend",voiceRow);
+    const vf=makePopup("personalVoiceFieldPopup","필드보스 음성 설정");
+    const vx=makePopup("personalVoiceFixedPopup","고정보스 음성 설정");
+    const vw=makePopup("personalVoiceWeeklyPopup","주간 룻권보스 음성 설정");
+    vf.appendChild($("personalVoiceOptions"));
+    const voiceCards=Array.from($("personalVoiceCategoryOptions").children).filter(n=>n.tagName==="DIV");
+    if(voiceCards[0])vf.appendChild(voiceCards[0]);
+    if(voiceCards[2])vx.appendChild(voiceCards[2]);
+    if(voiceCards[1])vw.appendChild(voiceCards[1]);
+    $("personalVoiceCategoryOptions").style.display="none";
+
+    const pushRow=makeRow("personalPushCategoryButtons");
+    addButtons(pushRow,[{id:"personalPushFieldPopup",label:"필드보스"},{id:"personalPushFixedPopup",label:"고정보스"},{id:"personalPushWeeklyPopup",label:"주간 룻권보스"}]);
+    $("personalPushAllOptions").insertBefore(pushRow,$("personalPushAllOptions").firstChild);
+    const pf=makePopup("personalPushFieldPopup","필드보스 푸시 설정");
+    const px=makePopup("personalPushFixedPopup","고정보스 푸시 설정");
+    const pw=makePopup("personalPushWeeklyPopup","주간 룻권보스 푸시 설정");
+    pf.appendChild($("personalPushOptions"));
+    const fixedCard=document.createElement("section");
+    fixedCard.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
+    fixedCard.append($("personalFixedPushEnabled"),$("personalFixedPushOptions"));px.appendChild(fixedCard);
+    const weeklyCard=document.createElement("section");
+    weeklyCard.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
+    weeklyCard.append($("personalWeeklyPushEnabled"),$("personalWeeklyPushDetails"));pw.appendChild(weeklyCard);
+    const test=$("personalPushTestBtn");if(test)pf.append(test,$("personalPushMessage"));
+    modal.addEventListener("click",event=>{
+      const open=event.target.closest("[data-alert-popup-open]");
+      const close=event.target.closest("[data-alert-popup-close]");
+      if(open){const target=$(open.dataset.alertPopupOpen);if(target)target.style.display="block";}
+      if(close){const box=close.closest(".personal-alert-submodal");if(box)box.style.display="none";}
+      if(event.target.classList?.contains("personal-alert-submodal"))event.target.style.display="none";
+    });
+  })();
 // 개인 알림 설정 버튼 이벤트 연결
 $("previewPersonalVoice").addEventListener(
   "click",
@@ -5826,6 +5874,7 @@ async function openPersonalAlertSettings(){
     (s.voice_quiet_hours_end || "08:00").slice(0,5);
 
   $("personalVoiceSelect").value = s.voice_name || "";
+  updatePersonalVoiceSections();
 
   const pushSettings = s.push_boss_settings || {};
   $("personalPushEnabled").checked = !!s.push_enabled;
@@ -6035,6 +6084,8 @@ function updatePersonalPushVisibility(){
   if(!panel) return;
   panel.style.display = enabled ? "block" : "none";
   panel.setAttribute("aria-hidden", enabled ? "false" : "true");
+  const buttons=$("personalPushCategoryButtons");
+  if(buttons) buttons.style.display=enabled?"grid":"none";
 }
 // 설정 팝업은 나중에 동적으로 생성되므로 document 위임 이벤트로 즉시 반응시킵니다.
 document.addEventListener("change",event=>{
