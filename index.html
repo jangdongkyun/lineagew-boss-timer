@@ -9650,30 +9650,31 @@ function fixedBossUpdateHighlight(){
   let target = null;
   let blink = false;
 
-  // 출현 후 기존 20분 강조를 유지합니다.
-  if(previous){
-    const elapsed =
-      currentWeekSeconds - previous.absoluteSeconds;
-
-    if(elapsed < BLINK_SECONDS){
-      target = previous;
-      blink = true;
-    }
-  }
-
-  // 출현 후 강조 중인 보스가 없을 때,
-  // 다음 보스가 5분 이내로 다가오면 미리 강조합니다.
-  if(!target && next){
+  // 우선순위 1: 다음 보스가 5분 이내라면
+  // 직전 보스의 출현 후 강조보다 다음 보스를 먼저 강조합니다.
+  if(next){
     const remaining =
       next.absoluteSeconds - currentWeekSeconds;
 
-    if(remaining <= PRE_BLINK_SECONDS){
+    if(remaining > 0 && remaining <= PRE_BLINK_SECONDS){
       target = next;
       blink = true;
     }
   }
 
-  // 스폰 5분 전이 되기 전에는 강조하지 않습니다.
+  // 우선순위 2: 다음 보스가 아직 5분 이상 남았다면
+  // 직전에 출현한 보스를 기존처럼 20분 동안 강조합니다.
+  if(!target && previous){
+    const elapsed =
+      currentWeekSeconds - previous.absoluteSeconds;
+
+    if(elapsed >= 0 && elapsed < BLINK_SECONDS){
+      target = previous;
+      blink = true;
+    }
+  }
+
+  // 스폰 5분 전 또는 직전 출현 후 강조 구간이 아니면 종료합니다.
   if(!target) return;
 
   const tr = tbody.querySelector(
