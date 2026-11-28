@@ -5507,7 +5507,7 @@ function getFixedBossAlertItems(){
 // 항목 자체는 DOM에 모두 유지해 다른 요일의 저장값이 누락되지 않게 합니다.
 function installPersonalDayFilter(containerId, itemSelector, getDay){
   const container=$(containerId);
-  if(!container || container.dataset.dayFilterReady==="1") return;
+  if(!container) return;
   const items=Array.from(container.querySelectorAll(itemSelector));
   if(!items.length) return;
   container.dataset.dayFilterReady="1";
