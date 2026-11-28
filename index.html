@@ -5796,7 +5796,21 @@ function ensurePersonalAlertUI(){
     if(pushQuietLabel)pushQuietCard.appendChild(pushQuietLabel);
     if(pushQuietRow)pushQuietCard.appendChild(pushQuietRow);
     pushTimingCard.insertAdjacentElement("afterend",pushQuietCard);
-    const test=$("personalPushTestBtn");if(test)pf.append(test,$("personalPushMessage"));
+    const addTestControls=(container,type)=>{
+      const wrap=document.createElement("div");
+      wrap.style.cssText="margin-top:14px;padding-top:12px;border-top:1px solid #526078";
+      const btn=document.createElement("button");btn.type="button";btn.className="ghost";btn.style.cssText="width:100%;padding:11px";
+      if(type==="voice"){btn.textContent="이 항목 음성 테스트";btn.dataset.personalVoiceTest="1";}
+      else{btn.textContent="이 항목 푸시 테스트";btn.dataset.personalPushTest="1";}
+      const msg=document.createElement("div");msg.className="muted";msg.style.cssText="margin-top:7px;line-height:1.5";
+      if(type==="push")msg.dataset.personalPushTestMessage="1";
+      wrap.append(btn,msg);container.appendChild(wrap);
+    };
+    [vf,vx,vw].forEach(container=>addTestControls(container,"voice"));
+    [pf,px,pw].forEach(container=>addTestControls(container,"push"));
+    const oldVoiceTest=$("previewPersonalVoice");if(oldVoiceTest)oldVoiceTest.remove();
+    const oldPushTest=$("personalPushTestBtn");if(oldPushTest)oldPushTest.remove();
+    const oldPushMessage=$("personalPushMessage");if(oldPushMessage)oldPushMessage.remove();
     modal.addEventListener("click",event=>{
       const open=event.target.closest("[data-alert-popup-open]");
       const close=event.target.closest("[data-alert-popup-close]");
@@ -5806,10 +5820,9 @@ function ensurePersonalAlertUI(){
     });
   })();
 // 개인 알림 설정 버튼 이벤트 연결
-$("previewPersonalVoice").addEventListener(
-  "click",
-  previewPersonalVoice
-);
+modal.addEventListener("click",event=>{
+  if(event.target.closest("[data-personal-voice-test]")) previewPersonalVoice();
+});
 $("refreshPersonalVoices").addEventListener("click",()=>{
   loadPersonalVoiceList();
   if("speechSynthesis" in window) window.speechSynthesis.getVoices();
@@ -6105,8 +6118,7 @@ document.addEventListener("change",event=>{
   if(event.target?.id === "personalFixedPushEnabled") $("personalFixedPushOptions").style.display=event.target.checked?"block":"none";
 });
 $("personalWeeklyPushEnabled")?.addEventListener("change",()=>{$("personalWeeklyPushDetails").style.display=$("personalWeeklyPushEnabled").checked?"block":"none";});
-async function sendPersonalPushTest(){
-  const btn=$("personalPushTestBtn"), msg=$("personalPushMessage");
+async function sendPersonalPushTest(btn=$("personalPushTestBtn"),msg=$("personalPushMessage")){
   if(!user||!btn||btn.disabled)return;
   btn.disabled=true;btn.textContent="테스트 발송 중...";
   msg.textContent="현재 사용 중인 휴대폰의 푸시 등록 상태를 확인하고 있습니다.";
@@ -6144,9 +6156,13 @@ async function sendPersonalPushTest(){
 }
 // 개인 알림 설정창은 동적으로 생성되므로 테스트 버튼도 document 위임 이벤트로 연결합니다.
 document.addEventListener("click",event=>{
-  if(event.target?.closest?.("#personalPushTestBtn")){
-    sendPersonalPushTest();
+  const categoryTest=event.target?.closest?.("[data-personal-push-test]");
+  if(categoryTest){
+    const message=categoryTest.parentElement?.querySelector("[data-personal-push-test-message]");
+    sendPersonalPushTest(categoryTest,message);
+    return;
   }
+  if(event.target?.closest?.("#personalPushTestBtn")) sendPersonalPushTest();
 });
 
 let personalVoiceChangeListenerReady = false;
