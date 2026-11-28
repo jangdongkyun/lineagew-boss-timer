@@ -2058,6 +2058,10 @@ function applyPushMasterState(){
   btn.classList.toggle("is-on",enabled);
   btn.classList.toggle("is-off",!enabled);
   btn.setAttribute("aria-pressed",String(enabled));
+  // 기기 등록 상태까지 함께 반영합니다.
+  if(typeof window.bossPushRefresh === "function"){
+    window.bossPushRefresh();
+  }
 }
 
 async function togglePushMaster(){
@@ -2071,6 +2075,11 @@ async function togglePushMaster(){
   const btn=$("pushMasterBtn");
   if(btn) btn.disabled=true;
   try{
+    // 하나의 푸시 버튼에서 이 기기 등록/해제와 계정 푸시 설정을 함께 처리합니다.
+    if(typeof window.bossPushToggleDevice === "function"){
+      const deviceResult = await window.bossPushToggleDevice();
+      if(deviceResult === false) throw new Error("이 기기의 푸시 등록 상태를 변경하지 못했습니다.");
+    }
     const updated={...myAlertSettings,user_id:user.id,push_enabled:nextEnabled,updated_at:new Date().toISOString()};
     const {data,error}=await db.from("user_alert_settings")
       .upsert(updated,{onConflict:"user_id"}).select().single();
