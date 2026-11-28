@@ -5476,6 +5476,8 @@ function updatePersonalVoiceSections(){
   const enabled = $("personalVoiceEnabled").checked;
   const buttons=$("personalVoiceCategoryButtons");
   if(buttons) buttons.style.display=enabled?"grid":"none";
+  const quietCard=$("personalVoiceQuietCard");
+  if(quietCard) quietCard.style.display=enabled?"block":"none";
   $("personalVoiceOptions").style.display = "block";
   $("personalVoiceCategoryOptions").style.display = "none";
   $("personalBossOptions").style.display =
@@ -5756,6 +5758,8 @@ function ensurePersonalAlertUI(){
     const voiceRow=makeRow("personalVoiceCategoryButtons");
     addButtons(voiceRow,[{id:"personalVoiceFieldPopup",label:"필드보스"},{id:"personalVoiceFixedPopup",label:"고정보스"},{id:"personalVoiceWeeklyPopup",label:"주간 룻권보스"}]);
     $("personalVoiceEnabled").insertAdjacentElement("afterend",voiceRow);
+    const voiceQuietCard=$("personalVoiceQuiet").closest("div");
+    if(voiceQuietCard) voiceQuietCard.id="personalVoiceQuietCard";
     const vf=makePopup("personalVoiceFieldPopup","필드보스 음성 설정");
     const vx=makePopup("personalVoiceFixedPopup","고정보스 음성 설정");
     const vw=makePopup("personalVoiceWeeklyPopup","주간 룻권보스 음성 설정");
