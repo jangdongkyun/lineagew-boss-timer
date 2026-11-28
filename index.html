@@ -5783,6 +5783,7 @@ function ensurePersonalAlertUI(){
     const weeklyCard=document.createElement("section");
     weeklyCard.style.cssText="padding:12px;margin:10px 0;background:#172438;border:1px solid #806b3e;border-radius:10px";
     weeklyCard.append($("personalWeeklyPushEnabled"),$("personalWeeklyPushDetails"));pw.appendChild(weeklyCard);
+    Array.from($("personalPushAllOptions").querySelectorAll("h3")).filter(h=>/고정보스 푸시 알림|주간 룻권 보스 푸시 알림/.test(h.textContent)).forEach(h=>{if(h.previousElementSibling?.tagName==="HR")h.previousElementSibling.remove();h.remove();});
     const test=$("personalPushTestBtn");if(test)pf.append(test,$("personalPushMessage"));
     modal.addEventListener("click",event=>{
       const open=event.target.closest("[data-alert-popup-open]");
