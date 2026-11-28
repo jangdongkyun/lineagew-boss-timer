@@ -9563,7 +9563,8 @@ function fixedBossUpdateHighlight(){
     now.getSeconds();
 
   const WEEK_SECONDS = 7 * 24 * 60 * 60;
-  const BLINK_SECONDS = 20 * 60;
+  const BLINK_SECONDS = 20 * 60; // 출현 후 기존 20분 강조 유지
+  const PRE_BLINK_SECONDS = 5 * 60; // 출현 5분 전부터 강조 시작
 
   // 기존 강조 효과 초기화
   tbody.querySelectorAll(
@@ -9649,6 +9650,7 @@ function fixedBossUpdateHighlight(){
   let target = null;
   let blink = false;
 
+  // 출현 후 기존 20분 강조를 유지합니다.
   if(previous){
     const elapsed =
       currentWeekSeconds - previous.absoluteSeconds;
@@ -9659,10 +9661,19 @@ function fixedBossUpdateHighlight(){
     }
   }
 
+  // 출현 후 강조 중인 보스가 없을 때,
+  // 다음 보스가 5분 이내로 다가오면 미리 강조합니다.
   if(!target && next){
-    target = next;
+    const remaining =
+      next.absoluteSeconds - currentWeekSeconds;
+
+    if(remaining <= PRE_BLINK_SECONDS){
+      target = next;
+      blink = true;
+    }
   }
 
+  // 스폰 5분 전이 되기 전에는 강조하지 않습니다.
   if(!target) return;
 
   const tr = tbody.querySelector(
@@ -9705,7 +9716,7 @@ function fixedBossUpdateHighlight(){
 
     // 보스 이름 확대
     td.querySelectorAll(".fixed-boss-marquee").forEach(line=>{
-      line.style.fontSize = "19px";
+      line.style.fontSize = "28.5px"; // 기존 강조 글씨보다 50% 확대
       line.style.fontWeight = "900";
       line.style.color = "#ffe08a";
       line.style.textShadow = "0 0 8px rgba(255,210,80,.9)";
@@ -9725,7 +9736,7 @@ function fixedBossUpdateHighlight(){
     timeCell.style.boxShadow =
       "0 0 8px rgba(255,190,65,.65)";
 
-    timeCell.style.fontSize = "17px";
+    timeCell.style.fontSize = "25.5px"; // 기존 강조 글씨보다 50% 확대
     timeCell.style.fontWeight = "900";
   }
 }
